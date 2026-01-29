@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "SYT8R0BykAbyGQkZNnMExTE6dM4MbZ6GpAzxD/tOrxA=",
+  "Source": "EduPlatform.API",
+  "BasePath": "_content/EduPlatform.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
