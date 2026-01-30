@@ -67,7 +67,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<TestResult>()
             .HasOne(tr => tr.Test)
-            .WithMany(t => t.Questions) 
+            .WithMany(t => t.TestResults) 
             .HasForeignKey(tr => tr.TestId);
     }
 }
