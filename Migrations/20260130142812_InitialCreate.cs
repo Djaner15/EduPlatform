@@ -8,28 +8,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EduPlatform.API.Migrations
 {
     /// <inheritdoc />
-    public partial class AddAchievements : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
-                name: "Role",
-                table: "Users",
-                newName: "PasswordHash");
-
-            migrationBuilder.RenameColumn(
-                name: "Password",
-                table: "Users",
-                newName: "Email");
-
-            migrationBuilder.AddColumn<int>(
-                name: "RoleId",
-                table: "Users",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: 0);
-
             migrationBuilder.CreateTable(
                 name: "Grades",
                 columns: table => new
@@ -67,6 +50,28 @@ namespace EduPlatform.API.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Subjects", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Username = table.Column<string>(type: "TEXT", nullable: false),
+                    Email = table.Column<string>(type: "TEXT", nullable: false),
+                    PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
+                    RoleId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Users_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -196,10 +201,10 @@ namespace EduPlatform.API.Migrations
                     { 3, "Admin" }
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_RoleId",
+            migrationBuilder.InsertData(
                 table: "Users",
-                column: "RoleId");
+                columns: new[] { "Id", "Email", "PasswordHash", "RoleId", "Username" },
+                values: new object[] { 1, "admin@test.com", "$2a$11$PhsFy8pgNkl37Qc7LCINC.n8150iGRP3MiLABP69QVOM/3cF12DPK", 3, "admin" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Answers_QuestionId",
@@ -236,27 +241,17 @@ namespace EduPlatform.API.Migrations
                 table: "Tests",
                 column: "LessonId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Users_Roles_RoleId",
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_RoleId",
                 table: "Users",
-                column: "RoleId",
-                principalTable: "Roles",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                column: "RoleId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Users_Roles_RoleId",
-                table: "Users");
-
             migrationBuilder.DropTable(
                 name: "Answers");
-
-            migrationBuilder.DropTable(
-                name: "Roles");
 
             migrationBuilder.DropTable(
                 name: "TestResults");
@@ -265,7 +260,13 @@ namespace EduPlatform.API.Migrations
                 name: "Questions");
 
             migrationBuilder.DropTable(
+                name: "Users");
+
+            migrationBuilder.DropTable(
                 name: "Tests");
+
+            migrationBuilder.DropTable(
+                name: "Roles");
 
             migrationBuilder.DropTable(
                 name: "Lessons");
@@ -275,24 +276,6 @@ namespace EduPlatform.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "Subjects");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Users_RoleId",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "RoleId",
-                table: "Users");
-
-            migrationBuilder.RenameColumn(
-                name: "PasswordHash",
-                table: "Users",
-                newName: "Role");
-
-            migrationBuilder.RenameColumn(
-                name: "Email",
-                table: "Users",
-                newName: "Password");
         }
     }
 }

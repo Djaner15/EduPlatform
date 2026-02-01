@@ -224,6 +224,16 @@ namespace EduPlatform.API.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Email = "admin@test.com",
+                            PasswordHash = "$2a$11$PhsFy8pgNkl37Qc7LCINC.n8150iGRP3MiLABP69QVOM/3cF12DPK",
+                            RoleId = 3,
+                            Username = "admin"
+                        });
                 });
 
             modelBuilder.Entity("EduPlatform.API.Models.Answer", b =>

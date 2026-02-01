@@ -21,12 +21,31 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<User>()
+        .HasIndex(u => u.Username)
+        .IsUnique();
+
+        modelBuilder.Entity<User>()
+        .HasIndex(u => u.Email)
+        .IsUnique();
+
         // Seed роли
         modelBuilder.Entity<Role>().HasData(
             new Role { Id = 1, Name = "Student" },
             new Role { Id = 2, Name = "Teacher" },
             new Role { Id = 3, Name = "Admin" }
         );
+
+        modelBuilder.Entity<User>().HasData(
+        new User
+        {
+            Id = 1,
+            Username = "admin",
+            Email = "admin@test.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+            RoleId = 3 // Admin
+        }
+    );
 
         // Връзки
         modelBuilder.Entity<User>()

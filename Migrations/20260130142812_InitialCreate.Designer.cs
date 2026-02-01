@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EduPlatform.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260130134932_AddAchievements")]
-    partial class AddAchievements
+    [Migration("20260130142812_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -227,6 +227,16 @@ namespace EduPlatform.API.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Email = "admin@test.com",
+                            PasswordHash = "$2a$11$PhsFy8pgNkl37Qc7LCINC.n8150iGRP3MiLABP69QVOM/3cF12DPK",
+                            RoleId = 3,
+                            Username = "admin"
+                        });
                 });
 
             modelBuilder.Entity("EduPlatform.API.Models.Answer", b =>
