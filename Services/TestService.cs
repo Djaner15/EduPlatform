@@ -192,4 +192,35 @@ public class TestService : ITestService
             CompletedAt = result.CompletedAt
         };
     }
+
+    public async Task<List<TestResultDto>> GetAllResultsAsync()
+    {
+        return await _context.TestResults
+            .Select(tr => new TestResultDto
+            {
+                TestId = tr.TestId,
+                UserId = tr.UserId,
+                ScorePercentage = tr.Score,
+                CompletedAt = tr.CompletedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task<StatisticsDto> GetStatisticsAsync()
+    {
+        var totalUsers = await _context.Users.CountAsync();
+        var totalTests = await _context.Tests.CountAsync();
+        var totalResults = await _context.TestResults.CountAsync();
+        double avgScore = 0;
+        if (totalResults > 0)
+            avgScore = await _context.TestResults.AverageAsync(tr => tr.Score);
+
+        return new StatisticsDto
+        {
+            TotalUsers = totalUsers,
+            TotalTests = totalTests,
+            TotalResults = totalResults,
+            AverageScore = Math.Round(avgScore, 2)
+        };
+    }
 }
