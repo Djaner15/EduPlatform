@@ -1,4 +1,8 @@
 using EduPlatform.API.Data;
+using EduPlatform.API.Models;
+using EduPlatform.API.Services;
+using EduPlatform.API.Services.Interfaces;
+using EduPlatform.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -10,6 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Database ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=eduplatform.db"));
+
+// --- Services ---
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<UserService>();
 
 // --- Controllers & Swagger ---
 builder.Services.AddControllers();
@@ -95,10 +104,37 @@ app.UseSwaggerUI(c =>
 
 app.UseCors("AllowAll");
 
+// --- Global Exception Handling Middleware ---
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+
+app.UseExceptionHandler("/error");
+
+app.Map("/error", (HttpContext context) =>
+{
+    return Results.Problem("An unexpected error occurred.");
+});
+
 // ПРАВИЛЕН РЕД:
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// --- Database Seeding ---
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    if (!db.Roles.Any())
+    {
+        db.Roles.AddRange(
+            new Role { Name = "Admin" },
+            new Role { Name = "Teacher" },
+            new Role { Name = "Student" }
+        );
+
+        db.SaveChanges();
+    }
+}
 
 app.Run();

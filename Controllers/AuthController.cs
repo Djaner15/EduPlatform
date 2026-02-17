@@ -1,84 +1,70 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using System.Text;
-
-using EduPlatform.API.Data;
-using EduPlatform.API.Models;
+using EduPlatform.API.Services.Interfaces;
 using EduPlatform.API.DTOs.Auth;
-using BCrypt.Net;
+
+namespace EduPlatform.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly IConfiguration _config;
+    private readonly IAuthService _authService;
 
-    public AuthController(AppDbContext context, IConfiguration config)
+    public AuthController(IAuthService authService)
     {
-        _context = context;
-        _config = config;
+        _authService = authService;
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var user = _context.Users.Include(u => u.Role)
-                    .FirstOrDefault(u => u.Username == dto.Username);
-
-        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-            return Unauthorized("Invalid credentials");
-
-        var token = GenerateJwtToken(user);
-        return Ok(new { token });
-    }
-
-    private string GenerateJwtToken(User user)
-    {
-        var claims = new[]
+        try
         {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role.Name),
-            new Claim("userId", user.Id.ToString())
-        };
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            _config["Jwt:Issuer"],
-            _config["Jwt:Audience"],
-            claims,
-            expires: DateTime.Now.AddHours(3),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+            var response = await _authService.LoginAsync(dto);
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized("Invalid credentials");
+        }
     }
 
     [HttpPost("register")]
-public IActionResult Register(RegisterDto dto)
-{
-    if (_context.Users.Any(u => u.Username == dto.Username))
-        return BadRequest("Username already exists");
-
-    if (dto.RoleId == 3)
-        return BadRequest("Cannot register as admin");
-
-    var user = new User
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        Username = dto.Username,
-        Email = dto.Email,
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-        RoleId = dto.RoleId
-    };
+        try
+        {
+            var response = await _authService.RegisterAsync(dto);
+            return Created("api/auth/register", response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 
-    _context.Users.Add(user);
-    _context.SaveChanges();
+    /// <summary>
+    /// Gets current authenticated user information from JWT claims
+    /// </summary>
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult GetCurrentUser()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                     ?? User.FindFirst("userId")?.Value;
+        var username = User.FindFirst(ClaimTypes.Name)?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-    return Ok("User registered successfully");
-}
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(username))
+            return Unauthorized("Invalid token claims");
+
+        return Ok(new
+        {
+            userId = int.Parse(userId),
+            username = username,
+            role = role ?? "Unknown"
+        });
+    }
 }

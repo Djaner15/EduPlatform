@@ -1,172 +1,116 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using EduPlatform.API.Data;
-using EduPlatform.API.Models;
+using EduPlatform.API.Services;
 using EduPlatform.API.DTOs.Auth;
 
 namespace EduPlatform.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")] // Само Admin може да използва този controller
+[Authorize(Roles = "Admin")]
 public class UsersController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly UserService _userService;
 
-    public UsersController(AppDbContext context)
+    public UsersController(UserService userService)
     {
-        _context = context;
+        _userService = userService;
     }
 
-    // GET: api/users
+    /// <summary>
+    /// Gets all users with their role information
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetUsers()
     {
-        var users = await _context.Users
-            .Include(u => u.Role)
-            .Select(u => new
-            {
-                u.Id,
-                u.Username,
-                u.Email,
-                Role = u.Role!.Name
-            })
-            .ToListAsync();
+        var users = await _userService.GetAllAsync();
+        
+        var result = users.Select(u => new
+        {
+            u.Id,
+            u.Username,
+            u.Email,
+            Role = u.Role!.Name
+        }).ToList();
 
-        return Ok(users);
+        return Ok(result);
     }
 
-    // GET: api/users/1
+    /// <summary>
+    /// Gets a specific user by ID
+    /// </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUser(int id)
     {
-        var user = await _context.Users
-            .Include(u => u.Role)
-            .Where(u => u.Id == id)
-            .Select(u => new
-            {
-                u.Id,
-                u.Username,
-                u.Email,
-                Role = u.Role!.Name
-            })
-            .FirstOrDefaultAsync();
+        var user = await _userService.GetByIdAsync(id);
 
         if (user == null)
             return NotFound();
 
-        return Ok(user);
-    }
-
-    // POST: api/users
-    [HttpPost]
-    public async Task<IActionResult> CreateUser(CreateUserDto dto)
-    {
-        // 1. Проверка за дублиран username
-        if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
-            return BadRequest("Потребител с това username вече съществува.");
-
-        // 2. Проверка за дублиран email
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-            return BadRequest("Потребител с този email вече съществува.");
-
-        // 3. Взимаме ролята от базата
-        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == dto.RoleId);
-
-        if (role == null)
-            return BadRequest("Несъществуваща роля.");
-
-        // 4. Желязна забрана за Admin
-        if (role.Name == "Admin")
-            return BadRequest("Admin не може да създава друг Admin.");
-
-        var user = new User
-        {
-            Username = dto.Username,
-            Email = dto.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            RoleId = role.Id
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, new
+        return Ok(new
         {
             user.Id,
             user.Username,
             user.Email,
-            Role = role.Name
+            Role = user.Role!.Name
         });
     }
 
-    // PUT: api/users/1
-   [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateUser(int id, UpdateUserDto dto)
+    /// <summary>
+    /// Creates a new user
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
     {
-        var user = await _context.Users.FindAsync(id);
-        if (user == null)
-            return NotFound();
-
-        // ❗ Проверка за username
-        var usernameExists = await _context.Users
-            .AnyAsync(u => u.Username == dto.Username && u.Id != id);
-
-        if (usernameExists)
-            return BadRequest("Вече съществува потребител с това username.");
-
-        // ❗ Проверка за email
-        var emailExists = await _context.Users
-            .AnyAsync(u => u.Email == dto.Email && u.Id != id);
-
-        if (emailExists)
-            return BadRequest("Вече съществува потребител с този email.");
-
-        // валидна роля
-        if (dto.RoleId != 1 && dto.RoleId != 2)
-            return BadRequest("Невалидна роля.");
-
-        user.Username = dto.Username;
-        user.Email = dto.Email;
-
-        if (!string.IsNullOrWhiteSpace(dto.Password))
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-        user.RoleId = dto.RoleId;
-
-        await _context.SaveChangesAsync();
-        return NoContent();
+        try
+        {
+            var user = await _userService.CreateAsync(dto.Username, dto.Email, dto.Password, dto.RoleId);
+            
+            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, new
+            {
+                user.Id,
+                user.Username,
+                user.Email,
+                Role = user.Role!.Name
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    // DELETE: api/users/1
+    /// <summary>
+    /// Updates a user's information
+    /// </summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
+    {
+        try
+        {
+            await _userService.UpdateAsync(id, dto.Username, dto.Email, dto.RoleId, dto.Password);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a user
+    /// </summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        var user = await _context.Users.FindAsync(id);
-        if (user == null)
-            return NotFound();
-
-        _context.Users.Remove(user);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        try
+        {
+            await _userService.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
-}
-
-// DTOs за създаване и update на потребител
-public class CreateUserDto
-{
-    public string Username { get; set; } = null!;
-    public string Email { get; set; } = null!;
-    public string Password { get; set; } = null!;
-    public int RoleId { get; set; } // 1 = Student, 2 = Teacher
-}
-
-public class UpdateUserDto
-{
-    public string Username { get; set; } = null!;
-    public string Email { get; set; } = null!;
-    public string? Password { get; set; } // ако не се подаде, не се променя
-    public int RoleId { get; set; }
 }
