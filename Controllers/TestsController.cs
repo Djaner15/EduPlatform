@@ -64,4 +64,33 @@ public class TestsController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Submit test answers (authenticated users)
+    /// </summary>
+    [Authorize]
+    [HttpPost("{id}/submit")]
+    public async Task<IActionResult> Submit(int id, [FromBody] SubmitTestDto dto)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                               ?? User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized(new { error = "User id claim missing" });
+
+            var userId = int.Parse(userIdClaim);
+
+            var result = await _testService.SubmitTestAsync(id, userId, dto);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }

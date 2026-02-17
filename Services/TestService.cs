@@ -138,4 +138,58 @@ public class TestService : ITestService
             }).ToList()
         };
     }
+
+    /// <summary>
+    /// Submits a test, calculates score, persists TestResult and returns TestResultDto
+    /// </summary>
+    public async Task<TestResultDto> SubmitTestAsync(int testId, int userId, SubmitTestDto dto)
+    {
+        var test = await _context.Tests
+            .Include(t => t.Questions).ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(t => t.Id == testId);
+
+        if (test == null)
+            throw new KeyNotFoundException("Test not found");
+
+        var questions = test.Questions.ToList();
+        if (!questions.Any())
+            throw new InvalidOperationException("Test has no questions");
+
+        // Map answers by question
+        var answerMap = dto.Answers?.ToDictionary(a => a.QuestionId, a => a.AnswerId) ?? new Dictionary<int,int>();
+
+        int total = questions.Count;
+        int correct = 0;
+
+        foreach (var q in questions)
+        {
+            if (!answerMap.TryGetValue(q.Id, out var selectedAnswerId))
+                continue; // unanswered counts as incorrect
+
+            var answer = q.Answers.FirstOrDefault(a => a.Id == selectedAnswerId);
+            if (answer != null && answer.IsCorrect)
+                correct++;
+        }
+
+        int percentage = total == 0 ? 0 : (int)Math.Round((double)correct / total * 100);
+
+        var result = new TestResult
+        {
+            UserId = userId,
+            TestId = testId,
+            Score = percentage,
+            CompletedAt = DateTime.UtcNow
+        };
+
+        _context.TestResults.Add(result);
+        await _context.SaveChangesAsync();
+
+        return new TestResultDto
+        {
+            TestId = testId,
+            UserId = userId,
+            ScorePercentage = percentage,
+            CompletedAt = result.CompletedAt
+        };
+    }
 }
