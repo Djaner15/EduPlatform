@@ -1,0 +1,13 @@
+To: dzhanerhalil_e21@schoolmath.eu
+Subject: Account approved - EduPlatform
+Reason: smtp-send-failed
+GeneratedAtUtc: 2026-03-26T16:59:14.1233350Z
+From: caner.halil07@gmail.com
+
+Hello djaner,
+
+Your account has been approved and you can now log in as a student of Mathematics High School "Academic Kiril Popov".
+After signing in, you will be able to access your subjects, lessons, tests, and school information.
+
+Best regards,
+EduPlatform

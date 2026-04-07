@@ -1,0 +1,12 @@
+To: daniela@gmail.com
+Subject: Account approved - EduPlatform
+Reason: missing-smtp-settings
+GeneratedAtUtc: 2026-03-26T10:18:24.0186550Z
+
+Hello daniela,
+
+Your account has been approved and you can now log in as a student of Mathematics High School "Academic Kiril Popov".
+After signing in, you will be able to access your subjects, lessons, tests, and school information.
+
+Best regards,
+EduPlatform
