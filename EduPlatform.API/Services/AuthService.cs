@@ -50,6 +50,7 @@ public class AuthService : IAuthService
             Username = user.Username,
             Role = user.Role!.Name,
             UserId = user.Id,
+            ProfileImageUrl = user.ProfileImageUrl,
             Grade = user.Grade,
             Section = user.Section,
             ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(user.Grade, user.Section)

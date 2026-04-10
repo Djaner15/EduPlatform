@@ -1,3 +1,7 @@
+import FormControl from '@mui/material/FormControl'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
+import type { SelectChangeEvent } from '@mui/material/Select'
 import { Eraser, Highlighter, Type, Table2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactQuill from 'react-quill-new'
@@ -7,6 +11,78 @@ const toolbarId = `lesson-editor-toolbar`
 const formats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet', 'link', 'color', 'background']
 const textColorOptions = ['#0f172a', '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed']
 const highlightColorOptions = ['#fef08a', '#fde68a', '#fecaca', '#fed7aa', '#bfdbfe', '#bbf7d0', '#ddd6fe', '#fbcfe8']
+const headingOptions = [
+  { value: '', label: 'Normal' },
+  { value: '1', label: 'Heading 1' },
+  { value: '2', label: 'Heading 2' },
+  { value: '3', label: 'Heading 3' },
+]
+
+const toolbarSelectSx = {
+  minWidth: 142,
+  '& .MuiOutlinedInput-root': {
+    height: 40,
+    borderRadius: '0.95rem',
+    background: 'rgba(240,249,255,0.82)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '0.95rem',
+    color: '#183b5b',
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(191, 219, 254, 0.95)',
+  },
+  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(125, 211, 252, 0.95)',
+  },
+  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: '#38bdf8',
+    boxShadow: '0 0 0 4px rgba(186, 230, 253, 0.35)',
+  },
+  '& .MuiSelect-select': {
+    py: '0.55rem',
+    px: '0.85rem',
+  },
+  '& .MuiSvgIcon-root': {
+    color: '#2468a0',
+  },
+}
+
+const toolbarMenuProps = {
+  PaperProps: {
+    sx: {
+      mt: 1,
+      borderRadius: '1rem',
+      border: '1px solid rgba(191, 219, 254, 0.9)',
+      background: 'rgba(255,255,255,0.98)',
+      boxShadow: '0 18px 40px rgba(36, 104, 160, 0.16)',
+      overflow: 'hidden',
+    },
+  },
+  MenuListProps: {
+    sx: {
+      py: 1,
+      '& .MuiMenuItem-root': {
+        mx: 1,
+        my: 0.25,
+        borderRadius: '0.85rem',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '0.95rem',
+        color: '#0f172a',
+      },
+      '& .MuiMenuItem-root:hover': {
+        backgroundColor: 'rgba(236, 254, 255, 0.95)',
+      },
+      '& .MuiMenuItem-root.Mui-selected': {
+        background: 'linear-gradient(90deg, rgba(36,104,160,0.16), rgba(15,139,141,0.18))',
+        color: '#0f3f61',
+        fontWeight: 700,
+      },
+      '& .MuiMenuItem-root.Mui-selected:hover': {
+        background: 'linear-gradient(90deg, rgba(36,104,160,0.18), rgba(15,139,141,0.22))',
+      },
+    },
+  },
+} as const
 
 type RichTextEditorProps = {
   value: string
@@ -18,6 +94,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
   const quillRef = useRef<ReactQuill | null>(null)
   const toolbarRef = useRef<HTMLDivElement | null>(null)
   const [openMenu, setOpenMenu] = useState<'text' | 'highlight' | null>(null)
+  const [headerValue, setHeaderValue] = useState('')
 
   const toggleInlineFormat = (format: 'bold' | 'italic' | 'underline') => {
     const editor = quillRef.current?.getEditor()
@@ -78,6 +155,33 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     return () => document.removeEventListener('mousedown', handlePointerDown)
   }, [])
 
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor()
+    if (!editor) {
+      return undefined
+    }
+
+    const syncHeader = () => {
+      const range = editor.getSelection()
+      const formats = range ? editor.getFormat(range) : editor.getFormat()
+      const nextValue =
+        typeof formats.header === 'number' || typeof formats.header === 'string'
+          ? String(formats.header)
+          : ''
+
+      setHeaderValue(nextValue)
+    }
+
+    syncHeader()
+    editor.on('selection-change', syncHeader)
+    editor.on('text-change', syncHeader)
+
+    return () => {
+      editor.off('selection-change', syncHeader)
+      editor.off('text-change', syncHeader)
+    }
+  }, [])
+
   const modules = useMemo(
     () => ({
       toolbar: {
@@ -111,12 +215,30 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     <div className="rich-editor rounded-2xl border border-sky-200 bg-white">
       <div className="ql-toolbar ql-snow" id={toolbarId} ref={toolbarRef}>
         <span className="ql-formats">
-          <select className="ql-header" defaultValue="">
-            <option value="1">Heading 1</option>
-            <option value="2">Heading 2</option>
-            <option value="3">Heading 3</option>
-            <option value="">Normal</option>
-          </select>
+          <FormControl size="small" sx={toolbarSelectSx}>
+            <Select
+              displayEmpty
+              value={headerValue}
+              MenuProps={toolbarMenuProps}
+              onChange={(event: SelectChangeEvent) => {
+                const editor = quillRef.current?.getEditor()
+                if (!editor) {
+                  return
+                }
+
+                const nextValue = event.target.value
+                editor.focus()
+                editor.format('header', nextValue ? Number(nextValue) : false, 'user')
+                setHeaderValue(nextValue)
+              }}
+            >
+              {headingOptions.map((option) => (
+                <MenuItem key={option.label} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </span>
         <span className="ql-formats">
           <button aria-label="Bold" className="ql-bold" type="button" />

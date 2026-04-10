@@ -4,6 +4,7 @@ namespace EduPlatform.API.Models
     {
         public int Id { get; set; }
         public string Title { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
         public int CreatedByUserId { get; set; }
         public User CreatedByUser { get; set; } = null!;
         public int LessonId { get; set; }

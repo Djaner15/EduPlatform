@@ -47,6 +47,7 @@ public class TestService : ITestService
             {
                 Id = t.Id,
                 Title = t.Title,
+                CreatedAt = t.CreatedAt,
                 LessonId = t.LessonId,
                 LessonTitle = t.Lesson.Title,
                 SubjectName = t.Lesson.Subject.Name,
@@ -55,6 +56,8 @@ public class TestService : ITestService
                 ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(t.Grade, t.Section) ?? string.Empty,
                 CreatedByUserId = t.CreatedByUserId,
                 CreatedByUsername = t.CreatedByUser.Username,
+                CreatedByFullName = t.CreatedByUser.FullName,
+                CreatedByIsApproved = t.CreatedByUser.IsApproved,
                 Questions = t.Questions.Select(q => new QuestionDto
                 {
                     Id = q.Id,
@@ -104,6 +107,7 @@ public class TestService : ITestService
         {
             Id = test.Id,
             Title = test.Title,
+            CreatedAt = test.CreatedAt,
             LessonId = test.LessonId,
             LessonTitle = test.Lesson.Title,
             SubjectName = test.Lesson.Subject.Name,
@@ -112,6 +116,8 @@ public class TestService : ITestService
             ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(test.Grade, test.Section) ?? string.Empty,
             CreatedByUserId = test.CreatedByUserId,
             CreatedByUsername = test.CreatedByUser.Username,
+            CreatedByFullName = test.CreatedByUser.FullName,
+            CreatedByIsApproved = test.CreatedByUser.IsApproved,
             Questions = test.Questions.Select(q => new QuestionDto
             {
                 Id = q.Id,
@@ -150,6 +156,7 @@ public class TestService : ITestService
         var test = new Test
         {
             Title = dto.Title.Trim(),
+            CreatedAt = DateTime.UtcNow,
             LessonId = dto.LessonId,
             Grade = classAssignment.Grade,
             Section = classAssignment.Section,

@@ -6,12 +6,14 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { clearStoredAuth, persistAuth, readStoredAuth } from '../shared/authStorage'
 
 export type AuthUser = {
   id: number
   fullName?: string
   username: string
   role: string
+  profileImageUrl?: string | null
   grade?: number | null
   section?: string | null
   classDisplay?: string | null
@@ -20,6 +22,7 @@ export type AuthUser = {
 type LoginPayload = {
   token: string
   user: AuthUser
+  rememberMe?: boolean
 }
 
 type AuthContextValue = {
@@ -30,25 +33,7 @@ type AuthContextValue = {
   isAuthenticated: () => boolean
 }
 
-const AUTH_TOKEN_KEY = 'token'
-const AUTH_USER_KEY = 'authUser'
-
 const AuthContext = createContext<AuthContextValue | null>(null)
-
-const parseStoredUser = (): AuthUser | null => {
-  const raw = localStorage.getItem(AUTH_USER_KEY)
-
-  if (!raw) {
-    return null
-  }
-
-  try {
-    return JSON.parse(raw) as AuthUser
-  } catch {
-    localStorage.removeItem(AUTH_USER_KEY)
-    return null
-  }
-}
 
 type AuthProviderProps = {
   children: ReactNode
@@ -59,27 +44,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
 
   useEffect(() => {
-    setToken(localStorage.getItem(AUTH_TOKEN_KEY))
-    setUser(parseStoredUser())
+    const storedAuth = readStoredAuth()
+    setToken(storedAuth?.token ?? null)
+    setUser(storedAuth?.user ?? null)
   }, [])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       token,
-      login: ({ token: nextToken, user: nextUser }) => {
-        localStorage.setItem(AUTH_TOKEN_KEY, nextToken)
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser))
-        localStorage.setItem('username', nextUser.username)
-        localStorage.setItem('userRole', nextUser.role)
+      login: ({ token: nextToken, user: nextUser, rememberMe = false }) => {
+        persistAuth({ token: nextToken, user: nextUser, rememberMe })
         setToken(nextToken)
         setUser(nextUser)
       },
       logout: () => {
-        localStorage.removeItem(AUTH_TOKEN_KEY)
-        localStorage.removeItem(AUTH_USER_KEY)
-        localStorage.removeItem('username')
-        localStorage.removeItem('userRole')
+        clearStoredAuth()
         setToken(null)
         setUser(null)
       },

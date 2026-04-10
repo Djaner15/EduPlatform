@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { PageHeader } from '../components/PageHeader'
-import apiClient from '../api/axiosInstance'
+import apiClient, { resolveApiAssetUrl } from '../api/axiosInstance'
 import { useAppSettings, useTranslation } from '../../app/AppSettingsContext'
 import { useAuth } from '../../app/AuthContext'
 import { useNotification } from '../../app/NotificationContext'
@@ -55,10 +55,6 @@ export function SettingsPage() {
   const { showNotification } = useNotification()
   const { language, setLanguage, theme, setTheme } = useAppSettings()
   const { t } = useTranslation()
-  const profileImageStorageKey = useMemo(
-    () => `eduplatformProfileImage:${user?.id ?? 'guest'}`,
-    [user?.id],
-  )
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -66,10 +62,36 @@ export function SettingsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const resolvedProfileImageSrc = profileImage
+    ? resolveApiAssetUrl(profileImage)
+    : user?.profileImageUrl
+      ? resolveApiAssetUrl(user.profileImageUrl)
+      : undefined
 
   useEffect(() => {
-    const savedImage = localStorage.getItem(profileImageStorageKey)
-    setProfileImage(savedImage)
+    let isMounted = true
+
+    const loadProfile = async () => {
+      try {
+        const response = await apiClient.get<{
+          profileImageUrl?: string | null
+        }>('/auth/me')
+
+        if (isMounted) {
+          setProfileImage(response.data.profileImageUrl ?? null)
+        }
+      } catch {
+        if (isMounted) {
+          setProfileImage(null)
+        }
+      }
+    }
+
+    void loadProfile()
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const roleDescription = useMemo(() => {
@@ -147,24 +169,55 @@ export function SettingsPage() {
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setProfileImage(reader.result)
-        localStorage.setItem(profileImageStorageKey, reader.result)
-        showNotification('Profile image updated on this device.', 'success')
-      }
-    }
-    reader.readAsDataURL(file)
+    const formData = new FormData()
+    formData.append('image', file)
+
+    void apiClient
+      .post<{ profileImageUrl?: string | null }>('/auth/profile-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      .then((response) => {
+        setProfileImage(response.data.profileImageUrl ?? null)
+        showNotification('Profile image updated successfully.', 'success')
+      })
+      .catch((error: unknown) => {
+        let message = 'Failed to update profile image.'
+
+        if (axios.isAxiosError(error)) {
+          const payload = error.response?.data
+          if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+            message = payload.error
+          }
+        }
+
+        showNotification(message, 'error')
+      })
   }
 
   const clearProfileImage = () => {
-    setProfileImage(null)
-    localStorage.removeItem(profileImageStorageKey)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-    showNotification('Profile image removed from this device.', 'success')
+    void apiClient
+      .delete<{ profileImageUrl?: string | null }>('/auth/profile-image')
+      .then(() => {
+        setProfileImage(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        showNotification('Profile image removed successfully.', 'success')
+      })
+      .catch((error: unknown) => {
+        let message = 'Failed to remove profile image.'
+
+        if (axios.isAxiosError(error)) {
+          const payload = error.response?.data
+          if (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') {
+            message = payload.error
+          }
+        }
+
+        showNotification(message, 'error')
+      })
   }
 
   return (
@@ -331,11 +384,12 @@ export function SettingsPage() {
                   </p>
 
                   <div className="mt-5 flex flex-col items-center gap-4 rounded-3xl border border-blue-100/80 bg-white/70 p-5 text-center">
-                    {profileImage ? (
+                    {resolvedProfileImageSrc ? (
                       <img
                         alt={`${user?.username ?? 'User'} profile`}
-                        className="h-24 w-24 rounded-full border border-blue-100 object-cover shadow-sm"
-                        src={profileImage}
+                        className="block h-24 w-24 rounded-full border border-blue-100 object-cover shadow-sm"
+                        src={resolvedProfileImageSrc}
+                        style={{ objectFit: 'cover', backgroundColor: 'transparent' }}
                       />
                     ) : (
                       <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 text-[#2468a0]">
@@ -363,9 +417,9 @@ export function SettingsPage() {
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <Upload className="h-4 w-4" />
-                        {profileImage ? t('changeImage') : t('uploadImage')}
+                        {resolvedProfileImageSrc ? t('changeImage') : t('uploadImage')}
                       </button>
-                      {profileImage ? (
+                      {resolvedProfileImageSrc ? (
                         <button
                           className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                           type="button"

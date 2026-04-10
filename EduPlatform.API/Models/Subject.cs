@@ -5,6 +5,7 @@ namespace EduPlatform.API.Models
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string Description { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
         public int Grade { get; set; }
         public string Section { get; set; } = null!;
         public int CreatedByUserId { get; set; }

@@ -35,6 +35,7 @@ public class UsersController : ControllerBase
             u.FullName,
             u.Username,
             u.Email,
+            u.ProfileImageUrl,
             Role = u.Role!.Name,
             u.Grade,
             u.Section,
@@ -69,6 +70,7 @@ public class UsersController : ControllerBase
             user.FullName,
             user.Username,
             user.Email,
+            user.ProfileImageUrl,
             Role = user.Role!.Name,
             user.Grade,
             user.Section,
@@ -100,6 +102,7 @@ public class UsersController : ControllerBase
                 user.FullName,
                 user.Username,
                 user.Email,
+                user.ProfileImageUrl,
                 Role = user.Role!.Name,
                 user.Grade,
                 user.Section,
@@ -134,6 +137,20 @@ public class UsersController : ControllerBase
         }
     }
 
+    [HttpPost("bulk-users")]
+    public async Task<IActionResult> BulkCreateUsers([FromBody] BulkUserImportDto dto)
+    {
+        try
+        {
+            var createdCount = await _userService.BulkCreateUsersAsync(dto.Users);
+            return Ok(new { createdCount });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPut("{id}/approval")]
     public async Task<IActionResult> SetApproval(int id, [FromBody] ApproveUserDto dto)
     {
@@ -146,6 +163,7 @@ public class UsersController : ControllerBase
                 user.FullName,
                 user.Username,
                 user.Email,
+                user.ProfileImageUrl,
                 Role = user.Role!.Name,
                 user.Grade,
                 user.Section,
@@ -183,6 +201,20 @@ public class UsersController : ControllerBase
         }
     }
 
+    [HttpPut("{id}/password")]
+    public async Task<IActionResult> ResetPassword(int id, [FromBody] AdminResetPasswordDto dto)
+    {
+        try
+        {
+            await _userService.ResetPasswordAsync(id, dto.NewPassword);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet("management")]
     public async Task<IActionResult> GetManagementData()
     {
@@ -206,6 +238,7 @@ public class UsersController : ControllerBase
                 user.FullName,
                 user.Username,
                 user.Email,
+                user.ProfileImageUrl,
                 user.IsApproved,
                 SubjectIds = user.TeacherSubjectAssignments.Select(ts => ts.SubjectId).ToList(),
                 SubjectNames = user.TeacherSubjectAssignments
@@ -235,6 +268,7 @@ public class UsersController : ControllerBase
                 user.FullName,
                 user.Username,
                 user.Email,
+                user.ProfileImageUrl,
                 Role = "Admin",
                 user.IsApproved
             })
@@ -267,6 +301,7 @@ public class UsersController : ControllerBase
                                 student.FullName,
                                 student.Username,
                                 student.Email,
+                                student.ProfileImageUrl,
                                 Role = student.Role!.Name,
                                 student.IsApproved
                             })

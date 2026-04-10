@@ -1,10 +1,36 @@
 import axios from 'axios'
-import { Search, UserCheck } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import Fade from '@mui/material/Fade'
+import Avatar from '@mui/material/Avatar'
+import IconButton from '@mui/material/IconButton'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemText from '@mui/material/ListItemText'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import PasswordOutlinedIcon from '@mui/icons-material/PasswordOutlined'
+import ToggleOnOutlinedIcon from '@mui/icons-material/ToggleOnOutlined'
+import ToggleOffOutlinedIcon from '@mui/icons-material/ToggleOffOutlined'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import CloseIcon from '@mui/icons-material/Close'
+import RestartAltOutlined from '@mui/icons-material/RestartAltOutlined'
 import { useNotification } from '../../../app/NotificationContext'
 import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AdminSearchField } from '../../../shared/components/AdminSearchField'
+import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
+import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal'
 import { PageHeader } from '../../../shared/components/PageHeader'
-import apiClient from '../../../shared/api/axiosInstance'
+import apiClient, { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
+import { isWithinDateRange } from '../../../shared/dateFilters'
+import { sortItems, type SortDirection } from '../../../shared/tableSorting'
 import { BulkUploadModal } from '../components/BulkUploadModal'
 
 type AssignedClass = {
@@ -18,7 +44,21 @@ type StudentItem = {
   fullName: string
   username: string
   email: string
+  profileImageUrl?: string | null
   isApproved: boolean
+}
+
+type ManagedUserAction = {
+  id: number
+  fullName: string
+  username: string
+  email: string
+  isApproved: boolean
+  role: 'Student' | 'Teacher'
+  profileImageUrl?: string | null
+  classDisplay?: string | null
+  subjectNames?: string[]
+  assignedClasses?: AssignedClass[]
 }
 
 type TeacherItem = {
@@ -26,6 +66,7 @@ type TeacherItem = {
   fullName: string
   username: string
   email: string
+  profileImageUrl?: string | null
   isApproved: boolean
   subjectIds: number[]
   subjectNames: string[]
@@ -37,9 +78,13 @@ type AdminItem = {
   fullName: string
   username: string
   email: string
+  profileImageUrl?: string | null
   role: string
   isApproved: boolean
+  approvedAt?: string | null
 }
+
+type UserSortColumn = 'name' | 'role' | 'dateCreated'
 
 type SectionGroup = {
   section: string
@@ -67,6 +112,7 @@ type UserItem = {
   fullName: string
   username: string
   email: string
+  profileImageUrl?: string | null
   role: string
   grade?: number | null
   section?: string | null
@@ -74,6 +120,17 @@ type UserItem = {
   subjectIds?: number[]
   assignedClasses?: AssignedClass[]
   isApproved: boolean
+  approvedAt?: string | null
+}
+
+type DeleteCandidate = {
+  id: number
+  label: string
+}
+
+type TeacherPasswordResetState = {
+  newPassword: string
+  confirmPassword: string
 }
 
 type ManagementResponse = {
@@ -134,8 +191,38 @@ const validateStrongPassword = (password: string) => {
 
 const classKey = (grade: number, section: string) => `${grade}-${section}`
 
+const getInitials = (fullName?: string | null, username?: string | null) => {
+  const source = (fullName?.trim() || username?.trim() || 'U').split(/\s+/).filter(Boolean)
+  return source
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
+const getResolvedUserImageSrc = (path?: string | null) => (path ? resolveApiAssetUrl(path) : undefined)
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return 'Unknown date'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date'
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 export function AdminUsersPage() {
   const { showNotification } = useNotification()
+  const formCardRef = useRef<HTMLElement | null>(null)
   const [allUsers, setAllUsers] = useState<UserItem[]>([])
   const [management, setManagement] = useState<ManagementResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -144,19 +231,35 @@ export function AdminUsersPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false)
-  const [activeView, setActiveView] = useState<'students' | 'teachers'>('students')
+  const [activeView, setActiveView] = useState<'students' | 'teachers' | 'admins'>('students')
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'Student' | 'Teacher' | 'Admin'>('all')
   const [gradeFilter, setGradeFilter] = useState<'all' | number>('all')
   const [sectionFilter, setSectionFilter] = useState<'all' | string>('all')
-  const [expandedGrades, setExpandedGrades] = useState<number[]>(gradeOptions.slice(0, 2))
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [startDateFilter, setStartDateFilter] = useState('')
+  const [endDateFilter, setEndDateFilter] = useState('')
+  const [sortColumn, setSortColumn] = useState<UserSortColumn>('dateCreated')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [expandedGrade, setExpandedGrade] = useState<number | null>(null)
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [classTeacherDrafts, setClassTeacherDrafts] = useState<Record<string, string>>({})
-  const [classTeacherSearch, setClassTeacherSearch] = useState<Record<string, string>>({})
-  const [openTeacherPicker, setOpenTeacherPicker] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<DeleteCandidate | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditFormHighlighted, setIsEditFormHighlighted] = useState(false)
+  const [userActionAnchorEl, setUserActionAnchorEl] = useState<HTMLElement | null>(null)
+  const [activeUserAction, setActiveUserAction] = useState<ManagedUserAction | null>(null)
+  const [profileUser, setProfileUser] = useState<ManagedUserAction | null>(null)
+  const [passwordResetUser, setPasswordResetUser] = useState<ManagedUserAction | null>(null)
+  const [passwordResetForm, setPasswordResetForm] = useState<TeacherPasswordResetState>({
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   const isStudentRole = form.roleId === 1
   const isTeacherRole = form.roleId === 2
+  const isUserActionMenuOpen = Boolean(userActionAnchorEl)
 
   const readApiError = (error: unknown, fallback: string) => {
     if (axios.isAxiosError(error)) {
@@ -212,6 +315,19 @@ export function AdminUsersPage() {
   useEffect(() => {
     void loadUsers()
   }, [])
+
+  useEffect(() => {
+    setSearchTerm('')
+    setGradeFilter('all')
+    setSectionFilter('all')
+    setStatusFilter('all')
+    setStartDateFilter('')
+    setEndDateFilter('')
+    setSortColumn('dateCreated')
+    setSortDirection('desc')
+  }, [activeView])
+
+  const allUsersById = useMemo(() => new Map(allUsers.map((user) => [user.id, user])), [allUsers])
 
   const resetForm = () => {
     setForm(initialForm)
@@ -312,11 +428,15 @@ export function AdminUsersPage() {
 
   const handleDelete = async (id: number) => {
     try {
+      setIsDeleting(true)
       await apiClient.delete(`/users/${id}`)
+      setPendingDelete(null)
       showNotification('User deleted successfully.', 'success')
       await loadUsers()
     } catch (error) {
       showNotification(readApiError(error, 'Failed to delete user.'), 'error')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -338,7 +458,27 @@ export function AdminUsersPage() {
       subjectIds: user.subjectIds ?? [],
       assignedClasses: user.assignedClasses ?? [],
     })
+    setIsEditFormHighlighted(true)
+
+    window.setTimeout(() => {
+      formCardRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 80)
   }
+
+  useEffect(() => {
+    if (!isEditFormHighlighted) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsEditFormHighlighted(false)
+    }, 1800)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isEditFormHighlighted])
 
   const handleClassTeacherSave = async (grade: number, section: string) => {
     const key = classKey(grade, section)
@@ -360,34 +500,50 @@ export function AdminUsersPage() {
 
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    if (roleFilter !== 'all' && roleFilter !== 'Student') {
-      return []
-    }
+    const gradeMap = new Map(management.grades.map((gradeGroup) => [gradeGroup.grade, gradeGroup]))
 
-    return management.grades
-      .filter((gradeGroup) => (gradeFilter === 'all' ? true : gradeGroup.grade === gradeFilter))
-      .map((gradeGroup) => ({
-        ...gradeGroup,
-        sections: gradeGroup.sections
-          .filter((sectionGroup) => (sectionFilter === 'all' ? true : sectionGroup.section === sectionFilter))
-          .map((sectionGroup) => ({
-            ...sectionGroup,
-            students: sectionGroup.students.filter((student) => {
-              if (!normalizedSearch) {
-                return true
+    return gradeOptions
+      .filter((grade) => (gradeFilter === 'all' ? true : grade === gradeFilter))
+      .map((grade) => {
+        const gradeGroup = gradeMap.get(grade)
+        const sectionMap = new Map((gradeGroup?.sections ?? []).map((sectionGroup) => [sectionGroup.section, sectionGroup]))
+
+        return {
+          grade,
+          sections: sectionOptions
+            .filter((section) => (sectionFilter === 'all' ? true : section === sectionFilter))
+            .map((section) => {
+              const sectionGroup = sectionMap.get(section)
+
+              return {
+                section,
+                classDisplay: `${grade}${section}`,
+                classTeacher: sectionGroup?.classTeacher ?? null,
+                students: (sectionGroup?.students ?? []).filter((student) => {
+                  const studentRecord = allUsersById.get(student.id)
+                  const matchesStatus =
+                    statusFilter === 'all' || (statusFilter === 'active' ? student.isApproved : !student.isApproved)
+                  const matchesDate = isWithinDateRange(studentRecord?.approvedAt, startDateFilter, endDateFilter)
+
+                  if (!matchesStatus || !matchesDate) {
+                    return false
+                  }
+
+                  if (!normalizedSearch) {
+                    return true
+                  }
+
+                  return (
+                    student.fullName.toLowerCase().includes(normalizedSearch) ||
+                    student.username.toLowerCase().includes(normalizedSearch) ||
+                    student.email.toLowerCase().includes(normalizedSearch)
+                  )
+                }),
               }
-
-              return (
-                student.fullName.toLowerCase().includes(normalizedSearch) ||
-                student.username.toLowerCase().includes(normalizedSearch) ||
-                student.email.toLowerCase().includes(normalizedSearch)
-              )
             }),
-          }))
-          .filter((sectionGroup) => sectionGroup.students.length > 0 || sectionGroup.classTeacher !== null),
-      }))
-      .filter((gradeGroup) => gradeGroup.sections.length > 0)
-  }, [gradeFilter, management, roleFilter, searchTerm, sectionFilter])
+        }
+      })
+  }, [allUsersById, endDateFilter, gradeFilter, management, searchTerm, sectionFilter, startDateFilter, statusFilter])
 
   const filteredTeachers = useMemo(() => {
     if (!management) {
@@ -396,16 +552,20 @@ export function AdminUsersPage() {
 
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    if (roleFilter === 'Student') {
-      return []
-    }
-
     return management.teachers.filter((teacher) => {
       if (gradeFilter !== 'all' && !teacher.assignedClasses.some((entry) => entry.grade === gradeFilter)) {
         return false
       }
 
       if (sectionFilter !== 'all' && !teacher.assignedClasses.some((entry) => entry.section === sectionFilter)) {
+        return false
+      }
+
+      const matchesStatus =
+        statusFilter === 'all' || (statusFilter === 'active' ? teacher.isApproved : !teacher.isApproved)
+      const matchesDate = isWithinDateRange(allUsersById.get(teacher.id)?.approvedAt, startDateFilter, endDateFilter)
+
+      if (!matchesStatus || !matchesDate) {
         return false
       }
 
@@ -420,7 +580,7 @@ export function AdminUsersPage() {
         teacher.subjectNames.some((subject) => subject.toLowerCase().includes(normalizedSearch))
       )
     })
-  }, [gradeFilter, management, roleFilter, searchTerm, sectionFilter])
+  }, [allUsersById, endDateFilter, gradeFilter, management, searchTerm, sectionFilter, startDateFilter, statusFilter])
 
   const filteredAdmins = useMemo(() => {
     if (!management) {
@@ -429,11 +589,16 @@ export function AdminUsersPage() {
 
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    if (roleFilter === 'Student' || roleFilter === 'Teacher') {
-      return []
-    }
-
     return management.admins.filter((admin) => {
+      const adminRecord = allUsersById.get(admin.id)
+      const matchesStatus =
+        statusFilter === 'all' || (statusFilter === 'active' ? admin.isApproved : !admin.isApproved)
+      const matchesDate = isWithinDateRange(adminRecord?.approvedAt, startDateFilter, endDateFilter)
+
+      if (!matchesStatus || !matchesDate) {
+        return false
+      }
+
       if (!normalizedSearch) {
         return true
       }
@@ -444,54 +609,201 @@ export function AdminUsersPage() {
         admin.email.toLowerCase().includes(normalizedSearch)
       )
     })
-  }, [management, roleFilter, searchTerm])
+  }, [allUsersById, endDateFilter, management, searchTerm, startDateFilter, statusFilter])
+
+  const sortUsers = <T extends { id: number; fullName: string; role?: string }>(
+    items: T[],
+    fallbackRole: string,
+  ) => {
+    const sortMap = {
+      name: {
+        getValue: (item: T) => item.fullName,
+        type: 'text',
+      },
+      role: {
+        getValue: (item: T) => item.role ?? fallbackRole,
+        type: 'text',
+      },
+      dateCreated: {
+        getValue: (item: T) => allUsersById.get(item.id)?.approvedAt ?? null,
+        type: 'date',
+      },
+    } as const
+
+    const selectedSort = sortMap[sortColumn]
+    return sortItems(items, selectedSort.getValue, sortDirection, selectedSort.type)
+  }
+
+  const sortedGrades = useMemo(
+    () =>
+      filteredGrades.map((gradeGroup) => ({
+        ...gradeGroup,
+        sections: gradeGroup.sections.map((sectionGroup) => ({
+          ...sectionGroup,
+          students: sortUsers(sectionGroup.students, 'Student'),
+        })),
+      })),
+    [filteredGrades, sortColumn, sortDirection, allUsersById],
+  )
+
+  const sortedTeachers = useMemo(
+    () => sortUsers(filteredTeachers.map((teacher) => ({ ...teacher, role: 'Teacher' })), 'Teacher'),
+    [filteredTeachers, sortColumn, sortDirection, allUsersById],
+  )
+
+  const sortedAdmins = useMemo(
+    () => sortUsers(filteredAdmins, 'Admin'),
+    [filteredAdmins, sortColumn, sortDirection, allUsersById],
+  )
+
+  const handleSortChange = (column: UserSortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortColumn(column)
+    setSortDirection(column === 'dateCreated' ? 'desc' : 'asc')
+  }
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setGradeFilter('all')
+    setSectionFilter('all')
+    setStatusFilter('all')
+    setStartDateFilter('')
+    setEndDateFilter('')
+    setSortColumn('dateCreated')
+    setSortDirection('desc')
+  }
 
   const toggleGrade = (grade: number) => {
-    setExpandedGrades((current) =>
-      current.includes(grade) ? current.filter((entry) => entry !== grade) : [...current, grade],
-    )
+    setExpandedGrade((current) => {
+      const nextGrade = current === grade ? null : grade
+      setExpandedSection(null)
+      return nextGrade
+    })
   }
 
   const toggleSection = (grade: number, section: string) => {
     const key = classKey(grade, section)
-    setExpandedSections((current) =>
-      current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key],
-    )
+    setExpandedSection((current) => (current === key ? null : key))
   }
 
   const getTeacherDisplayName = (teacher: TeacherItem | null | undefined) =>
     teacher?.fullName?.trim() || teacher?.username || ''
 
-  const handleExportCSV = () => {
-    const exportedRows = filteredGrades.flatMap((gradeGroup) =>
-      gradeGroup.sections.flatMap((sectionGroup) =>
-        sectionGroup.students.map((student) => ({
-          fullName: student.fullName,
-          email: student.email,
-          grade: gradeGroup.grade,
-          section: sectionGroup.section,
-        })),
-      ),
-    )
+  const closeUserActionMenu = () => {
+    setUserActionAnchorEl(null)
+    setActiveUserAction(null)
+  }
 
+  const openUserActionMenu = (event: React.MouseEvent<HTMLElement>, user: ManagedUserAction) => {
+    setUserActionAnchorEl(event.currentTarget)
+    setActiveUserAction(user)
+  }
+
+  const handleManagedUserEdit = (managedUser: ManagedUserAction) => {
+    closeUserActionMenu()
+    const fullUser = allUsersById.get(managedUser.id)
+    if (fullUser) {
+      handleEdit(fullUser)
+    }
+  }
+
+  const handleManagedUserPasswordOpen = (managedUser: ManagedUserAction) => {
+    closeUserActionMenu()
+    setPasswordResetUser(managedUser)
+    setPasswordResetForm({
+      newPassword: '',
+      confirmPassword: '',
+    })
+    setShowResetPassword(false)
+  }
+
+  const handleTeacherPasswordReset = async () => {
+    if (!passwordResetUser) {
+      return
+    }
+
+    if (!passwordResetForm.newPassword.trim()) {
+      showNotification('Please enter a new password.', 'error')
+      return
+    }
+
+    if (passwordResetForm.newPassword !== passwordResetForm.confirmPassword) {
+      showNotification('The new passwords do not match.', 'error')
+      return
+    }
+
+    const passwordError = validateStrongPassword(passwordResetForm.newPassword)
+    if (passwordError) {
+      showNotification(passwordError, 'error')
+      return
+    }
+
+    try {
+      setIsResettingPassword(true)
+      await apiClient.put(`/users/${passwordResetUser.id}/password`, {
+        newPassword: passwordResetForm.newPassword,
+      })
+      setPasswordResetUser(null)
+      setPasswordResetForm({
+        newPassword: '',
+        confirmPassword: '',
+      })
+      setShowResetPassword(false)
+      showNotification('Password reset successfully.', 'success')
+    } catch (error) {
+      showNotification(readApiError(error, 'Failed to reset password.'), 'error')
+    } finally {
+      setIsResettingPassword(false)
+    }
+  }
+
+  const hasExportableRows =
+    activeView === 'students'
+      ? sortedGrades.some((gradeGroup) => gradeGroup.sections.some((sectionGroup) => sectionGroup.students.length > 0))
+      : sortedTeachers.length > 0
+
+  const handleExportCSV = () => {
     const escapeCsvValue = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`
-    const csvLines = [
-      ['Full Name', 'Email', 'Grade', 'Section'].join(','),
-      ...exportedRows.map((row) =>
-        [
-          escapeCsvValue(row.fullName),
-          escapeCsvValue(row.email),
-          escapeCsvValue(row.grade),
-          escapeCsvValue(row.section),
-        ].join(','),
-      ),
-    ]
+    const csvLines =
+      activeView === 'students'
+        ? [
+            ['Full Name', 'Email', 'Grade', 'Section', 'Status'].join(','),
+            ...sortedGrades.flatMap((gradeGroup) =>
+              gradeGroup.sections.flatMap((sectionGroup) =>
+                sectionGroup.students.map((student) =>
+                  [
+                    escapeCsvValue(student.fullName),
+                    escapeCsvValue(student.email),
+                    escapeCsvValue(gradeGroup.grade),
+                    escapeCsvValue(sectionGroup.section),
+                    escapeCsvValue(student.isApproved ? 'Active' : 'Inactive'),
+                  ].join(','),
+                ),
+              ),
+            ),
+          ]
+        : [
+            ['Full Name', 'Email', 'Status', 'Subjects', 'Assigned Classes'].join(','),
+            ...sortedTeachers.map((teacher) =>
+              [
+                escapeCsvValue(teacher.fullName),
+                escapeCsvValue(teacher.email),
+                escapeCsvValue(teacher.isApproved ? 'Active' : 'Inactive'),
+                escapeCsvValue(teacher.subjectNames.join(', ')),
+                escapeCsvValue(teacher.assignedClasses.map((assignedClass) => assignedClass.classDisplay).join(', ')),
+              ].join(','),
+            ),
+          ]
 
     const blob = new Blob([`\ufeff${csvLines.join('\n')}`], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'students_export.csv'
+    link.download = activeView === 'students' ? 'students_export.csv' : 'teachers_export.csv'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -512,11 +824,18 @@ export function AdminUsersPage() {
         title="User Management"
       />
 
-      <section className="grid items-start gap-6 xl:grid-cols-[0.36fr_0.64fr]">
-        <article className="glass-panel self-start p-6 xl:sticky xl:top-6">
+      <section className="flex flex-col items-start gap-6 xl:flex-row">
+        <article
+          ref={formCardRef}
+          className={`glass-panel h-fit w-full p-7 xl:w-[320px] xl:flex-none transition-all duration-500 ${
+            isEditFormHighlighted
+              ? 'ring-4 ring-cyan-200/80 shadow-[0_0_0_1px_rgba(34,211,238,0.2),0_24px_56px_rgba(36,104,160,0.2)]'
+              : ''
+          }`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold text-slate-900">
-              {editingId ? 'Edit user' : 'Create user'}
+              {editingId ? `Edit User (Editing: ${form.fullName || form.username})` : 'Create user'}
             </h2>
             {!editingId ? (
               <button
@@ -528,21 +847,21 @@ export function AdminUsersPage() {
               </button>
             ) : null}
           </div>
-          <div className="mt-5 grid gap-4">
+          <div className="mt-5 grid gap-4.5">
             <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
               placeholder="Full Name"
               value={form.fullName}
               onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
             />
             <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
               placeholder="Username"
               value={form.username}
               onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
             />
             <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
               placeholder="Email"
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
@@ -550,7 +869,7 @@ export function AdminUsersPage() {
 
             <div className="password-field">
               <input
-                className="w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+                className="w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
                 placeholder={editingId ? 'New password (leave blank to keep current)' : 'Password'}
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
@@ -561,75 +880,39 @@ export function AdminUsersPage() {
               </button>
             </div>
 
-            <div className="relative">
-              <select
-                className="w-full appearance-none rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 pr-12 text-sky-950 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                value={form.roleId}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    roleId: Number(event.target.value),
-                    subjectIds: Number(event.target.value) === 2 ? current.subjectIds : [],
-                    assignedClasses: Number(event.target.value) === 2 ? current.assignedClasses : [],
-                  }))
-                }
-              >
-                <option value={1}>Student</option>
-                <option value={2}>Teacher</option>
-                <option value={3}>Admin</option>
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sky-800">
-                <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </div>
+            <AdminSelectField
+              label="Role"
+              value={String(form.roleId)}
+              options={[
+                { value: '1', label: 'Student' },
+                { value: '2', label: 'Teacher' },
+                { value: '3', label: 'Admin' },
+              ]}
+              onChange={(value) =>
+                setForm((current) => ({
+                  ...current,
+                  roleId: Number(value),
+                  subjectIds: Number(value) === 2 ? current.subjectIds : [],
+                  assignedClasses: Number(value) === 2 ? current.assignedClasses : [],
+                }))
+              }
+            />
 
             {isStudentRole ? (
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Grade</label>
-                  <div className="relative">
-                    <select
-                      className="w-full appearance-none rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 pr-12 text-sky-950 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                      value={form.grade}
-                      onChange={(event) => setForm((current) => ({ ...current, grade: Number(event.target.value) }))}
-                    >
-                      {gradeOptions.map((grade) => (
-                        <option key={grade} value={grade}>
-                          {grade}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sky-800">
-                      <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </div>
-                </div>
+                <AdminSelectField
+                  label="Grade"
+                  value={String(form.grade)}
+                  options={gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) }))}
+                  onChange={(value) => setForm((current) => ({ ...current, grade: Number(value) }))}
+                />
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Section</label>
-                  <div className="relative">
-                    <select
-                      className="w-full appearance-none rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 pr-12 text-sky-950 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                      value={form.section}
-                      onChange={(event) => setForm((current) => ({ ...current, section: event.target.value }))}
-                    >
-                      {sectionOptions.map((section) => (
-                        <option key={section} value={section}>
-                          {section}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sky-800">
-                      <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </div>
-                </div>
+                <AdminSelectField
+                  label="Section"
+                  value={form.section}
+                  options={sectionOptions.map((section) => ({ value: section, label: section }))}
+                  onChange={(value) => setForm((current) => ({ ...current, section: value }))}
+                />
               </div>
             ) : null}
 
@@ -637,18 +920,18 @@ export function AdminUsersPage() {
               <>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">Subjects</label>
-                  <div className="max-h-44 space-y-2 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-3">
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-3.5">
                     {management.availableSubjects.map((subject) => {
                       const checked = form.subjectIds.includes(subject.id)
                       return (
-                        <label className="flex items-start gap-3 rounded-xl px-2 py-2 text-sm text-slate-700 hover:bg-white/70" key={subject.id}>
+                        <label className="flex min-h-[46px] items-start gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-white/70" key={subject.id}>
                           <input
                             checked={checked}
-                            className="mt-1"
+                            className="mt-1 h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
                             type="checkbox"
                             onChange={() => toggleSubject(subject.id)}
                           />
-                          <span>{subject.label}</span>
+                          <span className="leading-5">{subject.label}</span>
                         </label>
                       )
                     })}
@@ -657,16 +940,24 @@ export function AdminUsersPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">Assigned classes</label>
-                  <div className="grid max-h-44 gap-2 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-3 sm:grid-cols-2">
+                  <div className="grid max-h-48 gap-2.5 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-3.5 sm:grid-cols-2 lg:grid-cols-3">
                     {management.availableClasses.map((assignedClass) => {
                       const checked = form.assignedClasses.some(
                         (entry) => entry.grade === assignedClass.grade && entry.section === assignedClass.section,
                       )
 
                       return (
-                        <label className="flex items-center gap-3 rounded-xl px-2 py-2 text-sm text-slate-700 hover:bg-white/70" key={classKey(assignedClass.grade, assignedClass.section)}>
-                          <input checked={checked} type="checkbox" onChange={() => toggleAssignedClass(assignedClass)} />
-                          <span>{assignedClass.classDisplay}</span>
+                        <label
+                          className="flex min-h-[46px] items-center gap-3 rounded-xl border border-transparent bg-white/55 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-white/80"
+                          key={classKey(assignedClass.grade, assignedClass.section)}
+                        >
+                          <input
+                            checked={checked}
+                            className="h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+                            type="checkbox"
+                            onChange={() => toggleAssignedClass(assignedClass)}
+                          />
+                          <span className="truncate">{assignedClass.classDisplay}</span>
                         </label>
                       )
                     })}
@@ -677,7 +968,7 @@ export function AdminUsersPage() {
 
             <div className="flex gap-3">
               <button className="button-primary" type="button" onClick={handleSubmit}>
-                {editingId ? 'Save changes' : 'Create user'}
+                {editingId ? 'Save Changes' : 'Create user'}
               </button>
               {editingId ? (
                 <button className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold text-slate-700" type="button" onClick={resetForm}>
@@ -688,17 +979,17 @@ export function AdminUsersPage() {
           </div>
         </article>
 
-        <article className="glass-panel p-6">
+        <article className="glass-panel min-w-0 flex-1 p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <h2 className="text-xl font-semibold text-slate-900">School structure</h2>
               <p className="mt-1 text-sm text-slate-500">Browse students by grade and section, or switch to teacher workload.</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <div className="inline-flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1">
-                <button
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeView === 'students' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-                  type="button"
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            <div className="inline-flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1">
+              <button
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeView === 'students' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                type="button"
                   onClick={() => setActiveView('students')}
                 >
                   Classes
@@ -710,67 +1001,113 @@ export function AdminUsersPage() {
                 >
                   Teachers
                 </button>
-              </div>
-              {activeView === 'students' ? (
                 <button
-                  className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!filteredGrades.some((gradeGroup) => gradeGroup.sections.some((sectionGroup) => sectionGroup.students.length > 0))}
-                  title="Export current list to CSV"
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeView === 'admins' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
                   type="button"
-                  onClick={handleExportCSV}
+                  onClick={() => setActiveView('admins')}
                 >
-                  <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="m7 10 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M5 21h14" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Export CSV
+                  Admins
                 </button>
-              ) : null}
+              </div>
+              <button
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!hasExportableRows}
+                title="Export current list to CSV"
+                type="button"
+                onClick={handleExportCSV}
+              >
+                <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M12 3v12" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="m7 10 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5 21h14" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Export CSV
+              </button>
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1.4fr_repeat(3,minmax(0,1fr))]">
-            <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-              placeholder="Search by name, username, or email"
+          <div className="admin-management-control-bar mt-5">
+            <AdminSearchField
+              placeholder="Search users..."
+              fullWidth={false}
+              width={200}
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={setSearchTerm}
             />
-            <select
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
-              value={roleFilter}
-              onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
-            >
-              <option value="all">All roles</option>
-              <option value="Student">Students</option>
-              <option value="Teacher">Teachers</option>
-              <option value="Admin">Admins</option>
-            </select>
-            <select
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
-              value={gradeFilter}
-              onChange={(event) => setGradeFilter(event.target.value === 'all' ? 'all' : Number(event.target.value))}
-            >
-              <option value="all">All grades</option>
-              {gradeOptions.map((grade) => (
-                <option key={grade} value={grade}>
-                  {grade}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
-              value={sectionFilter}
-              onChange={(event) => setSectionFilter(event.target.value)}
-            >
-              <option value="all">All sections</option>
-              {sectionOptions.map((section) => (
-                <option key={section} value={section}>
-                  {section}
-                </option>
-              ))}
-            </select>
+
+            <div className="admin-management-filter-group">
+              {activeView === 'students' || activeView === 'teachers' ? (
+                <>
+                  <AdminSelectField
+                    label="Grade"
+                    value={gradeFilter === 'all' ? 'all' : String(gradeFilter)}
+                    fullWidth={false}
+                    width={130}
+                    options={[
+                      { value: 'all', label: 'All Grades' },
+                      ...gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) })),
+                    ]}
+                    onChange={(value) => setGradeFilter(value === 'all' ? 'all' : Number(value))}
+                  />
+                  <AdminSelectField
+                    label="Section"
+                    value={sectionFilter}
+                    fullWidth={false}
+                    width={130}
+                    options={[
+                      { value: 'all', label: 'All Sections' },
+                      ...sectionOptions.map((section) => ({ value: section, label: section })),
+                    ]}
+                    onChange={(value) => setSectionFilter(value)}
+                  />
+                </>
+              ) : null}
+
+              <AdminSelectField
+                label="Status"
+                value={statusFilter}
+                fullWidth={false}
+                width={130}
+                options={[
+                  { value: 'all', label: 'All Statuses' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                ]}
+                onChange={(value) => setStatusFilter(value as typeof statusFilter)}
+              />
+
+              <AdminDateField
+                ariaLabel="Start date"
+                value={startDateFilter}
+                fullWidth={false}
+                width={150}
+                onChange={setStartDateFilter}
+              />
+              <AdminDateField
+                ariaLabel="End date"
+                value={endDateFilter}
+                fullWidth={false}
+                width={150}
+                onChange={setEndDateFilter}
+              />
+              <IconButton
+                aria-label="Reset filters"
+                size="small"
+                sx={{
+                  border: '1px solid rgba(186, 230, 253, 0.95)',
+                  backgroundColor: 'rgba(255,255,255,0.88)',
+                  color: '#2468a0',
+                  '&:hover': {
+                    backgroundColor: 'rgba(36, 104, 160, 0.08)',
+                    borderColor: 'rgba(125, 211, 252, 0.95)',
+                  },
+                }}
+                title="Reset filters"
+                onClick={resetFilters}
+              >
+                <RestartAltOutlined fontSize="small" />
+              </IconButton>
+            </div>
           </div>
 
           {isLoading ? <div className="mt-6 text-slate-600">Loading management data...</div> : null}
@@ -779,8 +1116,8 @@ export function AdminUsersPage() {
           {!isLoading && !errorMessage && activeView === 'students' ? (
             <div className="mt-6 space-y-4">
               {filteredGrades.length ? (
-                filteredGrades.map((gradeGroup) => {
-                  const isGradeExpanded = expandedGrades.includes(gradeGroup.grade)
+                sortedGrades.map((gradeGroup) => {
+                  const isGradeExpanded = expandedGrade === gradeGroup.grade
                   return (
                     <div className="rounded-3xl border border-slate-200 bg-white/75 p-4" key={gradeGroup.grade}>
                       <button
@@ -795,13 +1132,20 @@ export function AdminUsersPage() {
                         <span className="text-slate-500">{isGradeExpanded ? '−' : '+'}</span>
                       </button>
 
-                      {isGradeExpanded ? (
-                        <div className="mt-4 space-y-3">
+                      <div
+                        className={`grid overflow-hidden transition-all duration-300 ease-out ${
+                          isGradeExpanded ? 'mt-4 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0'
+                        }`}
+                      >
+                        <div className="min-h-0 space-y-3 overflow-hidden">
                           {gradeGroup.sections.map((sectionGroup) => {
                             const sectionId = classKey(gradeGroup.grade, sectionGroup.section)
-                            const isSectionExpanded = expandedSections.includes(sectionId)
+                            const isSectionExpanded = expandedSection === sectionId
                             return (
-                              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80" key={sectionId}>
+                              <div
+                                className="relative rounded-2xl border border-slate-200 bg-slate-50/80"
+                                key={sectionId}
+                              >
                                 <button
                                   className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-white/50"
                                   type="button"
@@ -825,108 +1169,24 @@ export function AdminUsersPage() {
 
                                     <div className="flex flex-1 flex-col gap-2 xl:max-w-md">
                                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                        <div className="relative flex-1">
-                                          <button
-                                            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-left text-sky-950 transition hover:border-sky-300 hover:bg-white"
-                                            type="button"
-                                            onClick={() =>
-                                              setOpenTeacherPicker((current) => (current === sectionId ? null : sectionId))
+                                        <div className="flex-1">
+                                          <AdminSelectField
+                                            label="Class Teacher"
+                                            value={classTeacherDrafts[sectionId] ?? ''}
+                                            options={[
+                                              { value: '', label: 'Assign a teacher...' },
+                                              ...(management?.teachers ?? []).map((teacher) => ({
+                                                value: String(teacher.id),
+                                                label: getTeacherDisplayName(teacher),
+                                              })),
+                                            ]}
+                                            onChange={(value) =>
+                                              setClassTeacherDrafts((current) => ({
+                                                ...current,
+                                                [sectionId]: value,
+                                              }))
                                             }
-                                          >
-                                            <span className={classTeacherDrafts[sectionId] ? 'text-sky-950' : 'text-sky-600/70'}>
-                                              {(() => {
-                                                const selectedTeacher = management?.teachers.find(
-                                                  (teacher) => String(teacher.id) === (classTeacherDrafts[sectionId] ?? ''),
-                                                )
-                                                return selectedTeacher
-                                                  ? getTeacherDisplayName(selectedTeacher)
-                                                  : 'Assign a teacher...'
-                                              })()}
-                                            </span>
-                                            <svg aria-hidden="true" className="h-5 w-5 shrink-0 text-sky-800" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                              <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                          </button>
-
-                                          {openTeacherPicker === sectionId ? (
-                                            <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-sky-200 bg-white shadow-[0_18px_40px_rgba(36,104,160,0.18)]">
-                                              <div className="border-b border-slate-200 p-3">
-                                                <div className="flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50/70 px-3 py-2">
-                                                  <Search className="h-4 w-4 text-sky-700" />
-                                                  <input
-                                                    className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-sky-600/70"
-                                                    placeholder="Search teacher..."
-                                                    value={classTeacherSearch[sectionId] ?? ''}
-                                                    onChange={(event) =>
-                                                      setClassTeacherSearch((current) => ({
-                                                        ...current,
-                                                        [sectionId]: event.target.value,
-                                                      }))
-                                                    }
-                                                  />
-                                                </div>
-                                              </div>
-
-                                              <div className="max-h-64 overflow-y-auto p-2">
-                                                <button
-                                                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition hover:bg-sky-50 ${!classTeacherDrafts[sectionId] ? 'bg-sky-50 text-slate-900' : 'text-slate-700'}`}
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setClassTeacherDrafts((current) => ({ ...current, [sectionId]: '' }))
-                                                    setOpenTeacherPicker(null)
-                                                  }}
-                                                >
-                                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                                                    <UserCheck className="h-4 w-4" />
-                                                  </div>
-                                                  <div>
-                                                    <p className="font-medium">Assign a teacher...</p>
-                                                    <p className="text-xs text-slate-500">No class teacher assigned</p>
-                                                  </div>
-                                                </button>
-
-                                                {management?.teachers
-                                                  .filter((teacher) => {
-                                                    const query = (classTeacherSearch[sectionId] ?? '').trim().toLowerCase()
-                                                    if (!query) {
-                                                      return true
-                                                    }
-
-                                                    return (
-                                                      teacher.fullName.toLowerCase().includes(query) ||
-                                                      teacher.username.toLowerCase().includes(query) ||
-                                                      teacher.email.toLowerCase().includes(query)
-                                                    )
-                                                  })
-                                                  .map((teacher) => {
-                                                    const isSelected = String(teacher.id) === (classTeacherDrafts[sectionId] ?? '')
-
-                                                    return (
-                                                      <button
-                                                        className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition hover:bg-sky-50 ${isSelected ? 'bg-sky-50 text-slate-900' : 'text-slate-700'}`}
-                                                        key={teacher.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                          setClassTeacherDrafts((current) => ({
-                                                            ...current,
-                                                            [sectionId]: String(teacher.id),
-                                                          }))
-                                                          setOpenTeacherPicker(null)
-                                                        }}
-                                                      >
-                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-100 text-[#2468a0]">
-                                                          <UserCheck className="h-4 w-4" />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                          <p className="truncate font-medium">{getTeacherDisplayName(teacher)}</p>
-                                                          <p className="truncate text-xs text-slate-500">{teacher.email}</p>
-                                                        </div>
-                                                      </button>
-                                                    )
-                                                  })}
-                                              </div>
-                                            </div>
-                                          ) : null}
+                                          />
                                         </div>
 
                                         <button
@@ -941,54 +1201,108 @@ export function AdminUsersPage() {
                                   </div>
                                 </div>
 
-                                {isSectionExpanded ? (
-                                  <div className="border-t border-slate-200 bg-white/70 px-4 py-4">
+                                <div
+                                  className={`grid overflow-hidden border-t border-slate-200 bg-white/70 transition-all duration-300 ease-out ${
+                                    isSectionExpanded ? 'grid-rows-[1fr] py-4 opacity-100' : 'grid-rows-[0fr] py-0 opacity-0'
+                                  }`}
+                                >
+                                  <div className="min-h-0 overflow-hidden px-4">
                                     <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                      <colgroup>
+                                        <col className="w-[28%]" />
+                                        <col className="w-[26%]" />
+                                        <col className="w-[14%]" />
+                                        <col className="w-[20%]" />
+                                        <col className="w-[12%]" />
+                                      </colgroup>
                                       <thead className="bg-slate-50/90">
                                         <tr className="text-left text-slate-500">
-                                          <th className="px-4 py-3 font-semibold">Student</th>
+                                          <th className="px-4 py-3 font-semibold">
+                                            <AdminSortHeader
+                                              label="Name"
+                                              column="name"
+                                              activeColumn={sortColumn}
+                                              direction={sortDirection}
+                                              onToggle={handleSortChange}
+                                            />
+                                          </th>
                                           <th className="px-4 py-3 font-semibold">Email</th>
-                                          <th className="px-4 py-3 font-semibold">Actions</th>
+                                          <th className="px-4 py-3 font-semibold">
+                                            <AdminSortHeader
+                                              label="Role"
+                                              column="role"
+                                              activeColumn={sortColumn}
+                                              direction={sortDirection}
+                                              onToggle={handleSortChange}
+                                            />
+                                          </th>
+                                          <th className="px-4 py-3 font-semibold">
+                                            <AdminSortHeader
+                                              label="Date Created"
+                                              column="dateCreated"
+                                              activeColumn={sortColumn}
+                                              direction={sortDirection}
+                                              onToggle={handleSortChange}
+                                            />
+                                          </th>
+                                          <th className="px-4 py-3 text-right font-semibold">Actions</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-100">
                                         {sectionGroup.students.map((student) => (
-                                          <tr key={student.id}>
+                                          <tr className="transition hover:bg-sky-50/35" key={student.id}>
                                             <td className="px-4 py-3">
-                                              <div>
-                                                <p className="font-medium text-slate-900">{student.fullName}</p>
+                                              <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span
+                                                    className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                                                      student.isApproved
+                                                        ? 'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]'
+                                                        : 'bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.14)]'
+                                                    }`}
+                                                  />
+                                                  <p className="font-medium text-slate-900">{student.fullName}</p>
+                                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                                    {student.isApproved ? 'Active' : 'Inactive'}
+                                                  </span>
+                                                </div>
                                                 <p className="text-xs text-slate-500">@{student.username}</p>
                                               </div>
                                             </td>
                                             <td className="px-4 py-3 text-slate-600">{student.email}</td>
-                                            <td className="px-4 py-3">
-                                              <div className="flex flex-wrap gap-2">
-                                                {student.isApproved ? (
-                                                  <button className="rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white" type="button" onClick={() => handleApproval(student.id, false)}>
-                                                    Revoke
-                                                  </button>
-                                                ) : (
-                                                  <button className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white" type="button" onClick={() => handleApproval(student.id, true)}>
-                                                    Approve
-                                                  </button>
-                                                )}
-                                                <button
-                                                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const fullUser = allUsers.find((user) => user.id === student.id)
-                                                    if (fullUser) {
-                                                      handleEdit(fullUser)
-                                                    }
-                                                  }}
-                                                >
-                                                  Edit
-                                                </button>
-                                                <button className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white" type="button" onClick={() => handleDelete(student.id)}>
-                                                  Delete
-                                                </button>
-                                              </div>
+                                            <td className="px-4 py-3 text-slate-600">Student</td>
+                                            <td className="px-4 py-3 text-slate-600">{formatDateTime(allUsersById.get(student.id)?.approvedAt)}</td>
+                                            <td className="px-4 py-3 text-right">
+                                              <IconButton
+                                                aria-label={`Open actions for ${student.fullName}`}
+                                                size="small"
+                                                sx={{
+                                                  border: '1px solid rgba(191,219,254,0.9)',
+                                                  backgroundColor: 'rgba(255,255,255,0.9)',
+                                                  color: '#0f172a',
+                                                  transition: 'all 0.2s ease',
+                                                  '&:hover': {
+                                                    backgroundColor: 'rgba(239,246,255,0.98)',
+                                                    borderColor: 'rgba(125,211,252,0.9)',
+                                                  },
+                                                }}
+                                                type="button"
+                                                onClick={(event) =>
+                                                  openUserActionMenu(event, {
+                                                    id: student.id,
+                                                    fullName: student.fullName,
+                                                    username: student.username,
+                                                    email: student.email,
+                                                    profileImageUrl: student.profileImageUrl,
+                                                    isApproved: student.isApproved,
+                                                    role: 'Student',
+                                                    classDisplay: sectionGroup.classDisplay,
+                                                  })
+                                                }
+                                              >
+                                                <MoreVertIcon fontSize="small" />
+                                              </IconButton>
                                             </td>
                                           </tr>
                                         ))}
@@ -996,12 +1310,12 @@ export function AdminUsersPage() {
                                     </table>
                                     </div>
                                   </div>
-                                ) : null}
+                                </div>
                               </div>
                             )
                           })}
                         </div>
-                      ) : null}
+                      </div>
                     </div>
                   )
                 })
@@ -1015,40 +1329,105 @@ export function AdminUsersPage() {
 
           {!isLoading && !errorMessage && activeView === 'teachers' ? (
             <div className="mt-6 space-y-6">
-              <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white/80 p-4">
+              <div className="overflow-visible rounded-3xl border border-slate-200 bg-white/80 p-4">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-lg font-semibold text-slate-900">Teacher Profiles</h3>
                   <p className="text-sm text-slate-500">Review teaching assignments, subjects, and class coverage in one table.</p>
                 </div>
-                <table className="mt-4 min-w-full divide-y divide-slate-200 text-sm">
+                <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <colgroup>
+                    <col className="w-[18%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[4%]" />
+                  </colgroup>
                   <thead className="bg-slate-50/90">
                     <tr className="text-left text-slate-500">
-                      <th className="px-3 py-3 font-semibold">Name</th>
+                      <th className="px-3 py-3 font-semibold">
+                        <AdminSortHeader
+                          label="Name"
+                          column="name"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
                       <th className="px-3 py-3 font-semibold">Email</th>
+                      <th className="px-3 py-3 font-semibold">
+                        <AdminSortHeader
+                          label="Role"
+                          column="role"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
                       <th className="px-3 py-3 font-semibold">Subjects</th>
                       <th className="px-3 py-3 font-semibold">Assigned classes</th>
-                      <th className="px-3 py-3 font-semibold">Actions</th>
+                      <th className="px-3 py-3 font-semibold">
+                        <AdminSortHeader
+                          label="Date Created"
+                          column="dateCreated"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
+                      <th className="px-3 py-3 text-right font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredTeachers.map((teacher) => {
-                      const fullUser = allUsers.find((user) => user.id === teacher.id)
-
+                    {sortedTeachers.map((teacher) => {
                       return (
-                        <tr key={teacher.id}>
+                        <tr className="transition hover:bg-sky-50/35" key={teacher.id}>
                           <td className="px-3 py-3">
-                            <div>
-                              <p className="font-medium text-slate-900">{teacher.fullName}</p>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                                    teacher.isApproved
+                                      ? 'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]'
+                                      : 'bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.14)]'
+                                  }`}
+                                />
+                                <p className="font-medium text-slate-900">{teacher.fullName}</p>
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                  {teacher.isApproved ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
                               <p className="text-xs text-slate-500">@{teacher.username}</p>
                             </div>
                           </td>
                           <td className="px-3 py-3 text-slate-600">{teacher.email}</td>
-                          <td className="px-3 py-3 text-slate-600">{teacher.subjectNames.join(', ') || 'No subjects assigned'}</td>
-                          <td className="px-3 py-3">
+                          <td className="px-3 py-3 text-slate-600">{teacher.role}</td>
+                          <td className="px-3 py-3 text-slate-600">
                             <div className="flex flex-wrap gap-2">
+                              {teacher.subjectNames.length ? (
+                                teacher.subjectNames.map((subjectName) => (
+                                  <span
+                                    className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+                                    key={`${teacher.id}-${subjectName}`}
+                                  >
+                                    {subjectName}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-slate-500">No subjects assigned</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex flex-wrap items-center gap-1.5">
                               {teacher.assignedClasses.length ? (
                                 teacher.assignedClasses.map((assignedClass) => (
-                                  <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]" key={assignedClass.classDisplay}>
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-[#2468a0]"
+                                    key={assignedClass.classDisplay}
+                                  >
                                     {assignedClass.classDisplay}
                                   </span>
                                 ))
@@ -1057,55 +1436,91 @@ export function AdminUsersPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-3">
-                            <div className="flex flex-wrap gap-2">
-                              {teacher.isApproved ? (
-                                <button className="rounded-xl bg-amber-500 px-3 py-2 text-xs font-semibold text-white" type="button" onClick={() => handleApproval(teacher.id, false)}>
-                                  Revoke
-                                </button>
-                              ) : (
-                                <button className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white" type="button" onClick={() => handleApproval(teacher.id, true)}>
-                                  Approve
-                                </button>
-                              )}
-                              <button
-                                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                                type="button"
-                                onClick={() => {
-                                  if (fullUser) {
-                                    handleEdit(fullUser)
-                                  }
-                                }}
-                              >
-                                Edit
-                              </button>
-                              <button className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white" type="button" onClick={() => handleDelete(teacher.id)}>
-                                Delete
-                              </button>
-                            </div>
+                          <td className="px-3 py-3 text-slate-600">{formatDateTime(allUsersById.get(teacher.id)?.approvedAt)}</td>
+                          <td className="px-3 py-3 text-right">
+                            <IconButton
+                              aria-label={`Open actions for ${teacher.fullName}`}
+                              size="small"
+                              sx={{
+                                border: '1px solid rgba(191,219,254,0.9)',
+                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                color: '#0f172a',
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(239,246,255,0.98)',
+                                  borderColor: 'rgba(125,211,252,0.9)',
+                                },
+                              }}
+                              type="button"
+                              onClick={(event) =>
+                                openUserActionMenu(event, {
+                                  id: teacher.id,
+                                  fullName: teacher.fullName,
+                                  username: teacher.username,
+                                  email: teacher.email,
+                                  profileImageUrl: teacher.profileImageUrl,
+                                  isApproved: teacher.isApproved,
+                                  role: 'Teacher',
+                                  subjectNames: teacher.subjectNames,
+                                  assignedClasses: teacher.assignedClasses,
+                                })
+                              }
+                            >
+                              <MoreVertIcon fontSize="small" />
+                            </IconButton>
                           </td>
                         </tr>
                       )
                     })}
                   </tbody>
                 </table>
-                {!filteredTeachers.length ? (
+                </div>
+                {!sortedTeachers.length ? (
                   <div className="px-3 py-4 text-sm text-slate-500">No teachers match the current search and filters.</div>
                 ) : null}
               </div>
+            </div>
+          ) : null}
 
+          {!isLoading && !errorMessage && activeView === 'admins' ? (
+            <div className="mt-6 space-y-6">
               <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white/80 p-4">
                 <h3 className="text-lg font-semibold text-slate-900">Administrators</h3>
                 <table className="mt-4 min-w-full divide-y divide-slate-200 text-sm">
                   <thead>
                     <tr className="text-left text-slate-500">
-                      <th className="px-3 py-3 font-semibold">Name</th>
+                      <th className="px-3 py-3 font-semibold">
+                        <AdminSortHeader
+                          label="Name"
+                          column="name"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
                       <th className="px-3 py-3 font-semibold">Email</th>
-                      <th className="px-3 py-3 font-semibold">Role</th>
+                      <th className="px-3 py-3 font-semibold">
+                        <AdminSortHeader
+                          label="Role"
+                          column="role"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
+                      <th className="px-3 py-3 font-semibold">
+                        <AdminSortHeader
+                          label="Date Created"
+                          column="dateCreated"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredAdmins.map((admin) => (
+                    {sortedAdmins.map((admin) => (
                       <tr key={admin.id}>
                         <td className="px-3 py-3">
                           <div>
@@ -1115,11 +1530,12 @@ export function AdminUsersPage() {
                         </td>
                         <td className="px-3 py-3 text-slate-600">{admin.email}</td>
                         <td className="px-3 py-3 text-slate-600">{admin.role}</td>
+                        <td className="px-3 py-3 text-slate-600">{formatDateTime(allUsersById.get(admin.id)?.approvedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {!filteredAdmins.length ? (
+                {!sortedAdmins.length ? (
                   <div className="px-3 py-4 text-sm text-slate-500">No administrators match the current search.</div>
                 ) : null}
               </div>
@@ -1127,6 +1543,348 @@ export function AdminUsersPage() {
           ) : null}
         </article>
       </section>
+
+      <DeleteConfirmationModal
+        open={Boolean(pendingDelete)}
+        title="Delete user?"
+        description={`This will permanently remove ${pendingDelete?.label ?? 'this user'}. This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onCancel={() => {
+          if (!isDeleting) {
+            setPendingDelete(null)
+          }
+        }}
+        onConfirm={() => {
+          if (pendingDelete) {
+            void handleDelete(pendingDelete.id)
+          }
+        }}
+      />
+
+      <Menu
+        anchorEl={userActionAnchorEl}
+        open={isUserActionMenuOpen}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1,
+              minWidth: 220,
+              borderRadius: '20px',
+              border: '1px solid rgba(191, 219, 254, 0.9)',
+              boxShadow: '0 24px 48px rgba(15, 23, 42, 0.16)',
+              backgroundColor: 'rgba(255,255,255,0.98)',
+              backdropFilter: 'blur(14px)',
+              overflow: 'visible',
+              zIndex: 1500,
+            },
+          },
+        }}
+        onClose={closeUserActionMenu}
+      >
+        <MenuItem
+          onClick={() => {
+            if (activeUserAction) {
+              setProfileUser(activeUserAction)
+            }
+            closeUserActionMenu()
+          }}
+        >
+          <ListItemIcon>
+            <VisibilityOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>View Profile</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (activeUserAction) {
+              handleManagedUserEdit(activeUserAction)
+            }
+          }}
+        >
+          <ListItemIcon>
+            <EditOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (activeUserAction) {
+              handleManagedUserPasswordOpen(activeUserAction)
+            }
+          }}
+        >
+          <ListItemIcon>
+            <PasswordOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Change Password</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (activeUserAction) {
+              void handleApproval(activeUserAction.id, !activeUserAction.isApproved)
+            }
+            closeUserActionMenu()
+          }}
+        >
+          <ListItemIcon>
+            {activeUserAction?.isApproved ? (
+              <ToggleOffOutlinedIcon fontSize="small" />
+            ) : (
+              <ToggleOnOutlinedIcon fontSize="small" />
+            )}
+          </ListItemIcon>
+          <ListItemText>{activeUserAction?.isApproved ? 'Deactivate' : 'Activate'}</ListItemText>
+        </MenuItem>
+        <MenuItem
+          sx={{ color: '#dc2626' }}
+          onClick={() => {
+            if (activeUserAction) {
+              setPendingDelete({
+                id: activeUserAction.id,
+                label: activeUserAction.fullName || activeUserAction.username,
+              })
+            }
+            closeUserActionMenu()
+          }}
+        >
+          <ListItemIcon sx={{ color: '#dc2626' }}>
+            <DeleteOutlineIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      <Dialog
+        fullWidth
+        maxWidth={false}
+        open={Boolean(profileUser)}
+        TransitionComponent={Fade}
+        onClose={() => setProfileUser(null)}
+        sx={{ zIndex: 1700 }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backgroundColor: 'rgba(15, 23, 42, 0.4)',
+              backdropFilter: 'blur(8px)',
+            },
+          },
+          paper: {
+            sx: {
+              width: '100%',
+              maxWidth: '450px',
+              borderRadius: '28px',
+              border: '1px solid rgba(191,219,254,0.7)',
+              boxShadow: '0 28px 56px rgba(15,23,42,0.2)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,249,255,0.95))',
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar
+                src={getResolvedUserImageSrc(profileUser?.profileImageUrl)}
+                sx={{
+                  width: 88,
+                  height: 88,
+                  fontSize: '1.6rem',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  bgcolor: '#dbeafe',
+                  border: '1px solid rgba(191,219,254,0.85)',
+                  boxShadow: '0 14px 28px rgba(36,104,160,0.14)',
+                  overflow: 'hidden',
+                  '& img': {
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                    backgroundColor: 'transparent',
+                  },
+                }}
+              >
+                {getInitials(profileUser?.fullName, profileUser?.username)}
+              </Avatar>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">{profileUser?.role ?? 'User'} Profile</p>
+                <h3 className="mt-1 truncate text-[2rem] font-bold leading-tight text-slate-900">{profileUser?.fullName}</h3>
+              </div>
+            </div>
+            <IconButton size="small" onClick={() => setProfileUser(null)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </div>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pb: 2, pt: 0 }}>
+          <div className="grid gap-5 pt-2 sm:grid-cols-2">
+            <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Status</p>
+              <div className="mt-3 flex items-center gap-2">
+                <span
+                  className={`inline-flex h-2.5 w-2.5 rounded-full ${profileUser?.isApproved ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                />
+                <span className="text-sm font-semibold text-slate-700">
+                  {profileUser?.isApproved ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+            <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Username</p>
+              <p className="mt-3 text-sm font-medium text-slate-800">@{profileUser?.username}</p>
+            </div>
+            <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Email</p>
+              <p className="mt-3 text-sm font-medium text-slate-800">{profileUser?.email}</p>
+            </div>
+            {profileUser?.role === 'Teacher' ? (
+              <>
+                <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Subjects</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {profileUser.subjectNames?.length ? (
+                      profileUser.subjectNames.map((subjectName) => (
+                        <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-[#2468a0]" key={subjectName}>
+                          {subjectName}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-slate-500">No subjects assigned</span>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Assigned Classes</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {profileUser.assignedClasses?.length ? (
+                      profileUser.assignedClasses.map((assignedClass) => (
+                        <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]" key={assignedClass.classDisplay}>
+                          {assignedClass.classDisplay}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-slate-500">No classes assigned</span>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Class</p>
+                <div className="mt-3">
+                  {profileUser?.classDisplay ? (
+                    <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
+                      {profileUser.classDisplay}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-slate-500">No class assigned</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        fullWidth
+        maxWidth="sm"
+        open={Boolean(passwordResetUser)}
+        TransitionComponent={Fade}
+        onClose={() => {
+          if (!isResettingPassword) {
+            setPasswordResetUser(null)
+          }
+        }}
+        sx={{ zIndex: 1700 }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backgroundColor: 'rgba(15, 23, 42, 0.4)',
+              backdropFilter: 'blur(8px)',
+            },
+          },
+          paper: {
+            sx: {
+              borderRadius: '28px',
+              border: '1px solid rgba(191,219,254,0.7)',
+              boxShadow: '0 28px 56px rgba(15,23,42,0.2)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,249,255,0.95))',
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ px: 3, pt: 3, pb: 1.5 }}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">{passwordResetUser?.role ?? 'User'} Access</p>
+              <h3 className="mt-1 text-2xl font-semibold text-slate-900">Change Password</h3>
+              <p className="mt-1 text-sm text-slate-500">Set a new password for {passwordResetUser?.fullName}.</p>
+            </div>
+            <IconButton
+              size="small"
+              onClick={() => {
+                if (!isResettingPassword) {
+                  setPasswordResetUser(null)
+                }
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </div>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pb: 2, pt: 0 }}>
+          <div className="space-y-4">
+            <div className="password-field">
+              <input
+                className="w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+                placeholder="New password"
+                type={showResetPassword ? 'text' : 'password'}
+                value={passwordResetForm.newPassword}
+                onChange={(event) =>
+                  setPasswordResetForm((current) => ({
+                    ...current,
+                    newPassword: event.target.value,
+                  }))
+                }
+              />
+              <button className="ghost-toggle" type="button" onClick={() => setShowResetPassword((current) => !current)}>
+                {showResetPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            <input
+              className="w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+              placeholder="Confirm new password"
+              type={showResetPassword ? 'text' : 'password'}
+              value={passwordResetForm.confirmPassword}
+              onChange={(event) =>
+                setPasswordResetForm((current) => ({
+                  ...current,
+                  confirmPassword: event.target.value,
+                }))
+              }
+            />
+            <p className="text-sm text-slate-500">
+              Use at least 8 characters with uppercase, lowercase, number, and symbol.
+            </p>
+          </div>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 0, gap: 1.5 }}>
+          <button
+            className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50"
+            disabled={isResettingPassword}
+            type="button"
+            onClick={() => setPasswordResetUser(null)}
+          >
+            Cancel
+          </button>
+          <button className="button-primary px-4 py-2.5 text-sm" disabled={isResettingPassword} type="button" onClick={() => void handleTeacherPasswordReset()}>
+            {isResettingPassword ? 'Saving...' : 'Update Password'}
+          </button>
+        </DialogActions>
+      </Dialog>
     </div>
   )
 }

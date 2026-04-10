@@ -1,5 +1,6 @@
 import { Award, BookOpen, GraduationCap, MapPin, Sparkles, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../app/AuthContext'
 
 const highlights = [
   {
@@ -48,6 +49,11 @@ const galleryItems = [
 ]
 
 export function AboutPage() {
+  const { isAuthenticated, user } = useAuth()
+  const isLoggedIn = isAuthenticated()
+  const dashboardRoute =
+    user?.role === 'Admin' ? '/admin' : user?.role === 'Teacher' ? '/teacher' : '/student'
+
   return (
     <main className="px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
@@ -212,9 +218,9 @@ export function AboutPage() {
         <div className="pb-2">
           <Link
             className="inline-flex items-center text-sm font-semibold text-blue-700 transition hover:text-blue-900"
-            to="/login"
+            to={isLoggedIn ? dashboardRoute : '/login'}
           >
-            ← Back to Login
+            {isLoggedIn ? '← Back to Dashboard' : '← Back to Login'}
           </Link>
         </div>
       </div>

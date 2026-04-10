@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
+import { clearStoredAuth, readStoredToken } from '../authStorage'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:5067/api'
 export const apiOrigin = apiBaseUrl.replace(/\/api\/?$/, '')
@@ -22,7 +23,7 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = readStoredToken()
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -41,10 +42,7 @@ apiClient.interceptors.response.use(
       requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register')
 
     if (error.response?.status === 401 && !isAuthRequest) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('authUser')
-      localStorage.removeItem('username')
-      localStorage.removeItem('userRole')
+      clearStoredAuth()
       window.location.assign('/login')
     }
 

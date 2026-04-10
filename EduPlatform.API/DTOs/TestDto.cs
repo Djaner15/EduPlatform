@@ -41,6 +41,7 @@ public class TestDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
     public int LessonId { get; set; }
     public string LessonTitle { get; set; } = null!;
     public string SubjectName { get; set; } = null!;
@@ -49,6 +50,8 @@ public class TestDto
     public string ClassDisplay { get; set; } = null!;
     public int CreatedByUserId { get; set; }
     public string? CreatedByUsername { get; set; }
+    public string? CreatedByFullName { get; set; }
+    public bool CreatedByIsApproved { get; set; }
     public ICollection<QuestionDto> Questions { get; set; } = new List<QuestionDto>();
 }
 

@@ -7,6 +7,7 @@ public class AuthResponseDto
     public string Username { get; set; } = null!;
     public string Role { get; set; } = null!;
     public int UserId { get; set; }
+    public string? ProfileImageUrl { get; set; }
     public int? Grade { get; set; }
     public string? Section { get; set; }
     public string? ClassDisplay { get; set; }

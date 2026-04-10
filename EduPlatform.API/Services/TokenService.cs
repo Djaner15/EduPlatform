@@ -9,6 +9,7 @@ namespace EduPlatform.API.Services;
 
 public class TokenService : ITokenService
 {
+    private const int TokenLifetimeDays = 7;
     private readonly IConfiguration _config;
 
     public TokenService(IConfiguration config)
@@ -47,7 +48,7 @@ public class TokenService : ITokenService
             _config["Jwt:Issuer"],
             _config["Jwt:Audience"],
             claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: DateTime.UtcNow.AddDays(TokenLifetimeDays),
             signingCredentials: creds
         );
 

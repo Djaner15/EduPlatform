@@ -5,6 +5,7 @@ namespace EduPlatform.API.Models
         public int Id { get; set; }
         public string Title { get; set; } = null!;
         public string Content { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
         public string? ImageUrl { get; set; }
         public string? YoutubeUrl { get; set; }
         public string? AttachmentUrl { get; set; }

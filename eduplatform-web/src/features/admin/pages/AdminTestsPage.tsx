@@ -1,11 +1,23 @@
 import axios from 'axios'
+import DeleteOutline from '@mui/icons-material/DeleteOutline'
+import EditOutlined from '@mui/icons-material/EditOutlined'
+import IconButton from '@mui/material/IconButton'
+import RestartAltOutlined from '@mui/icons-material/RestartAltOutlined'
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import { FileQuestion, ImagePlus, ListPlus, Loader2, PlusCircle, Sparkles, Trash2, Type } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
 import { formatClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AdminSearchField } from '../../../shared/components/AdminSearchField'
+import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
+import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient, { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
+import { isWithinDateRange } from '../../../shared/dateFilters'
+import { sortItems, type SortDirection } from '../../../shared/tableSorting'
 
 type Lesson = {
   id: number
@@ -28,6 +40,7 @@ type TestQuestion = {
 type TestItem = {
   id: number
   title: string
+  createdAt: string
   lessonId: number
   lessonTitle: string
   subjectName: string
@@ -36,7 +49,28 @@ type TestItem = {
   classDisplay: string
   createdByUserId: number
   createdByUsername?: string | null
+  createdByFullName?: string | null
+  createdByIsApproved: boolean
   questions: TestQuestion[]
+}
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return 'Unknown date'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date'
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 type AnswerDraft = {
@@ -93,6 +127,18 @@ export function AdminTestsPage() {
   const [aiQuestionCount, setAiQuestionCount] = useState(5)
   const [isGeneratingAiTest, setIsGeneratingAiTest] = useState(false)
   const [aiDraftLoaded, setAiDraftLoaded] = useState(false)
+  const [viewingTest, setViewingTest] = useState<TestItem | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>('all')
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
+  const [startDateFilter, setStartDateFilter] = useState('')
+  const [endDateFilter, setEndDateFilter] = useState('')
+  const [sortColumn, setSortColumn] = useState<'name' | 'grade' | 'createdBy' | 'createdAt'>('createdAt')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [testPendingDelete, setTestPendingDelete] = useState<TestItem | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadData = async () => {
     const [lessonsResponse, testsResponse] = await Promise.all([
@@ -151,6 +197,92 @@ export function AdminTestsPage() {
     [grade, lessons, section],
   )
 
+  const visibleTests = useMemo(() => {
+    if (user?.role === 'Admin') {
+      return tests
+    }
+
+    if (user?.role === 'Teacher') {
+      return tests.filter((test) => test.createdByUserId === user.id)
+    }
+
+    return []
+  }, [tests, user])
+
+  const subjectOptions = useMemo(
+    () => Array.from(new Set(visibleTests.map((test) => test.subjectName))).sort((left, right) => left.localeCompare(right)),
+    [visibleTests],
+  )
+
+  const filteredTests = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return visibleTests.filter((test) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        test.title.toLowerCase().includes(normalizedSearch) ||
+        (test.createdByFullName ?? test.createdByUsername ?? '').toLowerCase().includes(normalizedSearch) ||
+        String(test.grade).includes(normalizedSearch)
+
+      const matchesGrade = selectedGradeFilter === 'all' || test.grade === selectedGradeFilter
+      const matchesSection = selectedSectionFilter === 'all' || test.section === selectedSectionFilter
+      const matchesStatus =
+        selectedStatusFilter === 'all' ||
+        (selectedStatusFilter === 'active' ? test.createdByIsApproved : !test.createdByIsApproved)
+      const matchesSubject = selectedSubjectFilter === 'all' || test.subjectName === selectedSubjectFilter
+      const matchesDate = isWithinDateRange(test.createdAt, startDateFilter, endDateFilter)
+
+      return matchesSearch && matchesGrade && matchesSection && matchesStatus && matchesSubject && matchesDate
+    })
+  }, [endDateFilter, searchTerm, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, visibleTests])
+
+  const sortedTests = useMemo(() => {
+    const getCreatedBy = (test: TestItem) => test.createdByFullName ?? test.createdByUsername ?? 'Teacher'
+    const sortMap = {
+      name: {
+        getValue: (test: TestItem) => test.title,
+        type: 'text',
+      },
+      grade: {
+        getValue: (test: TestItem) => test.classDisplay || formatClassDisplay(test.grade, test.section),
+        type: 'alphanumeric',
+      },
+      createdBy: {
+        getValue: getCreatedBy,
+        type: 'text',
+      },
+      createdAt: {
+        getValue: (test: TestItem) => test.createdAt,
+        type: 'date',
+      },
+    } as const
+
+    const selectedSort = sortMap[sortColumn]
+    return sortItems(filteredTests, selectedSort.getValue, sortDirection, selectedSort.type)
+  }, [filteredTests, sortColumn, sortDirection])
+
+  const handleSortChange = (column: typeof sortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortColumn(column)
+    setSortDirection(column === 'createdAt' ? 'desc' : 'asc')
+  }
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setSelectedGradeFilter('all')
+    setSelectedSectionFilter('all')
+    setSelectedStatusFilter('all')
+    setSelectedSubjectFilter('all')
+    setStartDateFilter('')
+    setEndDateFilter('')
+    setSortColumn('createdAt')
+    setSortDirection('desc')
+  }
+
   useEffect(() => {
     if (!filteredLessons.length) {
       return
@@ -203,11 +335,18 @@ export function AdminTestsPage() {
 
   const deleteTest = async (id: number) => {
     try {
+      setIsDeleting(true)
       await apiClient.delete(`/tests/${id}`)
+      if (viewingTest?.id === id) {
+        setViewingTest(null)
+      }
+      setTestPendingDelete(null)
       showNotification('Test deleted.', 'success')
       await loadData()
     } catch {
       showNotification('Failed to delete test.', 'error')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -267,13 +406,14 @@ export function AdminTestsPage() {
     }
   }
 
-  const canCreate = user?.role === 'Teacher' || user?.role === 'Admin'
+  const isAdmin = user?.role === 'Admin'
+  const isTeacher = user?.role === 'Teacher'
 
   return (
     <div className="space-y-8">
       <PageHeader
         description={
-          canCreate
+          isTeacher
             ? 'Build richer assessments with multiple question types, unlimited answers, and AI-assisted draft generation.'
             : 'Review all tests across the platform and moderate or edit any assessment when needed.'
         }
@@ -281,9 +421,15 @@ export function AdminTestsPage() {
         title="Test Management"
       />
 
-      <section className={`grid gap-6 ${canCreate || editingId ? 'xl:grid-cols-[0.55fr_0.45fr]' : ''}`}>
+      <section
+        className={
+          isTeacher || editingId
+            ? 'grid gap-6 xl:grid-cols-[0.55fr_0.45fr]'
+            : 'w-full'
+        }
+      >
         <div className="space-y-6">
-          {canCreate ? (
+          {isTeacher ? (
             <article className="glass-panel p-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
@@ -310,15 +456,16 @@ export function AdminTestsPage() {
                   value={aiTopic}
                   onChange={(event) => setAiTopic(event.target.value)}
                 />
-                <select
-                  className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
+                <AdminSelectField
+                  label="Difficulty"
                   value={aiDifficulty}
-                  onChange={(event) => setAiDifficulty(event.target.value as 'easy' | 'medium' | 'hard')}
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
+                  options={[
+                    { value: 'easy', label: 'Easy' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'hard', label: 'Hard' },
+                  ]}
+                  onChange={(value) => setAiDifficulty(value as 'easy' | 'medium' | 'hard')}
+                />
                 <input
                   className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
                   max={12}
@@ -340,7 +487,7 @@ export function AdminTestsPage() {
             </article>
           ) : null}
 
-          {canCreate || editingId ? (
+          {isTeacher || editingId ? (
             <article className="glass-panel p-6">
               <h2 className="text-xl font-semibold text-slate-900">{editingId ? 'Edit test' : 'New test'}</h2>
               <div className="mt-5 grid gap-4">
@@ -351,66 +498,38 @@ export function AdminTestsPage() {
                   onChange={(event) => setTitle(event.target.value)}
                 />
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">Grade</label>
-                    <div className="relative">
-                      <select
-                        className="w-full appearance-none rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 pr-12 text-sky-950"
-                        value={grade}
-                        onChange={(event) => {
-                          setGrade(Number(event.target.value))
-                          setLessonId(0)
-                        }}
-                      >
-                        {gradeOptions.map((entry) => (
-                          <option key={entry} value={entry}>
-                            {entry}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sky-800">
-                        <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">Section</label>
-                    <div className="relative">
-                      <select
-                        className="w-full appearance-none rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 pr-12 text-sky-950"
-                        value={section}
-                        onChange={(event) => {
-                          setSection(event.target.value)
-                          setLessonId(0)
-                        }}
-                      >
-                        {sectionOptions.map((entry) => (
-                          <option key={entry} value={entry}>
-                            {entry}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sky-800">
-                        <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
+                  <AdminSelectField
+                    label="Grade"
+                    value={String(grade)}
+                    options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
+                    onChange={(value) => {
+                      setGrade(Number(value))
+                      setLessonId(0)
+                    }}
+                  />
+                  <AdminSelectField
+                    label="Section"
+                    value={section}
+                    options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
+                    onChange={(value) => {
+                      setSection(value)
+                      setLessonId(0)
+                    }}
+                  />
                 </div>
-                <select
-                  className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
-                  value={lessonId}
-                  onChange={(event) => setLessonId(Number(event.target.value))}
-                >
-                  {filteredLessons.map((lesson) => (
-                    <option key={lesson.id} value={lesson.id}>
-                      {lesson.subjectName} · {lesson.title}
-                    </option>
-                  ))}
-                </select>
+                <AdminSelectField
+                  label="Lesson"
+                  value={filteredLessons.some((lesson) => lesson.id === lessonId) ? String(lessonId) : '0'}
+                  options={
+                    filteredLessons.length
+                      ? filteredLessons.map((lesson) => ({
+                          value: String(lesson.id),
+                          label: `${lesson.subjectName} · ${lesson.title}`,
+                        }))
+                      : [{ value: '0', label: 'No lessons available' }]
+                  }
+                  onChange={(value) => setLessonId(Number(value))}
+                />
                 {!filteredLessons.length ? (
                   <p className="text-sm text-amber-700">
                     No lessons exist for class {formatClassDisplay(grade, section)} yet. Create the lesson first.
@@ -420,7 +539,7 @@ export function AdminTestsPage() {
             </article>
           ) : null}
 
-          {canCreate || editingId ? (
+          {isTeacher || editingId ? (
             <div className="space-y-4">
               {questions.map((question, index) => {
                 const previewImage = question.imagePreview || question.existingImageUrl
@@ -468,25 +587,30 @@ export function AdminTestsPage() {
                       </label>
 
                       <div className="grid gap-4 md:grid-cols-[0.55fr_0.45fr]">
-                        <label className="space-y-2">
+                        <div className="space-y-2">
                           <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                             <Type className="h-4 w-4 text-[#2468a0]" />
                             Question type
                           </span>
-                          <select
-                            className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
+                          <AdminSelectField
+                            label="Question type"
                             value={question.type}
-                            onChange={(event) =>
+                            options={[
+                              { value: 'multiple-choice', label: 'Multiple choice' },
+                              { value: 'text', label: 'Text answer' },
+                              { value: 'true-false', label: 'True / False' },
+                            ]}
+                            onChange={(value) =>
                               updateQuestion(question.clientKey, (current) => ({
                                 ...current,
-                                type: event.target.value as QuestionDraft['type'],
+                                type: value as QuestionDraft['type'],
                                 answers:
-                                  event.target.value === 'true-false'
+                                  value === 'true-false'
                                     ? [
                                         { text: 'True', isCorrect: true },
                                         { text: 'False', isCorrect: false },
                                       ]
-                                    : event.target.value === 'text'
+                                    : value === 'text'
                                       ? []
                                       : current.answers.length
                                         ? current.answers
@@ -496,12 +620,8 @@ export function AdminTestsPage() {
                                           ],
                               }))
                             }
-                          >
-                            <option value="multiple-choice">Multiple choice</option>
-                            <option value="text">Text answer</option>
-                            <option value="true-false">True / False</option>
-                          </select>
-                        </label>
+                          />
+                        </div>
 
                         <label className="space-y-2">
                           <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -632,7 +752,7 @@ export function AdminTestsPage() {
             </div>
           ) : null}
 
-          {canCreate || editingId ? (
+          {isTeacher || editingId ? (
             <div className="flex flex-wrap gap-3">
               <button
                 className="inline-flex items-center gap-2 rounded-2xl border border-blue-100 bg-white/90 px-4 py-3 text-sm font-semibold text-[#2468a0]"
@@ -655,73 +775,325 @@ export function AdminTestsPage() {
         </div>
 
         <article className="glass-panel p-6">
-          <h2 className="text-xl font-semibold text-slate-900">Saved tests</h2>
-          <div className="mt-5 space-y-3">
-            {tests.map((test) => (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4" key={test.id}>
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <p className="font-semibold text-slate-900">{test.title}</p>
-                    <p className="text-sm text-slate-500">
-                      {test.subjectName} · {test.lessonTitle}
-                    </p>
-                    <span className="mt-2 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                      {test.classDisplay || formatClassDisplay(test.grade, test.section)}
-                    </span>
-                    <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-500">
-                      Created by {test.createdByUsername ?? 'Teacher'}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {test.questions.length} questions · {test.questions.map((question) => question.type).join(', ')}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
-                      type="button"
-                      onClick={() => {
-                        setAiDraftLoaded(false)
-                        setEditingId(test.id)
-                        setTitle(test.title)
-                        setLessonId(test.lessonId)
-                        setGrade(test.grade)
-                        setSection(test.section)
-                        setQuestions(
-                          test.questions.map((question) => ({
-                            clientKey: crypto.randomUUID(),
-                            text: question.text,
-                            type: question.type,
-                            answers:
-                              question.type === 'text'
-                                ? []
-                                : question.answers.map((answer) => ({
-                                    text: answer.text,
-                                    isCorrect: answer.isCorrect,
-                                  })),
-                            correctTextAnswer: question.correctTextAnswer ?? '',
-                            imageFile: null,
-                            imagePreview: '',
-                            existingImageUrl: question.imageUrl ?? '',
-                          })),
-                        )
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="rounded-xl bg-rose-600 px-3 py-2 text-sm font-semibold text-white"
-                      type="button"
-                      onClick={() => void deleteTest(test.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="admin-management-control-bar">
+            <AdminSearchField
+              placeholder="Search by title, teacher, or grade..."
+              fullWidth={false}
+              width={200}
+              value={searchTerm}
+              onChange={setSearchTerm}
+            />
+
+            <div className="admin-management-filter-group">
+              <AdminSelectField
+                label="Grade"
+                value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
+                fullWidth={false}
+                width={130}
+                options={[
+                  { value: 'all', label: 'All Grades' },
+                  ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                ]}
+                onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
+              />
+              <AdminSelectField
+                label="Section"
+                value={selectedSectionFilter}
+                fullWidth={false}
+                width={130}
+                options={[
+                  { value: 'all', label: 'All Sections' },
+                  ...sectionOptions.map((entry) => ({ value: entry, label: entry })),
+                ]}
+                onChange={(value) => setSelectedSectionFilter(value)}
+              />
+              <AdminSelectField
+                label="Status"
+                value={selectedStatusFilter}
+                fullWidth={false}
+                width={130}
+                options={[
+                  { value: 'all', label: 'All Statuses' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                ]}
+                onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
+              />
+
+              <AdminSelectField
+                label="Subject"
+                value={selectedSubjectFilter}
+                fullWidth={false}
+                width={130}
+                options={[
+                  { value: 'all', label: 'All Subjects' },
+                  ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
+                ]}
+                onChange={(value) => setSelectedSubjectFilter(value)}
+              />
+              <AdminDateField
+                ariaLabel="Start date"
+                value={startDateFilter}
+                fullWidth={false}
+                width={150}
+                onChange={setStartDateFilter}
+              />
+              <AdminDateField
+                ariaLabel="End date"
+                value={endDateFilter}
+                fullWidth={false}
+                width={150}
+                onChange={setEndDateFilter}
+              />
+              <IconButton
+                aria-label="Reset filters"
+                size="small"
+                sx={{
+                  border: '1px solid rgba(186, 230, 253, 0.95)',
+                  backgroundColor: 'rgba(255,255,255,0.88)',
+                  color: '#2468a0',
+                  '&:hover': {
+                    backgroundColor: 'rgba(36, 104, 160, 0.08)',
+                    borderColor: 'rgba(125, 211, 252, 0.95)',
+                  },
+                }}
+                title="Reset filters"
+                onClick={resetFilters}
+              >
+                <RestartAltOutlined fontSize="small" />
+              </IconButton>
+            </div>
           </div>
+
+          {filteredTests.length ? (
+            <div className="admin-management-table-shell mt-6">
+              <div className="overflow-x-auto">
+                <table className="admin-management-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <AdminSortHeader
+                          label="Title"
+                          column="name"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
+                      <th>
+                        <AdminSortHeader
+                          label="Grade"
+                          column="grade"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
+                      <th>
+                        <AdminSortHeader
+                          label="Created by"
+                          column="createdBy"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
+                      <th>
+                        <AdminSortHeader
+                          label="Date Created"
+                          column="createdAt"
+                          activeColumn={sortColumn}
+                          direction={sortDirection}
+                          onToggle={handleSortChange}
+                        />
+                      </th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedTests.map((test) => (
+                      <tr key={test.id}>
+                        <td>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-slate-900">{test.title}</p>
+                              {isAdmin ? (
+                                <span className="inline-flex rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-[#2468a0]">
+                                  Teacher: {test.createdByFullName ?? test.createdByUsername ?? 'Unknown'}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="text-sm text-slate-500">
+                              {test.subjectName} · {test.lessonTitle}
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              {test.questions.length} questions
+                            </p>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
+                            {test.classDisplay || formatClassDisplay(test.grade, test.section)}
+                          </span>
+                        </td>
+                        <td>{`Created by ${test.createdByFullName ?? test.createdByUsername ?? 'Teacher'}`}</td>
+                        <td>{formatDateTime(test.createdAt)}</td>
+                        <td>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              className="admin-management-icon-button"
+                              title="View test"
+                              type="button"
+                              onClick={() => setViewingTest(test)}
+                            >
+                              <VisibilityOutlined sx={{ fontSize: 20 }} />
+                            </button>
+                            <button
+                              className="admin-management-icon-button"
+                              title="Edit test"
+                              type="button"
+                              onClick={() => {
+                                setAiDraftLoaded(false)
+                                setEditingId(test.id)
+                                setTitle(test.title)
+                                setLessonId(test.lessonId)
+                                setGrade(test.grade)
+                                setSection(test.section)
+                                setQuestions(
+                                  test.questions.map((question) => ({
+                                    clientKey: crypto.randomUUID(),
+                                    text: question.text,
+                                    type: question.type,
+                                    answers:
+                                      question.type === 'text'
+                                        ? []
+                                        : question.answers.map((answer) => ({
+                                            text: answer.text,
+                                            isCorrect: answer.isCorrect,
+                                          })),
+                                    correctTextAnswer: question.correctTextAnswer ?? '',
+                                    imageFile: null,
+                                    imagePreview: '',
+                                    existingImageUrl: question.imageUrl ?? '',
+                                  })),
+                                )
+                              }}
+                            >
+                              <EditOutlined sx={{ fontSize: 20 }} />
+                            </button>
+                            <button
+                            className="admin-management-icon-button admin-management-icon-button-danger"
+                            title="Delete test"
+                            type="button"
+                            onClick={() => setTestPendingDelete(test)}
+                          >
+                            <DeleteOutline sx={{ fontSize: 20 }} />
+                          </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="admin-management-empty mt-6">
+              <h3 className="text-lg font-semibold text-slate-900">No tests found</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Try adjusting the search or filters, or create a test first.
+              </p>
+            </div>
+          )}
         </article>
       </section>
+
+      {viewingTest ? (
+        <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={() => setViewingTest(null)}>
+          <div className="admin-management-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Test View</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">{viewingTest.title}</h2>
+              </div>
+              <button
+                aria-label="Close test view"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                type="button"
+                onClick={() => setViewingTest(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="max-h-[calc(92vh-96px)] space-y-6 overflow-y-auto px-6 py-6">
+              <div className="flex flex-wrap gap-3">
+                <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
+                  {viewingTest.classDisplay || formatClassDisplay(viewingTest.grade, viewingTest.section)}
+                </span>
+                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {`Created by ${viewingTest.createdByFullName ?? viewingTest.createdByUsername ?? 'Teacher'}`}
+                </span>
+                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {formatDateTime(viewingTest.createdAt)}
+                </span>
+                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                  {viewingTest.subjectName} · {viewingTest.lessonTitle}
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {viewingTest.questions.map((question, index) => (
+                  <div className="rounded-3xl border border-blue-100/80 bg-white/90 p-5 shadow-[0_14px_28px_rgba(36,104,160,0.06)]" key={question.id}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">
+                      Question {index + 1}
+                    </p>
+                    <p className="mt-2 font-semibold text-slate-900">{question.text}</p>
+                    <p className="mt-2 text-sm text-slate-500">{question.type}</p>
+                    {question.answers.length ? (
+                      <ul className="mt-4 space-y-2">
+                        {question.answers.map((answer) => (
+                          <li
+                            className={`rounded-2xl border px-4 py-3 text-sm ${
+                              answer.isCorrect
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-slate-200 bg-slate-50 text-slate-700'
+                            }`}
+                            key={answer.id}
+                          >
+                            {answer.text}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {question.correctTextAnswer ? (
+                      <p className="mt-4 text-sm text-slate-700">
+                        Correct answer: <span className="font-semibold">{question.correctTextAnswer}</span>
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <DeleteConfirmationModal
+        open={Boolean(testPendingDelete)}
+        title="Delete test?"
+        description={`This will permanently remove ${testPendingDelete?.title ?? 'this test'}. This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onCancel={() => {
+          if (!isDeleting) {
+            setTestPendingDelete(null)
+          }
+        }}
+        onConfirm={() => {
+          if (testPendingDelete) {
+            void deleteTest(testPendingDelete.id)
+          }
+        }}
+      />
     </div>
   )
 }

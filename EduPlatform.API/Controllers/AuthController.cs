@@ -12,10 +12,12 @@ namespace EduPlatform.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly UserService _userService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, UserService userService)
     {
         _authService = authService;
+        _userService = userService;
     }
 
     [HttpPost("login")]
@@ -51,29 +53,82 @@ public class AuthController : ControllerBase
     /// </summary>
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                      ?? User.FindFirst("userId")?.Value;
-        var username = User.FindFirst(ClaimTypes.Name)?.Value;
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
-        var parsedGrade = User.FindFirst("grade")?.Value is string gradeValue && int.TryParse(gradeValue, out var grade)
-            ? (int?)grade
-            : null;
-        var section = User.FindFirst("section")?.Value;
-
-        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(username))
+        
+        if (!int.TryParse(userId, out var parsedUserId))
             return Unauthorized("Invalid token claims");
+
+        var user = await _userService.GetByIdAsync(parsedUserId);
+        if (user == null)
+            return Unauthorized("User not found");
 
         return Ok(new
         {
-            userId = int.Parse(userId),
-            username = username,
-            role = role ?? "Unknown",
-            grade = parsedGrade,
-            section,
-            classDisplay = ClassAssignmentPolicy.FormatClassDisplay(parsedGrade, section)
+            userId = user.Id,
+            fullName = user.FullName,
+            username = user.Username,
+            email = user.Email,
+            role = user.Role?.Name ?? "Unknown",
+            profileImageUrl = user.ProfileImageUrl,
+            grade = user.Grade,
+            section = user.Section,
+            classDisplay = ClassAssignmentPolicy.FormatClassDisplay(user.Grade, user.Section)
         });
+    }
+
+    [Authorize]
+    [HttpPost("profile-image")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadProfileImage([FromForm] IFormFile image)
+    {
+        var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("userId")?.Value;
+
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized("Invalid token claims");
+        }
+
+        if (image == null || image.Length == 0)
+        {
+            return BadRequest(new { error = "Please choose an image to upload." });
+        }
+
+        try
+        {
+            var user = await _userService.UpdateProfileImageAsync(userId, image);
+            return Ok(new { profileImageUrl = user.ProfileImageUrl });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpDelete("profile-image")]
+    public async Task<IActionResult> DeleteProfileImage()
+    {
+        var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("userId")?.Value;
+
+        if (!int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized("Invalid token claims");
+        }
+
+        try
+        {
+            await _userService.RemoveProfileImageAsync(userId);
+            return Ok(new { profileImageUrl = (string?)null });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [Authorize]

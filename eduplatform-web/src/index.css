@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
-  --font-display: "Space Grotesk", "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Montserrat", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --color-brand-50: #eef6ff;
   --color-brand-100: #dbeafe;
   --color-brand-500: #2563eb;
@@ -14,6 +14,7 @@
 @layer base {
   html {
     min-width: 320px;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -57,6 +58,130 @@
 
   .button-primary {
     @apply rounded-2xl bg-gradient-to-r from-[#123d5b] via-[#2468a0] to-[#0f8b8d] px-4 py-3 font-semibold text-white shadow-[0_16px_34px_rgba(36,104,160,0.24)] transition hover:brightness-105 hover:shadow-[0_20px_40px_rgba(15,139,141,0.22)];
+  }
+
+  .admin-management-control-bar {
+    @apply mt-4 flex flex-nowrap items-center gap-2 overflow-x-auto rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)];
+  }
+
+  .admin-management-filter-group {
+    @apply flex flex-row flex-nowrap items-center gap-2;
+  }
+
+  .admin-management-search {
+    @apply flex items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-slate-700 lg:min-w-[22rem];
+  }
+
+  .admin-management-search input {
+    @apply w-full bg-transparent text-sky-950 outline-none placeholder:text-sky-600/70;
+  }
+
+  .admin-management-filter {
+    @apply min-w-[11rem] appearance-none rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950;
+  }
+
+  .admin-management-table-shell {
+    @apply overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 shadow-[0_18px_36px_rgba(36,104,160,0.08)];
+  }
+
+  .admin-management-table {
+    @apply min-w-full border-collapse;
+  }
+
+  .admin-management-table thead {
+    @apply bg-slate-50/90 text-left;
+  }
+
+  .admin-management-table th {
+    @apply px-5 py-4 text-sm font-semibold text-slate-700;
+  }
+
+  .admin-management-sort-label {
+    color: inherit !important;
+    font: inherit !important;
+    transition: color 180ms ease;
+  }
+
+  .admin-management-sort-label:hover,
+  .admin-management-sort-label.Mui-active {
+    color: #2468a0 !important;
+  }
+
+  .admin-management-sort-label .MuiTableSortLabel-icon {
+    color: #2468a0 !important;
+    opacity: 0.72;
+  }
+
+  .admin-management-table td {
+    @apply px-5 py-4 align-top text-sm text-slate-700;
+  }
+
+  .admin-management-table tbody tr {
+    @apply border-b border-slate-200/70 transition hover:bg-sky-50/40;
+  }
+
+  .admin-management-icon-button {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50;
+  }
+
+  .admin-management-icon-button-danger {
+    @apply border-rose-200 text-rose-600 hover:bg-rose-50;
+  }
+
+  .sidebar-brand-link {
+    @apply rounded-2xl transition duration-200 hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/60;
+  }
+
+  .site-footer-presentation-link {
+    @apply inline-flex cursor-pointer items-center justify-center text-[#2468a0] no-underline underline-offset-4 transition-[color,text-decoration-color] duration-200 hover:text-[#0f8b8d] hover:underline;
+  }
+
+  .site-footer-link {
+    @apply inline-flex cursor-pointer items-center justify-center text-[#2468a0] no-underline underline-offset-4 transition-[color,text-decoration-color] duration-200 hover:text-[#0f8b8d] hover:underline;
+  }
+
+  .admin-management-empty {
+    @apply rounded-3xl border border-dashed border-slate-200 bg-white/60 px-6 py-14 text-center;
+  }
+
+  .admin-management-modal {
+    @apply fixed inset-0 z-[1700] flex min-h-screen w-screen items-center justify-center bg-slate-950/40 px-4 py-6;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition:
+      backdrop-filter 220ms ease,
+      -webkit-backdrop-filter 220ms ease,
+      background-color 220ms ease;
+  }
+
+  .admin-management-modal-card {
+    @apply max-h-[92vh] w-full max-w-5xl overflow-visible rounded-3xl border border-blue-100/90 bg-gradient-to-br from-white/92 via-blue-50/88 to-cyan-50/78 shadow-[0_30px_80px_rgba(37,99,235,0.14)] backdrop-blur-xl;
+  }
+
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgba(148, 163, 184, 0.55);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.72);
+    background-clip: padding-box;
   }
 }
 

@@ -12,12 +12,18 @@ public class UserService
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IFileStorageService _fileStorageService;
 
-    public UserService(AppDbContext context, IEmailService emailService, IConfiguration configuration)
+    public UserService(
+        AppDbContext context,
+        IEmailService emailService,
+        IConfiguration configuration,
+        IFileStorageService fileStorageService)
     {
         _context = context;
         _emailService = emailService;
         _configuration = configuration;
+        _fileStorageService = fileStorageService;
     }
 
     /// <summary>
@@ -210,6 +216,154 @@ public class UserService
         return normalizedRows.Count;
     }
 
+    public async Task<int> BulkCreateUsersAsync(IReadOnlyCollection<BulkUserImportRowDto> users)
+    {
+        if (users.Count == 0)
+            throw new InvalidOperationException("No users were provided for import.");
+
+        var roles = await _context.Roles
+            .Where(role => role.Name == "Student" || role.Name == "Teacher")
+            .ToDictionaryAsync(role => role.Name, role => role);
+
+        if (!roles.TryGetValue("Student", out var studentRole))
+            throw new InvalidOperationException("Student role was not found.");
+
+        if (!roles.TryGetValue("Teacher", out var teacherRole))
+            throw new InvalidOperationException("Teacher role was not found.");
+
+        var normalizedRows = users
+            .Select((user, index) => new
+            {
+                Index = index + 1,
+                Role = (user.Role ?? string.Empty).Trim().ToLowerInvariant(),
+                Username = user.Username.Trim(),
+                FullName = user.FullName.Trim(),
+                Email = EmailAddressPolicy.Normalize(user.Email),
+                Password = user.Password,
+                Subjects = (user.Subjects ?? string.Empty)
+                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+                Grade = user.Grade,
+                Section = user.Section?.Trim(),
+            })
+            .ToList();
+
+        var subjectsByName = await _context.Subjects
+            .AsNoTracking()
+            .GroupBy(subject => subject.Name.ToLower())
+            .ToDictionaryAsync(group => group.Key, group => group.Select(subject => subject.Id).Distinct().ToList());
+
+        foreach (var row in normalizedRows)
+        {
+            if (row.Role != "student" && row.Role != "teacher")
+                throw new InvalidOperationException($"Row {row.Index}: Please specify a valid role (student or teacher) for each user.");
+
+            if (string.IsNullOrWhiteSpace(row.FullName))
+                throw new InvalidOperationException($"Row {row.Index}: full name is required.");
+
+            if (string.IsNullOrWhiteSpace(row.Username))
+                throw new InvalidOperationException($"Row {row.Index}: username is required.");
+
+            if (string.IsNullOrWhiteSpace(row.Email))
+                throw new InvalidOperationException($"Row {row.Index}: email address is required.");
+
+            if (string.IsNullOrWhiteSpace(row.Password))
+                throw new InvalidOperationException($"Row {row.Index}: password is required.");
+
+            if (EmailAddressPolicy.IsReservedPlatformEmail(_configuration, row.Email))
+                throw new InvalidOperationException($"Row {row.Index}: this email is reserved for platform communication.");
+
+            PasswordPolicy.EnsureValid(row.Password);
+
+            if (row.Role == "student")
+            {
+                if (!row.Grade.HasValue || string.IsNullOrWhiteSpace(row.Section))
+                    throw new InvalidOperationException($"Row {row.Index}: grade and section are required for student users.");
+
+                ClassAssignmentPolicy.EnsureValidClass(row.Grade.Value, row.Section);
+            }
+            else
+            {
+                var unknownSubjects = row.Subjects
+                    .Where(subjectName => !subjectsByName.ContainsKey(subjectName.ToLower()))
+                    .ToList();
+
+                if (unknownSubjects.Count > 0)
+                    throw new InvalidOperationException(
+                        $"Row {row.Index}: unknown subject name(s): {string.Join(", ", unknownSubjects)}");
+            }
+        }
+
+        var duplicateUsername = normalizedRows
+            .GroupBy(row => row.Username, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicateUsername != null)
+            throw new InvalidOperationException($"Duplicate username found in the file: {duplicateUsername.Key}");
+
+        var duplicateEmail = normalizedRows
+            .GroupBy(row => row.Email, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicateEmail != null)
+            throw new InvalidOperationException($"Duplicate email found in the file: {duplicateEmail.Key}");
+
+        var usernames = normalizedRows.Select(row => row.Username).ToList();
+        var emails = normalizedRows.Select(row => row.Email).ToList();
+
+        var existingUsernames = await _context.Users
+            .Where(user => usernames.Contains(user.Username))
+            .Select(user => user.Username)
+            .ToListAsync();
+
+        if (existingUsernames.Count > 0)
+            throw new InvalidOperationException($"Username already exists: {existingUsernames[0]}");
+
+        var existingEmails = await _context.Users
+            .Where(user => emails.Contains(user.Email.ToLower()))
+            .Select(user => user.Email)
+            .ToListAsync();
+
+        if (existingEmails.Count > 0)
+            throw new InvalidOperationException($"Email already exists: {existingEmails[0]}");
+
+        foreach (var row in normalizedRows)
+        {
+            if (row.Role == "student")
+            {
+                await CreateAsync(
+                    row.FullName,
+                    row.Username,
+                    row.Email,
+                    row.Password,
+                    studentRole.Id,
+                    row.Grade,
+                    row.Section);
+            }
+            else
+            {
+                var subjectIds = row.Subjects
+                    .SelectMany(subjectName => subjectsByName[subjectName.ToLower()])
+                    .Distinct()
+                    .ToList();
+
+                await CreateAsync(
+                    row.FullName,
+                    row.Username,
+                    row.Email,
+                    row.Password,
+                    teacherRole.Id,
+                    null,
+                    null,
+                    subjectIds,
+                    null);
+            }
+        }
+
+        return normalizedRows.Count;
+    }
+
     public async Task<User> SetApprovalAsync(int id, bool isApproved)
     {
         var user = await _context.Users
@@ -301,6 +455,58 @@ public class UserService
         return await GetByIdAsync(user.Id) ?? user;
     }
 
+    public async Task ResetPasswordAsync(int id, string newPassword)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user == null)
+            throw new InvalidOperationException("User not found");
+
+        PasswordPolicy.EnsureValid(newPassword);
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<User> UpdateProfileImageAsync(int id, IFormFile image)
+    {
+        var user = await GetByIdAsync(id);
+        if (user == null)
+            throw new InvalidOperationException("User not found");
+
+        var previousImage = user.ProfileImageUrl;
+        user.ProfileImageUrl = await _fileStorageService.SaveFileAsync(
+            image,
+            "profile-images",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp");
+
+        await _context.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(previousImage))
+        {
+            await _fileStorageService.DeleteFileIfExistsAsync(previousImage);
+        }
+
+        return user;
+    }
+
+    public async Task<User> RemoveProfileImageAsync(int id)
+    {
+        var user = await GetByIdAsync(id);
+        if (user == null)
+            throw new InvalidOperationException("User not found");
+
+        var previousImage = user.ProfileImageUrl;
+        user.ProfileImageUrl = null;
+
+        await _context.SaveChangesAsync();
+        await _fileStorageService.DeleteFileIfExistsAsync(previousImage);
+
+        return user;
+    }
+
     /// <summary>
     /// Deletes a user by ID
     /// </summary>
@@ -320,10 +526,12 @@ public class UserService
 
         var email = user.Email;
         var username = user.Username;
+        var profileImageUrl = user.ProfileImageUrl;
 
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
 
+        await _fileStorageService.DeleteFileIfExistsAsync(profileImageUrl);
         await _emailService.SendAccountRemovedAsync(email, username);
     }
 

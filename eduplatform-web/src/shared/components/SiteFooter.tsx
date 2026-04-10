@@ -7,22 +7,24 @@ export function SiteFooter() {
 
   return (
     <footer className="site-footer-card mt-10 w-full rounded-[28px] border border-blue-100/90 bg-gradient-to-r from-white/96 via-blue-50/94 to-cyan-50/88 shadow-[0_18px_40px_rgba(36,104,160,0.12)]">
-      <div className="flex w-full flex-col items-center justify-center gap-3 px-4 py-6 text-center sm:px-6">
-        <div className="space-y-1">
+      <div className="flex w-full flex-col items-center justify-center gap-2 px-4 py-5 text-center sm:px-6">
+        <div className="flex flex-col items-center gap-2">
           <p className="font-display text-lg font-semibold text-slate-900">{t('appName')}</p>
-          <p className="text-sm text-slate-500">{t('siteDescription')}</p>
+          <Link className="site-footer-presentation-link text-[0.85rem] font-medium" to="/about">
+            {t('siteDescription')}
+          </Link>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-[#2468a0]">
-          <Link className="underline underline-offset-4 transition hover:text-[#0f8b8d]" to="/privacy">
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-1 text-[0.85rem] font-medium">
+          <Link className="site-footer-link" to="/privacy">
             {t('privacyPolicy')}
           </Link>
-          <Link className="underline underline-offset-4 transition hover:text-[#0f8b8d]" to="/contact">
+          <Link className="site-footer-link" to="/contact">
             {t('contact')}
           </Link>
         </div>
 
-        <p className="text-xs text-blue-400">{t('copyright', { year })}</p>
+        <p className="pt-1 text-[0.75rem] text-blue-400">{t('copyright', { year })}</p>
       </div>
     </footer>
   )

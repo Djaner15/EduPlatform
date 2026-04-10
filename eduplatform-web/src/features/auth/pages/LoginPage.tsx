@@ -5,6 +5,7 @@ import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
 import apiClient from '../../../shared/api/axiosInstance'
 import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { BrandLogo } from '../../../shared/components/BrandLogo'
 
 type LoginResponse = {
@@ -13,6 +14,7 @@ type LoginResponse = {
   fullName?: string
   role: string
   userId: number
+  profileImageUrl?: string | null
   grade?: number | null
   section?: string | null
   classDisplay?: string | null
@@ -31,6 +33,7 @@ export function LoginPage() {
   const [loginForm, setLoginForm] = useState({
     username: '',
     password: '',
+    rememberMe: true,
   })
   const [registerForm, setRegisterForm] = useState({
     fullName: '',
@@ -148,10 +151,12 @@ export function LoginPage() {
           fullName: data.fullName,
           username: data.username,
           role: data.role,
+          profileImageUrl: data.profileImageUrl ?? null,
           grade: data.grade ?? null,
           section: data.section ?? null,
           classDisplay: data.classDisplay ?? null,
         },
+        rememberMe: loginForm.rememberMe,
       })
 
       showNotification(`Welcome back, ${data.username}. Login successful.`, 'success')
@@ -226,6 +231,7 @@ export function LoginPage() {
       setLoginForm({
         username: registerForm.username.trim(),
         password: '',
+        rememberMe: true,
       })
       setRegisterForm({
         fullName: '',
@@ -323,7 +329,13 @@ export function LoginPage() {
 
                 <div className="form-row">
                   <label className="checkbox-row">
-                    <input type="checkbox" defaultChecked />
+                    <input
+                      checked={loginForm.rememberMe}
+                      type="checkbox"
+                      onChange={(event) =>
+                        setLoginForm((current) => ({ ...current, rememberMe: event.target.checked }))
+                      }
+                    />
                     <span>Keep me signed in on this device</span>
                   </label>
                   <span className="text-link">Student access portal</span>
@@ -388,43 +400,39 @@ export function LoginPage() {
                 </label>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="field">
-                    <span>Grade</span>
-                    <select
-                      value={registerForm.grade}
-                      onChange={(event) =>
+                  <div className="field">
+                    <AdminSelectField
+                      label="Grade"
+                      value={String(registerForm.grade)}
+                      options={gradeOptions.map((grade) => ({
+                        value: String(grade),
+                        label: `Grade ${grade}`,
+                      }))}
+                      onChange={(value) =>
                         setRegisterForm((current) => ({
                           ...current,
-                          grade: Number(event.target.value),
+                          grade: Number(value),
                         }))
                       }
-                    >
-                      {gradeOptions.map((grade) => (
-                        <option key={grade} value={grade}>
-                          Grade {grade}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    />
+                  </div>
 
-                  <label className="field">
-                    <span>Section</span>
-                    <select
+                  <div className="field">
+                    <AdminSelectField
+                      label="Section"
                       value={registerForm.section}
-                      onChange={(event) =>
+                      options={sectionOptions.map((section) => ({
+                        value: section,
+                        label: `Section ${section}`,
+                      }))}
+                      onChange={(value) =>
                         setRegisterForm((current) => ({
                           ...current,
-                          section: event.target.value,
+                          section: value,
                         }))
                       }
-                    >
-                      {sectionOptions.map((section) => (
-                        <option key={section} value={section}>
-                          Section {section}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    />
+                  </div>
                 </div>
 
                 <label className="field">

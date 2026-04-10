@@ -47,11 +47,14 @@ public class SubjectService : ISubjectService
                 Id = s.Id,
                 Name = s.Name,
                 Description = s.Description,
+                CreatedAt = s.CreatedAt,
                 Grade = s.Grade,
                 Section = s.Section,
                 ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(s.Grade, s.Section) ?? string.Empty,
                 CreatedByUserId = s.CreatedByUserId,
-                CreatedByUsername = s.CreatedByUser.Username
+                CreatedByUsername = s.CreatedByUser.Username,
+                CreatedByFullName = s.CreatedByUser.FullName,
+                CreatedByIsApproved = s.CreatedByUser.IsApproved
             })
             .ToListAsync();
     }
@@ -87,11 +90,14 @@ public class SubjectService : ISubjectService
             Id = subject.Id,
             Name = subject.Name,
             Description = subject.Description,
+            CreatedAt = subject.CreatedAt,
             Grade = subject.Grade,
             Section = subject.Section,
             ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(subject.Grade, subject.Section) ?? string.Empty,
             CreatedByUserId = subject.CreatedByUserId,
-            CreatedByUsername = subject.CreatedByUser.Username
+            CreatedByUsername = subject.CreatedByUser.Username,
+            CreatedByFullName = subject.CreatedByUser.FullName,
+            CreatedByIsApproved = subject.CreatedByUser.IsApproved
         };
     }
 
@@ -117,6 +123,7 @@ public class SubjectService : ISubjectService
         {
             Name = dto.Name,
             Description = dto.Description,
+            CreatedAt = DateTime.UtcNow,
             Grade = classAssignment.Grade,
             Section = classAssignment.Section,
             CreatedByUserId = currentUserId
@@ -130,10 +137,12 @@ public class SubjectService : ISubjectService
             Id = subject.Id,
             Name = subject.Name,
             Description = subject.Description,
+            CreatedAt = subject.CreatedAt,
             Grade = subject.Grade,
             Section = subject.Section,
             ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(subject.Grade, subject.Section) ?? string.Empty,
-            CreatedByUserId = currentUserId
+            CreatedByUserId = currentUserId,
+            CreatedByIsApproved = true
         };
     }
 
@@ -176,11 +185,14 @@ public class SubjectService : ISubjectService
             Id = subject.Id,
             Name = subject.Name,
             Description = subject.Description,
+            CreatedAt = subject.CreatedAt,
             Grade = subject.Grade,
             Section = subject.Section,
             ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(subject.Grade, subject.Section) ?? string.Empty,
             CreatedByUserId = subject.CreatedByUserId,
-            CreatedByUsername = subject.CreatedByUser.Username
+            CreatedByUsername = subject.CreatedByUser.Username,
+            CreatedByFullName = subject.CreatedByUser.FullName,
+            CreatedByIsApproved = subject.CreatedByUser.IsApproved
         };
     }
 

@@ -1,5 +1,7 @@
 import { BookOpen, ClipboardCheck, GraduationCap, LayoutDashboard, Settings, UserCircle2 } from 'lucide-react'
+import Tooltip from '@mui/material/Tooltip'
 import { NavLink, Outlet } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../app/AuthContext'
 import { useTranslation } from '../app/AppSettingsContext'
 import { BrandLogo } from '../shared/components/BrandLogo'
@@ -24,7 +26,11 @@ export function StudentLayout() {
       <aside className="glass-panel m-3 p-5 lg:fixed lg:inset-y-0 lg:left-0 lg:m-4 lg:flex lg:h-[calc(100vh-2rem)] lg:w-72 lg:flex-col">
         <div className="flex h-full flex-col gap-6">
           <div className="space-y-2">
-            <BrandLogo subtitle={t('studentSubtitle')} title={t('appName')} />
+            <Tooltip title="View School Presentation">
+              <Link className="sidebar-brand-link inline-block" to="/about">
+                <BrandLogo subtitle={t('studentSubtitle')} title={t('appName')} />
+              </Link>
+            </Tooltip>
             <div>
               <h1 className="font-display text-2xl font-bold text-slate-900">{t('studentHub')}</h1>
               <p className="text-sm text-slate-500">

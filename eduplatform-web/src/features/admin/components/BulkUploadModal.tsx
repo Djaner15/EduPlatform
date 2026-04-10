@@ -1,6 +1,7 @@
 import Papa from 'papaparse'
 import axios from 'axios'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertCircle, Download, FileSpreadsheet, Upload, X } from 'lucide-react'
 import { useNotification } from '../../../app/NotificationContext'
 import apiClient from '../../../shared/api/axiosInstance'
@@ -13,22 +14,25 @@ type BulkUploadModalProps = {
 }
 
 type CsvRow = {
+  role: string
   fullName: string
   username: string
   email: string
   password: string
+  subjects: string
   grade: string
   section: string
 }
 
 type PreviewRow = CsvRow & {
   rowNumber: number
+  normalizedRole: 'student' | 'teacher' | ''
   normalizedGrade: number | null
   normalizedSection: string
   errors: string[]
 }
 
-const csvHeaders = ['fullName', 'username', 'email', 'password', 'grade', 'section']
+const csvHeaders = ['role', 'fullName', 'username', 'email', 'password', 'subjects', 'grade', 'section']
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -60,10 +64,12 @@ const validatePassword = (password: string) => {
 
 const buildPreviewRows = (rows: CsvRow[]) => {
   const normalizedRows = rows.map((row) => ({
+    role: normalizeCell(row.role).toLowerCase(),
     fullName: normalizeCell(row.fullName),
     username: normalizeCell(row.username),
     email: normalizeCell(row.email),
     password: normalizeCell(row.password),
+    subjects: normalizeCell(row.subjects),
     grade: normalizeCell(row.grade),
     section: normalizeCell(row.section).toUpperCase(),
   }))
@@ -85,14 +91,20 @@ const buildPreviewRows = (rows: CsvRow[]) => {
   }, {})
 
   return normalizedRows.map<PreviewRow>((row, index) => {
+    const role = normalizeCell(row.role).toLowerCase()
     const username = normalizeCell(row.username)
     const fullName = normalizeCell(row.fullName)
     const email = normalizeCell(row.email)
     const password = normalizeCell(row.password)
+    const subjects = normalizeCell(row.subjects)
     const gradeText = normalizeCell(row.grade)
     const section = normalizeCell(row.section).toUpperCase()
     const grade = Number.parseInt(gradeText, 10)
     const errors: string[] = []
+
+    if (!role || (role !== 'student' && role !== 'teacher')) {
+      errors.push('Please specify a valid role (student or teacher) for each user.')
+    }
 
     if (!fullName) {
       errors.push('Full name is required.')
@@ -119,12 +131,14 @@ const buildPreviewRows = (rows: CsvRow[]) => {
       }
     }
 
-    if (!Number.isInteger(grade) || grade < 8 || grade > 12) {
-      errors.push('Grade must be a number between 8 and 12.')
-    }
+    if (role === 'student') {
+      if (!Number.isInteger(grade) || grade < 8 || grade > 12) {
+        errors.push('Grade must be a number between 8 and 12.')
+      }
 
-    if (!sectionOptions.includes(section as (typeof sectionOptions)[number])) {
-      errors.push('Section must be one of: А, Б, В, Г, Д, Е, Ж, З (Cyrillic).')
+      if (!sectionOptions.includes(section as (typeof sectionOptions)[number])) {
+        errors.push('Section must be one of: А, Б, В, Г, Д, Е, Ж, З (Cyrillic).')
+      }
     }
 
     if (usernameCounts[username.toLowerCase()] > 1) {
@@ -132,13 +146,16 @@ const buildPreviewRows = (rows: CsvRow[]) => {
     }
 
     return {
+      role,
       username,
       fullName,
       email,
       password,
+      subjects,
       grade: gradeText,
       section,
       rowNumber: index + 2,
+      normalizedRole: role === 'student' || role === 'teacher' ? role : '',
       normalizedGrade: Number.isInteger(grade) ? grade : null,
       normalizedSection: section,
       errors,
@@ -183,12 +200,12 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
   const hasValidationErrors = useMemo(() => rows.some((row) => row.errors.length > 0), [rows])
 
   const downloadTemplate = () => {
-    const csvContent = `${csvHeaders.join(',')}\nPetar Ivanov,primer8a,student@example.com,StrongPass1!,8,А\n`
+    const csvContent = `${csvHeaders.join(',')}\nstudent,Petar Ivanov,primer8a,student@example.com,StrongPass1!,,8,А\nteacher,Maria Petrova,teacher.bio,teacher@example.com,StrongPass1!,"Math, Physics",,\n`
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', 'students-template.csv')
+    link.setAttribute('download', 'users-template.csv')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -217,6 +234,8 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
             fullName: normalizeCell(row.fullName),
             email: normalizeCell(row.email),
             password: normalizeCell(row.password),
+            role: normalizeCell(row.role),
+            subjects: normalizeCell(row.subjects),
             grade: normalizeCell(row.grade),
             section: normalizeCell(row.section),
           }))
@@ -278,18 +297,20 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
     setIsSubmitting(true)
 
     try {
-      await apiClient.post('/users/bulk-students', {
-        students: rows.map((row) => ({
+      await apiClient.post('/users/bulk-users', {
+        users: rows.map((row) => ({
+          role: row.normalizedRole,
           fullName: row.fullName,
           username: row.username,
           email: row.email,
           password: row.password,
-          grade: row.normalizedGrade,
-          section: row.normalizedSection,
+          subjects: row.normalizedRole === 'teacher' ? row.subjects : '',
+          grade: row.normalizedRole === 'student' ? row.normalizedGrade : null,
+          section: row.normalizedRole === 'student' ? row.normalizedSection : null,
         })),
       })
 
-      showNotification('Учениците бяха импортирани успешно.', 'success')
+      showNotification('Users were imported successfully.', 'success')
       await onImported()
       onClose()
     } catch (error) {
@@ -315,9 +336,14 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
     return null
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+      className="fixed inset-0 z-[1700] flex min-h-screen w-screen items-center justify-center bg-slate-950/40 px-4 py-6"
+      style={{
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        transition: 'backdrop-filter 220ms ease, background-color 220ms ease',
+      }}
       role="dialog"
       aria-modal="true"
       onClick={(event) => {
@@ -327,12 +353,12 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
       }}
     >
       <div className="glass-panel flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden">
-        <div className="flex items-start justify-between gap-4 border-b border-blue-100/80 px-6 py-5">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-blue-100/80 px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Bulk import</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Bulk Student Import</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Bulk User Import</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Upload a CSV file with columns: <span className="font-semibold">fullName, username, email, password, grade, section</span>. You will see a preview before confirming.
+              Upload a CSV file with columns: <span className="font-semibold">role, fullName, username, email, password, subjects, grade, section</span>. You will see a preview before confirming.
             </p>
           </div>
           <button
@@ -344,8 +370,9 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-6 overflow-hidden px-6 py-6 xl:grid-cols-[0.38fr_0.62fr]">
-          <div className="space-y-4">
+        <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 pb-8 pt-6">
+          <div className="grid min-h-0 gap-6 xl:grid-cols-[0.38fr_0.62fr]">
+          <div className="space-y-4 pb-2">
             <button className="button-primary inline-flex items-center gap-2" type="button" onClick={downloadTemplate}>
               <Download className="h-4 w-4" />
               Download CSV Template
@@ -389,8 +416,11 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
             <div className="rounded-3xl border border-sky-100 bg-white/75 p-4">
               <h4 className="text-sm font-semibold text-slate-900">Data requirements</h4>
               <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                <li>Grade must be a number between 8 and 12.</li>
-                <li>Section must be one of: А, Б, В, Г, Д, Е, Ж, З (Cyrillic).</li>
+                <li>Please specify a valid role: student or teacher.</li>
+                <li>Students require a grade between 8 and 12.</li>
+                <li>Student sections must be one of: А, Б, В, Г, Д, Е, Ж, З (Cyrillic).</li>
+                <li>Teachers can list multiple subjects in the subjects column, separated by commas.</li>
+                <li>Teachers can leave grade and section empty.</li>
                 <li>Password must be strong: uppercase, lowercase, number, and symbol.</li>
                 <li>The CSV file must be saved in UTF-8 for correct Cyrillic support.</li>
               </ul>
@@ -434,15 +464,17 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
               </button>
             </div>
 
-            <div className="mt-4 min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200">
+            <div className="thin-scrollbar mt-4 min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200">
               {rows.length ? (
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="sticky top-0 bg-slate-50 text-left text-slate-600">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Row</th>
+                      <th className="px-4 py-3 font-semibold">Role</th>
                       <th className="px-4 py-3 font-semibold">Full Name</th>
                       <th className="px-4 py-3 font-semibold">Username</th>
                       <th className="px-4 py-3 font-semibold">Email</th>
+                      <th className="px-4 py-3 font-semibold">Subjects</th>
                       <th className="px-4 py-3 font-semibold">Grade</th>
                       <th className="px-4 py-3 font-semibold">Section</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
@@ -455,9 +487,11 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
                         className={row.errors.length ? 'bg-rose-50/90' : 'bg-emerald-50/40'}
                       >
                         <td className="px-4 py-3 font-medium text-slate-900">{row.rowNumber}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.role || '—'}</td>
                         <td className="px-4 py-3 text-slate-700">{row.fullName || '—'}</td>
                         <td className="px-4 py-3 text-slate-700">{row.username || '—'}</td>
                         <td className="px-4 py-3 text-slate-700">{row.email || '—'}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.subjects || '—'}</td>
                         <td className="px-4 py-3 text-slate-700">{row.grade || '—'}</td>
                         <td className="px-4 py-3 text-slate-700">{row.section || '—'}</td>
                         <td className="px-4 py-3">
@@ -488,8 +522,10 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
               )}
             </div>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
