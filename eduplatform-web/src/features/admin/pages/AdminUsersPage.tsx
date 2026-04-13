@@ -19,10 +19,10 @@ import ToggleOnOutlinedIcon from '@mui/icons-material/ToggleOnOutlined'
 import ToggleOffOutlinedIcon from '@mui/icons-material/ToggleOffOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import CloseIcon from '@mui/icons-material/Close'
-import RestartAltOutlined from '@mui/icons-material/RestartAltOutlined'
 import { useNotification } from '../../../app/NotificationContext'
 import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
@@ -1090,23 +1090,7 @@ export function AdminUsersPage() {
                 width={150}
                 onChange={setEndDateFilter}
               />
-              <IconButton
-                aria-label="Reset filters"
-                size="small"
-                sx={{
-                  border: '1px solid rgba(186, 230, 253, 0.95)',
-                  backgroundColor: 'rgba(255,255,255,0.88)',
-                  color: '#2468a0',
-                  '&:hover': {
-                    backgroundColor: 'rgba(36, 104, 160, 0.08)',
-                    borderColor: 'rgba(125, 211, 252, 0.95)',
-                  },
-                }}
-                title="Reset filters"
-                onClick={resetFilters}
-              >
-                <RestartAltOutlined fontSize="small" />
-              </IconButton>
+              <AdminResetFiltersButton onClick={resetFilters} />
             </div>
           </div>
 

@@ -1,6 +1,11 @@
 import axios from 'axios'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../app/AuthContext'
+import { gradeOptions } from '../../../shared/classOptions'
+import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
+import { AdminSearchField } from '../../../shared/components/AdminSearchField'
+import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient from '../../../shared/api/axiosInstance'
 import { InfoCard } from '../../../shared/components/InfoCard'
@@ -9,13 +14,23 @@ type Subject = {
   id: number
   name: string
   description: string
+  grade: number
+  section: string
+  classDisplay: string
 }
 
 export function SubjectsPage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [items, setItems] = useState<Subject[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSelectedGradeFilter(user?.grade ?? 'all')
+  }, [user?.grade])
 
   useEffect(() => {
     let isMounted = true
@@ -54,6 +69,27 @@ export function SubjectsPage() {
     }
   }, [])
 
+  const filteredSubjects = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return items.filter((subject) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        subject.name.toLowerCase().includes(normalizedSearch) ||
+        subject.description.toLowerCase().includes(normalizedSearch) ||
+        String(subject.grade).includes(normalizedSearch)
+
+      const matchesGrade = selectedGradeFilter === 'all' || subject.grade === selectedGradeFilter
+
+      return matchesSearch && matchesGrade
+    })
+  }, [items, searchTerm, selectedGradeFilter])
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setSelectedGradeFilter(user?.grade ?? 'all')
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -75,24 +111,60 @@ export function SubjectsPage() {
       ) : null}
 
       {!isLoading && !errorMessage ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((subject) => (
-            <InfoCard
-              key={subject.id}
-              action={
-                <button
-                  className="button-primary inline-flex px-4 py-3 text-sm"
-                  onClick={() => navigate('/student/lessons')}
-                  type="button"
-                >
-                  View Lessons
-                </button>
-              }
-              description={subject.description}
-              footer="Available now"
-              title={subject.name}
+        <section className="glass-panel p-6">
+          <div className="admin-management-control-bar">
+            <AdminSearchField
+              placeholder="Search by title, description, or grade..."
+              fullWidth={false}
+              width={200}
+              value={searchTerm}
+              onChange={setSearchTerm}
             />
-          ))}
+
+            <div className="admin-management-filter-group">
+              <AdminSelectField
+                label="Grade"
+                value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
+                fullWidth={false}
+                width={130}
+                options={[
+                  { value: 'all', label: 'All Grades' },
+                  ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                ]}
+                onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
+              />
+              <AdminResetFiltersButton onClick={resetFilters} />
+            </div>
+          </div>
+
+          {filteredSubjects.length ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredSubjects.map((subject) => (
+                <InfoCard
+                  key={subject.id}
+                  action={
+                    <button
+                      className="button-primary inline-flex px-4 py-3 text-sm"
+                      onClick={() => navigate('/student/lessons')}
+                      type="button"
+                    >
+                      View Lessons
+                    </button>
+                  }
+                  description={subject.description}
+                  footer={subject.classDisplay || `Grade ${subject.grade}${subject.section}`}
+                  title={subject.name}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="admin-management-empty mt-6">
+              <h3 className="text-lg font-semibold text-slate-900">No subjects found</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Try adjusting the search or filters to find your class subjects.
+              </p>
+            </div>
+          )}
         </section>
       ) : null}
     </div>

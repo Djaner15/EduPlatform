@@ -1,8 +1,6 @@
 import axios from 'axios'
 import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import EditOutlined from '@mui/icons-material/EditOutlined'
-import IconButton from '@mui/material/IconButton'
-import RestartAltOutlined from '@mui/icons-material/RestartAltOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import { FileQuestion, ImagePlus, ListPlus, Loader2, PlusCircle, Sparkles, Trash2, Type } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -10,6 +8,7 @@ import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
 import { formatClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
@@ -845,23 +844,7 @@ export function AdminTestsPage() {
                 width={150}
                 onChange={setEndDateFilter}
               />
-              <IconButton
-                aria-label="Reset filters"
-                size="small"
-                sx={{
-                  border: '1px solid rgba(186, 230, 253, 0.95)',
-                  backgroundColor: 'rgba(255,255,255,0.88)',
-                  color: '#2468a0',
-                  '&:hover': {
-                    backgroundColor: 'rgba(36, 104, 160, 0.08)',
-                    borderColor: 'rgba(125, 211, 252, 0.95)',
-                  },
-                }}
-                title="Reset filters"
-                onClick={resetFilters}
-              >
-                <RestartAltOutlined fontSize="small" />
-              </IconButton>
+              <AdminResetFiltersButton onClick={resetFilters} />
             </div>
           </div>
 

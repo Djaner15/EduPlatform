@@ -2,15 +2,19 @@ import axios from 'axios'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
-import { gradeOptions } from '../../../shared/classOptions'
+import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient from '../../../shared/api/axiosInstance'
+import { isWithinDateRange } from '../../../shared/dateFilters'
 
 type TestSummary = {
   id: number
   title: string
+  createdAt: string
   lessonId: number
   lessonTitle: string
   subjectName: string
@@ -28,14 +32,18 @@ export function TestsPage() {
   const [tests, setTests] = useState<TestSummary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
+  const [startDateFilter, setStartDateFilter] = useState('')
+  const [endDateFilter, setEndDateFilter] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     setSelectedGradeFilter(user?.grade ?? 'all')
-  }, [user?.grade])
+    setSelectedSectionFilter(user?.section ?? 'all')
+  }, [user?.grade, user?.section])
 
   useEffect(() => {
     let isMounted = true
@@ -91,14 +99,26 @@ export function TestsPage() {
         String(test.grade).includes(normalizedSearch)
 
       const matchesGrade = selectedGradeFilter === 'all' || test.grade === selectedGradeFilter
+      const matchesSection = selectedSectionFilter === 'all' || test.section === selectedSectionFilter
       const matchesStatus =
         selectedStatusFilter === 'all' ||
         (selectedStatusFilter === 'active' ? test.createdByIsApproved : !test.createdByIsApproved)
       const matchesSubject = selectedSubjectFilter === 'all' || test.subjectName === selectedSubjectFilter
+      const matchesDate = isWithinDateRange(test.createdAt, startDateFilter, endDateFilter)
 
-      return matchesSearch && matchesGrade && matchesStatus && matchesSubject
+      return matchesSearch && matchesGrade && matchesSection && matchesStatus && matchesSubject && matchesDate
     })
-  }, [searchTerm, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, tests])
+  }, [endDateFilter, searchTerm, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, tests])
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setSelectedGradeFilter(user?.grade ?? 'all')
+    setSelectedSectionFilter(user?.section ?? 'all')
+    setSelectedStatusFilter('all')
+    setSelectedSubjectFilter('all')
+    setStartDateFilter('')
+    setEndDateFilter('')
+  }
 
   return (
     <div className="space-y-8">
@@ -123,8 +143,8 @@ export function TestsPage() {
             <AdminSelectField
               label="Grade"
               value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
-              minWidth={120}
               fullWidth={false}
+              width={130}
               options={[
                 { value: 'all', label: 'All Grades' },
                 ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
@@ -132,10 +152,21 @@ export function TestsPage() {
               onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
             />
             <AdminSelectField
+              label="Section"
+              value={selectedSectionFilter}
+              fullWidth={false}
+              width={130}
+              options={[
+                { value: 'all', label: 'All Sections' },
+                ...sectionOptions.map((entry) => ({ value: entry, label: entry })),
+              ]}
+              onChange={setSelectedSectionFilter}
+            />
+            <AdminSelectField
               label="Status"
               value={selectedStatusFilter}
-              minWidth={120}
               fullWidth={false}
+              width={130}
               options={[
                 { value: 'all', label: 'All Statuses' },
                 { value: 'active', label: 'Active' },
@@ -147,14 +178,29 @@ export function TestsPage() {
             <AdminSelectField
               label="Subject"
               value={selectedSubjectFilter}
-              minWidth={120}
               fullWidth={false}
+              width={130}
               options={[
                 { value: 'all', label: 'All Subjects' },
                 ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
               ]}
               onChange={setSelectedSubjectFilter}
             />
+            <AdminDateField
+              ariaLabel="Start date"
+              value={startDateFilter}
+              fullWidth={false}
+              width={150}
+              onChange={setStartDateFilter}
+            />
+            <AdminDateField
+              ariaLabel="End date"
+              value={endDateFilter}
+              fullWidth={false}
+              width={150}
+              onChange={setEndDateFilter}
+            />
+            <AdminResetFiltersButton onClick={resetFilters} />
           </div>
         </div>
 
