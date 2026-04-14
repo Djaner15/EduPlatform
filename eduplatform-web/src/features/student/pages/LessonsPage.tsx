@@ -1,9 +1,11 @@
 import axios from 'axios'
+import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
 import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
@@ -36,6 +38,8 @@ export function LessonsPage() {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -109,6 +113,21 @@ export function LessonsPage() {
     })
   }, [endDateFilter, filter, lessons, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter])
 
+  const sortedLessons = useMemo(
+    () => [...filteredLessons].sort((left, right) => left.title.localeCompare(right.title)),
+    [filteredLessons],
+  )
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedLessons.length / rowsPerPage) - 1)
+    setPage((current) => Math.min(current, maxPage))
+  }, [rowsPerPage, sortedLessons.length])
+
+  const paginatedLessons = useMemo(
+    () => sortedLessons.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rowsPerPage, sortedLessons],
+  )
+
   const resetFilters = () => {
     setFilter('')
     setSelectedGradeFilter(user?.grade ?? 'all')
@@ -128,17 +147,30 @@ export function LessonsPage() {
       />
 
       <section className="glass-panel p-6">
-        <div className="admin-management-control-bar">
-          <AdminSearchField
-            placeholder="Search by title, teacher, or grade..."
-            flex="1 1 200px"
-            maxWidth="min(100%, 200px)"
-            fullWidth={false}
-            value={filter}
-            onChange={setFilter}
-          />
+        <Stack
+          className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+          spacing={2}
+        >
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            useFlexGap
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+          >
+            <AdminSearchField
+              placeholder="Search by title, teacher, or grade..."
+              flex="1 1 0%"
+              maxWidth="none"
+              fullWidth={false}
+              value={filter}
+              onChange={setFilter}
+            />
+            <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+              <AdminResetFiltersButton onClick={resetFilters} />
+            </Stack>
+          </Stack>
 
-          <div className="admin-management-filter-group">
+          <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
             <AdminSelectField
               label="Grade"
               value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
@@ -173,7 +205,6 @@ export function LessonsPage() {
               ]}
               onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
             />
-
             <AdminSelectField
               label="Subject"
               value={selectedSubjectFilter}
@@ -199,17 +230,17 @@ export function LessonsPage() {
               width={150}
               onChange={setEndDateFilter}
             />
-            <AdminResetFiltersButton onClick={resetFilters} />
-          </div>
-        </div>
+          </Stack>
+        </Stack>
 
         {isLoading ? <div className="mt-6 text-slate-600">Loading lessons...</div> : null}
         {!isLoading && errorMessage ? <div className="mt-6 text-rose-700">{errorMessage}</div> : null}
 
         {!isLoading && !errorMessage ? (
-          filteredLessons.length ? (
+          sortedLessons.length ? (
+            <>
             <div className="mt-6 grid gap-4">
-              {filteredLessons.map((lesson) => (
+              {paginatedLessons.map((lesson) => (
                 <article className="glass-panel flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between" key={lesson.id}>
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-slate-900">{lesson.title}</h2>
@@ -227,6 +258,19 @@ export function LessonsPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-4 rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]">
+              <AppTablePagination
+                count={sortedLessons.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(nextRowsPerPage) => {
+                  setRowsPerPage(nextRowsPerPage)
+                  setPage(0)
+                }}
+              />
+            </div>
+            </>
           ) : (
             <div className="admin-management-empty mt-6">
               <h3 className="text-lg font-semibold text-slate-900">No lessons found</h3>

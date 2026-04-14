@@ -2,12 +2,14 @@ import axios from 'axios'
 import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import EditOutlined from '@mui/icons-material/EditOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
+import Stack from '@mui/material/Stack'
 import { FileQuestion, ImagePlus, ListPlus, Loader2, PlusCircle, Sparkles, Trash2, Type } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
 import { formatClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
@@ -136,6 +138,8 @@ export function AdminTestsPage() {
   const [endDateFilter, setEndDateFilter] = useState('')
   const [sortColumn, setSortColumn] = useState<'name' | 'grade' | 'createdBy' | 'createdAt'>('createdAt')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [testPendingDelete, setTestPendingDelete] = useState<TestItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -259,6 +263,16 @@ export function AdminTestsPage() {
     const selectedSort = sortMap[sortColumn]
     return sortItems(filteredTests, selectedSort.getValue, sortDirection, selectedSort.type)
   }, [filteredTests, sortColumn, sortDirection])
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedTests.length / rowsPerPage) - 1)
+    setPage((current) => Math.min(current, maxPage))
+  }, [rowsPerPage, sortedTests.length])
+
+  const paginatedTests = useMemo(
+    () => sortedTests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rowsPerPage, sortedTests],
+  )
 
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {
@@ -774,16 +788,30 @@ export function AdminTestsPage() {
         </div>
 
         <article className="glass-panel p-6">
-          <div className="admin-management-control-bar">
-            <AdminSearchField
-              placeholder="Search by title, teacher, or grade..."
-              fullWidth={false}
-              width={200}
-              value={searchTerm}
-              onChange={setSearchTerm}
-            />
+          <Stack
+            className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+            spacing={2}
+          >
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              useFlexGap
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <AdminSearchField
+                placeholder="Search by title, teacher, or grade..."
+                flex="1 1 0%"
+                maxWidth="none"
+                fullWidth={false}
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+              <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+                <AdminResetFiltersButton onClick={resetFilters} />
+              </Stack>
+            </Stack>
 
-            <div className="admin-management-filter-group">
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               <AdminSelectField
                 label="Grade"
                 value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
@@ -818,7 +846,6 @@ export function AdminTestsPage() {
                 ]}
                 onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
               />
-
               <AdminSelectField
                 label="Subject"
                 value={selectedSubjectFilter}
@@ -844,9 +871,8 @@ export function AdminTestsPage() {
                 width={150}
                 onChange={setEndDateFilter}
               />
-              <AdminResetFiltersButton onClick={resetFilters} />
-            </div>
-          </div>
+            </Stack>
+          </Stack>
 
           {filteredTests.length ? (
             <div className="admin-management-table-shell mt-6">
@@ -894,7 +920,7 @@ export function AdminTestsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedTests.map((test) => (
+                    {paginatedTests.map((test) => (
                       <tr key={test.id}>
                         <td>
                           <div className="space-y-2">
@@ -979,6 +1005,16 @@ export function AdminTestsPage() {
                   </tbody>
                 </table>
               </div>
+              <AppTablePagination
+                count={sortedTests.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(nextRowsPerPage) => {
+                  setRowsPerPage(nextRowsPerPage)
+                  setPage(0)
+                }}
+              />
             </div>
           ) : (
             <div className="admin-management-empty mt-6">

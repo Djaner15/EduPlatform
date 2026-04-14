@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
 import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
@@ -37,6 +38,8 @@ export function TestsPage() {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -109,6 +112,16 @@ export function TestsPage() {
       return matchesSearch && matchesGrade && matchesSection && matchesStatus && matchesSubject && matchesDate
     })
   }, [endDateFilter, searchTerm, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, tests])
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(filteredTests.length / rowsPerPage) - 1)
+    setPage((current) => Math.min(current, maxPage))
+  }, [filteredTests.length, rowsPerPage])
+
+  const paginatedTests = useMemo(
+    () => filteredTests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredTests, page, rowsPerPage],
+  )
 
   const resetFilters = () => {
     setSearchTerm('')
@@ -211,8 +224,9 @@ export function TestsPage() {
 
         {!isLoading && !errorMessage ? (
           filteredTests.length ? (
+            <>
             <div className="mt-6 grid gap-4">
-              {filteredTests.map((test) => (
+              {paginatedTests.map((test) => (
                 <article className="glass-panel flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between" key={test.id}>
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-slate-900">{test.title}</h2>
@@ -229,6 +243,19 @@ export function TestsPage() {
                 </article>
               ))}
             </div>
+            <div className="mt-4 rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]">
+              <AppTablePagination
+                count={filteredTests.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(nextRowsPerPage) => {
+                  setRowsPerPage(nextRowsPerPage)
+                  setPage(0)
+                }}
+              />
+            </div>
+            </>
           ) : (
             <div className="admin-management-empty mt-6">
               <h3 className="text-lg font-semibold text-slate-900">No tests found</h3>

@@ -1,8 +1,10 @@
 import axios from 'axios'
+import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
 import { gradeOptions } from '../../../shared/classOptions'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
@@ -25,6 +27,8 @@ export function SubjectsPage() {
   const [items, setItems] = useState<Subject[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -85,6 +89,21 @@ export function SubjectsPage() {
     })
   }, [items, searchTerm, selectedGradeFilter])
 
+  const sortedSubjects = useMemo(
+    () => [...filteredSubjects].sort((left, right) => left.name.localeCompare(right.name)),
+    [filteredSubjects],
+  )
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedSubjects.length / rowsPerPage) - 1)
+    setPage((current) => Math.min(current, maxPage))
+  }, [rowsPerPage, sortedSubjects.length])
+
+  const paginatedSubjects = useMemo(
+    () => sortedSubjects.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rowsPerPage, sortedSubjects],
+  )
+
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedGradeFilter(user?.grade ?? 'all')
@@ -112,16 +131,30 @@ export function SubjectsPage() {
 
       {!isLoading && !errorMessage ? (
         <section className="glass-panel p-6">
-          <div className="admin-management-control-bar">
-            <AdminSearchField
-              placeholder="Search by title, description, or grade..."
-              fullWidth={false}
-              width={200}
-              value={searchTerm}
-              onChange={setSearchTerm}
-            />
+          <Stack
+            className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+            spacing={2}
+          >
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              useFlexGap
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <AdminSearchField
+                placeholder="Search by title, description, or grade..."
+                flex="1 1 0%"
+                maxWidth="none"
+                fullWidth={false}
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+              <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+                <AdminResetFiltersButton onClick={resetFilters} />
+              </Stack>
+            </Stack>
 
-            <div className="admin-management-filter-group">
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               <AdminSelectField
                 label="Grade"
                 value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
@@ -133,13 +166,13 @@ export function SubjectsPage() {
                 ]}
                 onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
               />
-              <AdminResetFiltersButton onClick={resetFilters} />
-            </div>
-          </div>
+            </Stack>
+          </Stack>
 
-          {filteredSubjects.length ? (
+          {sortedSubjects.length ? (
+            <>
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredSubjects.map((subject) => (
+              {paginatedSubjects.map((subject) => (
                 <InfoCard
                   key={subject.id}
                   action={
@@ -157,6 +190,19 @@ export function SubjectsPage() {
                 />
               ))}
             </div>
+            <div className="mt-4 rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]">
+              <AppTablePagination
+                count={sortedSubjects.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(nextRowsPerPage) => {
+                  setRowsPerPage(nextRowsPerPage)
+                  setPage(0)
+                }}
+              />
+            </div>
+            </>
           ) : (
             <div className="admin-management-empty mt-6">
               <h3 className="text-lg font-semibold text-slate-900">No subjects found</h3>

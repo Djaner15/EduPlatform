@@ -11,6 +11,7 @@ import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -22,6 +23,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import { useNotification } from '../../../app/NotificationContext'
 import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
@@ -84,7 +86,7 @@ type AdminItem = {
   approvedAt?: string | null
 }
 
-type UserSortColumn = 'name' | 'role' | 'dateCreated'
+type UserSortColumn = 'name' | 'email' | 'dateCreated'
 
 type SectionGroup = {
   section: string
@@ -238,8 +240,14 @@ export function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
-  const [sortColumn, setSortColumn] = useState<UserSortColumn>('dateCreated')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [sortColumn, setSortColumn] = useState<UserSortColumn>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [teacherPage, setTeacherPage] = useState(0)
+  const [teacherRowsPerPage, setTeacherRowsPerPage] = useState(10)
+  const [adminPage, setAdminPage] = useState(0)
+  const [adminRowsPerPage, setAdminRowsPerPage] = useState(10)
+  const [studentPages, setStudentPages] = useState<Record<string, number>>({})
+  const [studentRowsPerPage, setStudentRowsPerPage] = useState<Record<string, number>>({})
   const [expandedGrade, setExpandedGrade] = useState<number | null>(null)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [classTeacherDrafts, setClassTeacherDrafts] = useState<Record<string, string>>({})
@@ -611,17 +619,14 @@ export function AdminUsersPage() {
     })
   }, [allUsersById, endDateFilter, management, searchTerm, startDateFilter, statusFilter])
 
-  const sortUsers = <T extends { id: number; fullName: string; role?: string }>(
-    items: T[],
-    fallbackRole: string,
-  ) => {
+  const sortUsers = <T extends { id: number; fullName: string; email?: string | null }>(items: T[]) => {
     const sortMap = {
       name: {
         getValue: (item: T) => item.fullName,
         type: 'text',
       },
-      role: {
-        getValue: (item: T) => item.role ?? fallbackRole,
+      email: {
+        getValue: (item: T) => item.email ?? '',
         type: 'text',
       },
       dateCreated: {
@@ -640,21 +645,94 @@ export function AdminUsersPage() {
         ...gradeGroup,
         sections: gradeGroup.sections.map((sectionGroup) => ({
           ...sectionGroup,
-          students: sortUsers(sectionGroup.students, 'Student'),
+          students: sortUsers(sectionGroup.students),
         })),
       })),
     [filteredGrades, sortColumn, sortDirection, allUsersById],
   )
 
   const sortedTeachers = useMemo(
-    () => sortUsers(filteredTeachers.map((teacher) => ({ ...teacher, role: 'Teacher' })), 'Teacher'),
+    () => sortUsers(filteredTeachers),
     [filteredTeachers, sortColumn, sortDirection, allUsersById],
   )
 
   const sortedAdmins = useMemo(
-    () => sortUsers(filteredAdmins, 'Admin'),
+    () => sortUsers(filteredAdmins),
     [filteredAdmins, sortColumn, sortDirection, allUsersById],
   )
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedTeachers.length / teacherRowsPerPage) - 1)
+    setTeacherPage((current) => Math.min(current, maxPage))
+  }, [sortedTeachers.length, teacherRowsPerPage])
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedAdmins.length / adminRowsPerPage) - 1)
+    setAdminPage((current) => Math.min(current, maxPage))
+  }, [adminRowsPerPage, sortedAdmins.length])
+
+  useEffect(() => {
+    setStudentPages((current) => {
+      const next = { ...current }
+      let changed = false
+
+      sortedGrades.forEach((gradeGroup) => {
+        gradeGroup.sections.forEach((sectionGroup) => {
+          const sectionId = classKey(gradeGroup.grade, sectionGroup.section)
+          const rowsPerPage = studentRowsPerPage[sectionId] ?? 10
+          const maxPage = Math.max(0, Math.ceil(sectionGroup.students.length / rowsPerPage) - 1)
+          const page = current[sectionId] ?? 0
+
+          if (page > maxPage) {
+            next[sectionId] = maxPage
+            changed = true
+          }
+        })
+      })
+
+      return changed ? next : current
+    })
+  }, [sortedGrades, studentRowsPerPage])
+
+  const paginatedTeachers = useMemo(
+    () => sortedTeachers.slice(teacherPage * teacherRowsPerPage, teacherPage * teacherRowsPerPage + teacherRowsPerPage),
+    [sortedTeachers, teacherPage, teacherRowsPerPage],
+  )
+
+  const paginatedAdmins = useMemo(
+    () => sortedAdmins.slice(adminPage * adminRowsPerPage, adminPage * adminRowsPerPage + adminRowsPerPage),
+    [sortedAdmins, adminPage, adminRowsPerPage],
+  )
+
+  const studentResultCount = useMemo(
+    () =>
+      filteredGrades.reduce(
+        (gradeTotal, gradeGroup) =>
+          gradeTotal + gradeGroup.sections.reduce((sectionTotal, sectionGroup) => sectionTotal + sectionGroup.students.length, 0),
+        0,
+      ),
+    [filteredGrades],
+  )
+
+  const teacherResultCount = filteredTeachers.length
+  const adminResultCount = filteredAdmins.length
+  const hasActiveSearch = searchTerm.trim().length > 0
+
+  useEffect(() => {
+    if (!hasActiveSearch) {
+      return
+    }
+
+    const matchingViews = [
+      studentResultCount > 0 ? 'students' : null,
+      teacherResultCount > 0 ? 'teachers' : null,
+      adminResultCount > 0 ? 'admins' : null,
+    ].filter((value): value is 'students' | 'teachers' | 'admins' => value !== null)
+
+    if (matchingViews.length === 1 && matchingViews[0] !== activeView) {
+      setActiveView(matchingViews[0])
+    }
+  }, [activeView, adminResultCount, hasActiveSearch, studentResultCount, teacherResultCount])
 
   const handleSortChange = (column: UserSortColumn) => {
     if (sortColumn === column) {
@@ -673,9 +751,17 @@ export function AdminUsersPage() {
     setStatusFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
-    setSortColumn('dateCreated')
-    setSortDirection('desc')
+    setSortColumn('name')
+    setSortDirection('asc')
   }
+
+  const getStudentPage = (sectionId: string) => studentPages[sectionId] ?? 0
+  const getStudentRowsPerPage = (sectionId: string) => studentRowsPerPage[sectionId] ?? 10
+
+  const getTabClassName = (view: 'students' | 'teachers' | 'admins', hasResults: boolean) =>
+    `rounded-xl px-4 py-2 text-sm font-semibold transition ${
+      activeView === view ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+    } ${hasActiveSearch && !hasResults ? 'opacity-45' : ''}`
 
   const toggleGrade = (grade: number) => {
     setExpandedGrade((current) => {
@@ -988,27 +1074,36 @@ export function AdminUsersPage() {
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <div className="inline-flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1">
               <button
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeView === 'students' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+                className={getTabClassName('students', studentResultCount > 0)}
                 type="button"
-                  onClick={() => setActiveView('students')}
-                >
-                  Classes
-                </button>
-                <button
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeView === 'teachers' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-                  type="button"
-                  onClick={() => setActiveView('teachers')}
-                >
-                  Teachers
-                </button>
-                <button
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${activeView === 'admins' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
-                  type="button"
-                  onClick={() => setActiveView('admins')}
-                >
-                  Admins
-                </button>
-              </div>
+                onClick={() => setActiveView('students')}
+              >
+                Classes
+                <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                  {studentResultCount}
+                </span>
+              </button>
+              <button
+                className={getTabClassName('teachers', teacherResultCount > 0)}
+                type="button"
+                onClick={() => setActiveView('teachers')}
+              >
+                Teachers
+                <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                  {teacherResultCount}
+                </span>
+              </button>
+              <button
+                className={getTabClassName('admins', adminResultCount > 0)}
+                type="button"
+                onClick={() => setActiveView('admins')}
+              >
+                Admins
+                <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                  {adminResultCount}
+                </span>
+              </button>
+            </div>
               <button
                 className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!hasExportableRows}
@@ -1026,16 +1121,30 @@ export function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="admin-management-control-bar mt-5">
-            <AdminSearchField
-              placeholder="Search users..."
-              fullWidth={false}
-              width={200}
-              value={searchTerm}
-              onChange={setSearchTerm}
-            />
+          <Stack
+            className="mt-5 rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+            spacing={2}
+          >
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              useFlexGap
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <AdminSearchField
+                placeholder="Search users..."
+                flex="1 1 0%"
+                maxWidth="none"
+                fullWidth={false}
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+              <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+                <AdminResetFiltersButton onClick={resetFilters} />
+              </Stack>
+            </Stack>
 
-            <div className="admin-management-filter-group">
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               {activeView === 'students' || activeView === 'teachers' ? (
                 <>
                   <AdminSelectField
@@ -1090,9 +1199,8 @@ export function AdminUsersPage() {
                 width={150}
                 onChange={setEndDateFilter}
               />
-              <AdminResetFiltersButton onClick={resetFilters} />
-            </div>
-          </div>
+            </Stack>
+          </Stack>
 
           {isLoading ? <div className="mt-6 text-slate-600">Loading management data...</div> : null}
           {!isLoading && errorMessage ? <div className="mt-6 text-rose-700">{errorMessage}</div> : null}
@@ -1191,6 +1299,16 @@ export function AdminUsersPage() {
                                   }`}
                                 >
                                   <div className="min-h-0 overflow-hidden px-4">
+                                    {(() => {
+                                      const sectionPage = getStudentPage(sectionId)
+                                      const sectionRowsPerPage = getStudentRowsPerPage(sectionId)
+                                      const paginatedStudents = sectionGroup.students.slice(
+                                        sectionPage * sectionRowsPerPage,
+                                        sectionPage * sectionRowsPerPage + sectionRowsPerPage,
+                                      )
+
+                                      return (
+                                        <>
                                     <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                                       <colgroup>
@@ -1211,16 +1329,16 @@ export function AdminUsersPage() {
                                               onToggle={handleSortChange}
                                             />
                                           </th>
-                                          <th className="px-4 py-3 font-semibold">Email</th>
                                           <th className="px-4 py-3 font-semibold">
                                             <AdminSortHeader
-                                              label="Role"
-                                              column="role"
+                                              label="Email"
+                                              column="email"
                                               activeColumn={sortColumn}
                                               direction={sortDirection}
                                               onToggle={handleSortChange}
                                             />
                                           </th>
+                                          <th className="px-4 py-3 font-semibold">Role</th>
                                           <th className="px-4 py-3 font-semibold">
                                             <AdminSortHeader
                                               label="Date Created"
@@ -1234,7 +1352,7 @@ export function AdminUsersPage() {
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-100">
-                                        {sectionGroup.students.map((student) => (
+                                        {paginatedStudents.map((student) => (
                                           <tr className="transition hover:bg-sky-50/35" key={student.id}>
                                             <td className="px-4 py-3">
                                               <div className="space-y-1">
@@ -1293,6 +1411,30 @@ export function AdminUsersPage() {
                                       </tbody>
                                     </table>
                                     </div>
+                                    <AppTablePagination
+                                      count={sectionGroup.students.length}
+                                      page={sectionPage}
+                                      rowsPerPage={sectionRowsPerPage}
+                                      onPageChange={(nextPage) =>
+                                        setStudentPages((current) => ({
+                                          ...current,
+                                          [sectionId]: nextPage,
+                                        }))
+                                      }
+                                      onRowsPerPageChange={(nextRowsPerPage) => {
+                                        setStudentRowsPerPage((current) => ({
+                                          ...current,
+                                          [sectionId]: nextRowsPerPage,
+                                        }))
+                                        setStudentPages((current) => ({
+                                          ...current,
+                                          [sectionId]: 0,
+                                        }))
+                                      }}
+                                    />
+                                        </>
+                                      )
+                                    })()}
                                   </div>
                                 </div>
                               </div>
@@ -1340,16 +1482,16 @@ export function AdminUsersPage() {
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="px-3 py-3 font-semibold">Email</th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Role"
-                          column="role"
+                          label="Email"
+                          column="email"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
+                      <th className="px-3 py-3 font-semibold">Role</th>
                       <th className="px-3 py-3 font-semibold">Subjects</th>
                       <th className="px-3 py-3 font-semibold">Assigned classes</th>
                       <th className="px-3 py-3 font-semibold">
@@ -1365,7 +1507,7 @@ export function AdminUsersPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {sortedTeachers.map((teacher) => {
+                    {paginatedTeachers.map((teacher) => {
                       return (
                         <tr className="transition hover:bg-sky-50/35" key={teacher.id}>
                           <td className="px-3 py-3">
@@ -1387,7 +1529,7 @@ export function AdminUsersPage() {
                             </div>
                           </td>
                           <td className="px-3 py-3 text-slate-600">{teacher.email}</td>
-                          <td className="px-3 py-3 text-slate-600">{teacher.role}</td>
+                          <td className="px-3 py-3 text-slate-600">Teacher</td>
                           <td className="px-3 py-3 text-slate-600">
                             <div className="flex flex-wrap gap-2">
                               {teacher.subjectNames.length ? (
@@ -1459,6 +1601,16 @@ export function AdminUsersPage() {
                   </tbody>
                 </table>
                 </div>
+                <AppTablePagination
+                  count={sortedTeachers.length}
+                  page={teacherPage}
+                  rowsPerPage={teacherRowsPerPage}
+                  onPageChange={setTeacherPage}
+                  onRowsPerPageChange={(nextRowsPerPage) => {
+                    setTeacherRowsPerPage(nextRowsPerPage)
+                    setTeacherPage(0)
+                  }}
+                />
                 {!sortedTeachers.length ? (
                   <div className="px-3 py-4 text-sm text-slate-500">No teachers match the current search and filters.</div>
                 ) : null}
@@ -1482,16 +1634,16 @@ export function AdminUsersPage() {
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="px-3 py-3 font-semibold">Email</th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Role"
-                          column="role"
+                          label="Email"
+                          column="email"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
+                      <th className="px-3 py-3 font-semibold">Role</th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
                           label="Date Created"
@@ -1504,7 +1656,7 @@ export function AdminUsersPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {sortedAdmins.map((admin) => (
+                    {paginatedAdmins.map((admin) => (
                       <tr key={admin.id}>
                         <td className="px-3 py-3">
                           <div>
@@ -1519,6 +1671,16 @@ export function AdminUsersPage() {
                     ))}
                   </tbody>
                 </table>
+                <AppTablePagination
+                  count={sortedAdmins.length}
+                  page={adminPage}
+                  rowsPerPage={adminRowsPerPage}
+                  onPageChange={setAdminPage}
+                  onRowsPerPageChange={(nextRowsPerPage) => {
+                    setAdminRowsPerPage(nextRowsPerPage)
+                    setAdminPage(0)
+                  }}
+                />
                 {!sortedAdmins.length ? (
                   <div className="px-3 py-4 text-sm text-slate-500">No administrators match the current search.</div>
                 ) : null}

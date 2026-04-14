@@ -9,11 +9,13 @@ import PsychologyAltOutlined from '@mui/icons-material/PsychologyAltOutlined'
 import PublicOutlined from '@mui/icons-material/PublicOutlined'
 import ScienceOutlined from '@mui/icons-material/ScienceOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
+import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
 import { formatClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
@@ -105,8 +107,10 @@ export function AdminSubjectsPage() {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
-  const [sortColumn, setSortColumn] = useState<'name' | 'grade' | 'createdBy' | 'createdAt'>('createdAt')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [sortColumn, setSortColumn] = useState<'name' | 'grade' | 'createdBy' | 'createdAt'>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [subjectPendingDelete, setSubjectPendingDelete] = useState<Subject | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -227,6 +231,16 @@ export function AdminSubjectsPage() {
     return sortItems(filteredSubjects, selectedSort.getValue, sortDirection, selectedSort.type)
   }, [filteredSubjects, sortColumn, sortDirection])
 
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedSubjects.length / rowsPerPage) - 1)
+    setPage((current) => Math.min(current, maxPage))
+  }, [rowsPerPage, sortedSubjects.length])
+
+  const paginatedSubjects = useMemo(
+    () => sortedSubjects.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rowsPerPage, sortedSubjects],
+  )
+
   const handleSortChange = (column: typeof sortColumn) => {
     if (sortColumn === column) {
       setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
@@ -245,8 +259,8 @@ export function AdminSubjectsPage() {
     setSelectedSubjectFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
-    setSortColumn('createdAt')
-    setSortDirection('desc')
+    setSortColumn('name')
+    setSortDirection('asc')
   }
 
   const openEditModal = (subject: Subject) => {
@@ -312,16 +326,30 @@ export function AdminSubjectsPage() {
         ) : null}
 
         <article className="glass-panel p-6">
-          <div className="admin-management-control-bar">
-            <AdminSearchField
-              placeholder="Search by title, teacher, or grade..."
-              fullWidth={false}
-              width={200}
-              value={searchTerm}
-              onChange={setSearchTerm}
-            />
+          <Stack
+            className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+            spacing={2}
+          >
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              useFlexGap
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <AdminSearchField
+                placeholder="Search by title, teacher, or grade..."
+                flex="1 1 0%"
+                maxWidth="none"
+                fullWidth={false}
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+              <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+                <AdminResetFiltersButton onClick={resetFilters} />
+              </Stack>
+            </Stack>
 
-            <div className="admin-management-filter-group">
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               <AdminSelectField
                 label="Grade"
                 value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
@@ -356,7 +384,6 @@ export function AdminSubjectsPage() {
                 ]}
                 onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
               />
-
               <AdminSelectField
                 label="Subject"
                 value={selectedSubjectFilter}
@@ -382,9 +409,8 @@ export function AdminSubjectsPage() {
                 width={150}
                 onChange={setEndDateFilter}
               />
-              <AdminResetFiltersButton onClick={resetFilters} />
-            </div>
-          </div>
+            </Stack>
+          </Stack>
 
           {filteredSubjects.length ? (
             <div className="admin-management-table-shell mt-6">
@@ -432,7 +458,7 @@ export function AdminSubjectsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedSubjects.map((subject) => (
+                    {paginatedSubjects.map((subject) => (
                       <tr key={subject.id}>
                         <td>
                           {(() => {
@@ -489,6 +515,16 @@ export function AdminSubjectsPage() {
                   </tbody>
                 </table>
               </div>
+              <AppTablePagination
+                count={sortedSubjects.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(nextRowsPerPage) => {
+                  setRowsPerPage(nextRowsPerPage)
+                  setPage(0)
+                }}
+              />
             </div>
           ) : (
             <div className="admin-management-empty mt-6">
