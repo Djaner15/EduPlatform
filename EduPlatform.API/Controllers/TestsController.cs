@@ -19,9 +19,12 @@ public class TestsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] bool ignoreClassFilter = false)
     {
-        var tests = await _testService.GetAllAsync(GetCurrentUserIdOrDefault(), GetCurrentRoleOrDefault());
+        var tests = await _testService.GetAllAsync(
+            GetCurrentUserIdOrDefault(),
+            GetCurrentRoleOrDefault(),
+            ignoreClassFilter);
         return Ok(tests);
     }
 
@@ -37,6 +40,20 @@ public class TestsController : ControllerBase
         var userId = int.Parse(userIdClaim);
         var results = await _testService.GetResultsForUserAsync(userId);
         return Ok(results);
+    }
+
+    [Authorize]
+    [HttpGet("me/dashboard")]
+    public async Task<IActionResult> GetMyDashboardStats()
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized(new { error = "User id claim missing" });
+
+        var userId = int.Parse(userIdClaim);
+        var stats = await _testService.GetDashboardStatsForUserAsync(userId);
+        return Ok(stats);
     }
 
     [HttpGet("{id}")]

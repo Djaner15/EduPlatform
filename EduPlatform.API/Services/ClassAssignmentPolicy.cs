@@ -68,7 +68,19 @@ public static class ClassAssignmentPolicy
 
     public static bool Matches(User user, int grade, string section)
     {
-        return user.Grade == grade &&
-               string.Equals(user.Section, section, StringComparison.OrdinalIgnoreCase);
+        if (user.Grade != grade)
+        {
+            return false;
+        }
+
+        var normalizedLessonSection = NormalizeSection(section);
+        if (normalizedLessonSection is null)
+        {
+            return true;
+        }
+
+        var normalizedUserSection = NormalizeSection(user.Section);
+        return normalizedUserSection is not null &&
+               string.Equals(normalizedUserSection, normalizedLessonSection, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -22,9 +22,12 @@ public class LessonsController : ControllerBase
     /// Gets all lessons
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] bool ignoreClassFilter = false)
     {
-        var lessons = await _lessonService.GetAllAsync(GetCurrentUserIdOrDefault(), GetCurrentRoleOrDefault());
+        var lessons = await _lessonService.GetAllAsync(
+            GetCurrentUserIdOrDefault(),
+            GetCurrentRoleOrDefault(),
+            ignoreClassFilter);
         return Ok(lessons);
     }
 
@@ -46,11 +49,15 @@ public class LessonsController : ControllerBase
     /// Gets all lessons for a specific subject
     /// </summary>
     [HttpGet("subject/{subjectId}")]
-    public async Task<IActionResult> GetBySubject(int subjectId)
+    public async Task<IActionResult> GetBySubject(int subjectId, [FromQuery] bool ignoreClassFilter = false)
     {
         try
         {
-            var lessons = await _lessonService.GetBySubjectIdAsync(subjectId, GetCurrentUserIdOrDefault(), GetCurrentRoleOrDefault());
+            var lessons = await _lessonService.GetBySubjectIdAsync(
+                subjectId,
+                GetCurrentUserIdOrDefault(),
+                GetCurrentRoleOrDefault(),
+                ignoreClassFilter);
             return Ok(lessons);
         }
         catch (KeyNotFoundException ex)

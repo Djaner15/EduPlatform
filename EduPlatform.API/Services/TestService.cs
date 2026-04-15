@@ -18,7 +18,7 @@ public class TestService : ITestService
         _fileStorageService = fileStorageService;
     }
 
-    public async Task<List<TestDto>> GetAllAsync(int currentUserId, string currentRole)
+    public async Task<List<TestDto>> GetAllAsync(int currentUserId, string currentRole, bool ignoreClassFilter = false)
     {
         var query = _context.Tests
             .Include(t => t.Lesson).ThenInclude(l => l.Subject)
@@ -30,7 +30,9 @@ public class TestService : ITestService
         {
             query = query.Where(t => t.CreatedByUserId == currentUserId);
         }
-        else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
+        else if (!ignoreClassFilter &&
+                 string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
+                 currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
@@ -40,7 +42,13 @@ public class TestService : ITestService
                 throw new InvalidOperationException("Student class assignment is missing.");
             }
 
-            query = query.Where(t => t.Grade == student.Grade.Value && t.Section == student.Section);
+            var normalizedStudentSection = student.Section.Trim().ToUpper();
+
+            query = query.Where(t =>
+                t.Grade == student.Grade.Value &&
+                (t.Section == null ||
+                 t.Section.Trim() == string.Empty ||
+                 t.Section.Trim().ToUpper() == normalizedStudentSection));
         }
 
         return await query.Select(t => new TestDto
@@ -350,6 +358,35 @@ public class TestService : ITestService
                 CompletedAt = tr.CompletedAt
             })
             .ToListAsync();
+    }
+
+    public async Task<StudentDashboardStatsDto> GetDashboardStatsForUserAsync(int userId)
+    {
+        var userResults = await _context.TestResults
+            .Where(tr => tr.UserId == userId)
+            .Include(tr => tr.Test)
+            .OrderByDescending(tr => tr.CompletedAt)
+            .ToListAsync();
+
+        if (userResults.Count == 0)
+        {
+            return new StudentDashboardStatsDto
+            {
+                CompletedTests = 0,
+                AverageScore = 0,
+                LastTest = "0"
+            };
+        }
+
+        var lastResult = userResults[0];
+        var averageScore = userResults.Average(tr => tr.Score);
+
+        return new StudentDashboardStatsDto
+        {
+            CompletedTests = userResults.Count,
+            AverageScore = Math.Round(averageScore, 2),
+            LastTest = string.IsNullOrWhiteSpace(lastResult.Test?.Title) ? "0" : lastResult.Test.Title
+        };
     }
 
     public async Task<StatisticsDto> GetStatisticsAsync()

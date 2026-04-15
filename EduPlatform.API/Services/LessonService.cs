@@ -21,7 +21,7 @@ public class LessonService : ILessonService
     /// <summary>
     /// Gets all lessons with subject information
     /// </summary>
-    public async Task<List<LessonDto>> GetAllAsync(int currentUserId, string currentRole)
+    public async Task<List<LessonDto>> GetAllAsync(int currentUserId, string currentRole, bool ignoreClassFilter = false)
     {
         var query = _context.Lessons
             .Include(l => l.Subject)
@@ -32,7 +32,9 @@ public class LessonService : ILessonService
         {
             query = query.Where(l => l.CreatedByUserId == currentUserId);
         }
-        else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
+        else if (!ignoreClassFilter &&
+                 string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
+                 currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
@@ -42,7 +44,13 @@ public class LessonService : ILessonService
                 throw new InvalidOperationException("Student class assignment is missing.");
             }
 
-            query = query.Where(l => l.Grade == student.Grade.Value && l.Section == student.Section);
+            var normalizedStudentSection = student.Section.Trim().ToUpper();
+
+            query = query.Where(l =>
+                l.Grade == student.Grade.Value &&
+                (l.Section == null ||
+                 l.Section.Trim() == string.Empty ||
+                 l.Section.Trim().ToUpper() == normalizedStudentSection));
         }
 
         return await query.Select(l => new LessonDto
@@ -120,7 +128,7 @@ public class LessonService : ILessonService
     /// <summary>
     /// Gets all lessons for a specific subject
     /// </summary>
-    public async Task<List<LessonDto>> GetBySubjectIdAsync(int subjectId, int currentUserId, string currentRole)
+    public async Task<List<LessonDto>> GetBySubjectIdAsync(int subjectId, int currentUserId, string currentRole, bool ignoreClassFilter = false)
     {
         // Verify subject exists
         var subject = await _context.Subjects.FindAsync(subjectId);
@@ -136,7 +144,9 @@ public class LessonService : ILessonService
         {
             query = query.Where(l => l.CreatedByUserId == currentUserId);
         }
-        else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
+        else if (!ignoreClassFilter &&
+                 string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
+                 currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
@@ -146,7 +156,13 @@ public class LessonService : ILessonService
                 throw new InvalidOperationException("Student class assignment is missing.");
             }
 
-            query = query.Where(l => l.Grade == student.Grade.Value && l.Section == student.Section);
+            var normalizedStudentSection = student.Section.Trim().ToUpper();
+
+            query = query.Where(l =>
+                l.Grade == student.Grade.Value &&
+                (l.Section == null ||
+                 l.Section.Trim() == string.Empty ||
+                 l.Section.Trim().ToUpper() == normalizedStudentSection));
         }
 
         return await query.Select(l => new LessonDto

@@ -8,7 +8,7 @@ public interface ILessonService
     /// <summary>
     /// Gets all lessons
     /// </summary>
-    Task<List<LessonDto>> GetAllAsync(int currentUserId, string currentRole);
+    Task<List<LessonDto>> GetAllAsync(int currentUserId, string currentRole, bool ignoreClassFilter = false);
 
     /// <summary>
     /// Gets a lesson by ID
@@ -18,7 +18,7 @@ public interface ILessonService
     /// <summary>
     /// Gets all lessons for a specific subject
     /// </summary>
-    Task<List<LessonDto>> GetBySubjectIdAsync(int subjectId, int currentUserId, string currentRole);
+    Task<List<LessonDto>> GetBySubjectIdAsync(int subjectId, int currentUserId, string currentRole, bool ignoreClassFilter = false);
 
     /// <summary>
     /// Creates a new lesson

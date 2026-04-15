@@ -4,7 +4,7 @@ namespace EduPlatform.API.Services.Interfaces;
 
 public interface ITestService
 {
-    Task<List<TestDto>> GetAllAsync(int currentUserId, string currentRole);
+    Task<List<TestDto>> GetAllAsync(int currentUserId, string currentRole, bool ignoreClassFilter = false);
     Task<TestDto?> GetByIdAsync(int id, int currentUserId, string currentRole);
     Task<TestDto> CreateAsync(TestUpsertDto dto, IReadOnlyCollection<IFormFile> files, int currentUserId);
     Task<TestDto> UpdateAsync(int id, TestUpsertDto dto, IReadOnlyCollection<IFormFile> files, int currentUserId, string currentRole);
@@ -18,6 +18,7 @@ public interface ITestService
     /// </summary>
     Task<List<TestResultDto>> GetAllResultsAsync();
     Task<List<TestResultDto>> GetResultsForUserAsync(int userId);
+    Task<StudentDashboardStatsDto> GetDashboardStatsForUserAsync(int userId);
 
     /// <summary>
     /// Returns basic statistics
