@@ -37,18 +37,12 @@ public class TestService : ITestService
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
 
-            if (!student.Grade.HasValue || string.IsNullOrWhiteSpace(student.Section))
+            if (!student.Grade.HasValue)
             {
-                throw new InvalidOperationException("Student class assignment is missing.");
+                throw new InvalidOperationException("Student grade assignment is missing.");
             }
 
-            var normalizedStudentSection = student.Section.Trim().ToUpper();
-
-            query = query.Where(t =>
-                t.Grade == student.Grade.Value &&
-                (t.Section == null ||
-                 t.Section.Trim() == string.Empty ||
-                 t.Section.Trim().ToUpper() == normalizedStudentSection));
+            query = query.Where(t => t.Grade >= 8 && t.Grade <= student.Grade.Value);
         }
 
         return await query.Select(t => new TestDto
@@ -105,7 +99,7 @@ public class TestService : ITestService
         else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId);
-            if (student == null || !ClassAssignmentPolicy.Matches(student, test.Grade, test.Section))
+            if (student == null || !ClassAssignmentPolicy.CanAccessStudentContent(student, test.Grade))
             {
                 return null;
             }
@@ -265,7 +259,7 @@ public class TestService : ITestService
         var student = await _context.Users.FindAsync(userId)
             ?? throw new InvalidOperationException("Student account not found.");
 
-        if (!ClassAssignmentPolicy.Matches(student, test.Grade, test.Section))
+        if (!ClassAssignmentPolicy.CanAccessStudentContent(student, test.Grade))
             throw new InvalidOperationException("This test is not assigned to your class.");
 
         var questions = test.Questions.ToList();

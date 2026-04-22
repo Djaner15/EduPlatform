@@ -83,4 +83,9 @@ public static class ClassAssignmentPolicy
         return normalizedUserSection is not null &&
                string.Equals(normalizedUserSection, normalizedLessonSection, StringComparison.OrdinalIgnoreCase);
     }
+
+    public static bool CanAccessStudentContent(User user, int grade)
+    {
+        return user.Grade.HasValue && grade >= 8 && grade <= user.Grade.Value;
+    }
 }

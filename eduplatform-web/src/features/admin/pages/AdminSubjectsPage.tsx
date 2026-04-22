@@ -114,7 +114,10 @@ export function AdminSubjectsPage() {
   const [subjectPendingDelete, setSubjectPendingDelete] = useState<Subject | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const canCreate = user?.role === 'Teacher'
+  const isAdmin = user?.role === 'Admin'
+  const isTeacher = user?.role === 'Teacher'
+  const canCreate = isAdmin
+  const canDelete = isAdmin
   const isEditing = editingId !== null
 
   const loadSubjects = async () => {
@@ -279,9 +282,9 @@ export function AdminSubjectsPage() {
     <div className="space-y-8">
       <PageHeader
         description={
-          canCreate
-            ? 'Create, edit, and remove the subjects you teach.'
-            : 'Review all subjects across the platform and moderate content when needed.'
+          isAdmin
+            ? 'Create, edit, and remove subjects across the platform.'
+            : 'Review your subjects and update their descriptions.'
         }
         eyebrow="Subjects"
         title="Subject Management"
@@ -494,20 +497,22 @@ export function AdminSubjectsPage() {
                             </button>
                             <button
                               className="admin-management-icon-button"
-                              title="Edit subject"
+                              title={isTeacher ? 'Edit subject description' : 'Edit subject'}
                               type="button"
                               onClick={() => openEditModal(subject)}
                             >
                               <EditOutlined sx={{ fontSize: 20 }} />
                             </button>
-                            <button
-                              className="admin-management-icon-button admin-management-icon-button-danger"
-                              title="Delete subject"
-                              type="button"
-                              onClick={() => setSubjectPendingDelete(subject)}
-                            >
-                              <DeleteOutline sx={{ fontSize: 20 }} />
-                            </button>
+                            {canDelete ? (
+                              <button
+                                className="admin-management-icon-button admin-management-icon-button-danger"
+                                title="Delete subject"
+                                type="button"
+                                onClick={() => setSubjectPendingDelete(subject)}
+                              >
+                                <DeleteOutline sx={{ fontSize: 20 }} />
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -608,8 +613,11 @@ export function AdminSubjectsPage() {
             </div>
             <div className="grid gap-4 px-6 py-6">
               <input
-                className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+                className={`rounded-2xl border px-4 py-3 text-sky-950 placeholder:text-sky-600/70 ${
+                  isTeacher ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500' : 'border-sky-200 bg-sky-50/70'
+                }`}
                 placeholder="Subject name"
+                disabled={isTeacher}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
@@ -619,20 +627,36 @@ export function AdminSubjectsPage() {
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
               />
-              <div className="grid gap-4 md:grid-cols-2">
-                <AdminSelectField
-                  label="Grade"
-                  value={String(grade)}
-                  options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
-                  onChange={(value) => setGrade(Number(value))}
-                />
-                <AdminSelectField
-                  label="Section"
-                  value={section}
-                  options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
-                  onChange={setSection}
-                />
-              </div>
+              {isTeacher ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Grade</span>
+                    <span className="mt-1 block text-base font-medium text-slate-800">{grade}</span>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Section</span>
+                    <span className="mt-1 block text-base font-medium text-slate-800">{section}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <AdminSelectField
+                    label="Grade"
+                    value={String(grade)}
+                    options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
+                    onChange={(value) => setGrade(Number(value))}
+                  />
+                  <AdminSelectField
+                    label="Section"
+                    value={section}
+                    options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
+                    onChange={setSection}
+                  />
+                </div>
+              )}
+              {isTeacher ? (
+                <p className="text-sm text-slate-500">Teachers can update the subject description only. Name and class assignment are managed by admins.</p>
+              ) : null}
               <div className="flex gap-3">
                 <button className="button-primary" type="button" onClick={save}>
                   Save changes

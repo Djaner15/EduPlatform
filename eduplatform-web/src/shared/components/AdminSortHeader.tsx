@@ -23,6 +23,7 @@ export function AdminSortHeader<T extends string>({
       active={isActive}
       direction={isActive ? direction : 'desc'}
       className="admin-management-sort-label"
+      hideSortIcon={false}
       onClick={() => onToggle(column)}
     >
       {label}

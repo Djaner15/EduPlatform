@@ -193,6 +193,23 @@ const validateStrongPassword = (password: string) => {
 
 const classKey = (grade: number, section: string) => `${grade}-${section}`
 
+const toRomanGrade = (grade: number) => {
+  switch (grade) {
+    case 8:
+      return 'VIII'
+    case 9:
+      return 'IX'
+    case 10:
+      return 'X'
+    case 11:
+      return 'XI'
+    case 12:
+      return 'XII'
+    default:
+      return String(grade)
+  }
+}
+
 const getInitials = (fullName?: string | null, username?: string | null) => {
   const source = (fullName?.trim() || username?.trim() || 'U').split(/\s+/).filter(Boolean)
   return source
@@ -264,10 +281,27 @@ export function AdminUsersPage() {
   })
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [selectedProfileImage, setSelectedProfileImage] = useState<File | null>(null)
+  const [isProfileImageBusy, setIsProfileImageBusy] = useState(false)
+  const allUsersById = useMemo(() => new Map(allUsers.map((user) => [user.id, user])), [allUsers])
 
   const isStudentRole = form.roleId === 1
   const isTeacherRole = form.roleId === 2
   const isUserActionMenuOpen = Boolean(userActionAnchorEl)
+  const editingUser = editingId ? allUsersById.get(editingId) ?? null : null
+  const currentProfileImageSrc = getResolvedUserImageSrc(editingUser?.profileImageUrl)
+  const selectedProfileImagePreview = useMemo(
+    () => (selectedProfileImage ? URL.createObjectURL(selectedProfileImage) : null),
+    [selectedProfileImage],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (selectedProfileImagePreview) {
+        URL.revokeObjectURL(selectedProfileImagePreview)
+      }
+    }
+  }, [selectedProfileImagePreview])
 
   const readApiError = (error: unknown, fallback: string) => {
     if (axios.isAxiosError(error)) {
@@ -331,16 +365,15 @@ export function AdminUsersPage() {
     setStatusFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
-    setSortColumn('dateCreated')
-    setSortDirection('desc')
+    setSortColumn('name')
+    setSortDirection('asc')
   }, [activeView])
-
-  const allUsersById = useMemo(() => new Map(allUsers.map((user) => [user.id, user])), [allUsers])
 
   const resetForm = () => {
     setForm(initialForm)
     setEditingId(null)
     setShowPassword(false)
+    setSelectedProfileImage(null)
   }
 
   const toggleSubject = (subjectId: number) => {
@@ -450,6 +483,7 @@ export function AdminUsersPage() {
 
   const handleEdit = (user: UserItem) => {
     setEditingId(user.id)
+    setSelectedProfileImage(null)
     setForm({
       username: user.username,
       fullName: user.fullName,
@@ -474,6 +508,50 @@ export function AdminUsersPage() {
         block: 'start',
       })
     }, 80)
+  }
+
+  const handleProfileImageUpload = async () => {
+    if (!editingId || !selectedProfileImage) {
+      showNotification('Please choose an image first.', 'error')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('image', selectedProfileImage)
+
+    try {
+      setIsProfileImageBusy(true)
+      await apiClient.post(`/users/${editingId}/profile-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      setSelectedProfileImage(null)
+      await loadUsers()
+      showNotification('Profile picture updated successfully.', 'success')
+    } catch (error) {
+      showNotification(readApiError(error, 'Failed to update profile picture.'), 'error')
+    } finally {
+      setIsProfileImageBusy(false)
+    }
+  }
+
+  const handleProfileImageDelete = async () => {
+    if (!editingId) {
+      return
+    }
+
+    try {
+      setIsProfileImageBusy(true)
+      await apiClient.delete(`/users/${editingId}/profile-image`)
+      setSelectedProfileImage(null)
+      await loadUsers()
+      showNotification('Profile picture removed successfully.', 'success')
+    } catch (error) {
+      showNotification(readApiError(error, 'Failed to remove profile picture.'), 'error')
+    } finally {
+      setIsProfileImageBusy(false)
+    }
   }
 
   useEffect(() => {
@@ -910,7 +988,7 @@ export function AdminUsersPage() {
         title="User Management"
       />
 
-      <section className="flex flex-col items-start gap-6 xl:flex-row">
+      <section className="flex flex-col items-start gap-6 xl:flex-row-reverse">
         <article
           ref={formCardRef}
           className={`glass-panel h-fit w-full p-7 xl:w-[320px] xl:flex-none transition-all duration-500 ${
@@ -934,6 +1012,48 @@ export function AdminUsersPage() {
             ) : null}
           </div>
           <div className="mt-5 grid gap-4.5">
+            {editingId ? (
+              <div className="rounded-2xl border border-sky-200 bg-sky-50/55 p-4">
+                <p className="text-sm font-semibold text-slate-700">Profile Picture</p>
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <Avatar
+                    src={selectedProfileImagePreview ?? currentProfileImageSrc}
+                    sx={{ width: 88, height: 88, bgcolor: '#dbeafe', color: '#0f172a', fontSize: '1.5rem', fontWeight: 700 }}
+                  >
+                    {getInitials(form.fullName, form.username)}
+                  </Avatar>
+
+                  <div className="flex-1 space-y-3">
+                    <input
+                      accept=".png,.jpg,.jpeg,.webp"
+                      className="block w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:font-semibold file:text-sky-900"
+                      type="file"
+                      onChange={(event) => setSelectedProfileImage(event.target.files?.[0] ?? null)}
+                    />
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        className="button-primary px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={!selectedProfileImage || isProfileImageBusy}
+                        type="button"
+                        onClick={handleProfileImageUpload}
+                      >
+                        {isProfileImageBusy ? 'Saving...' : 'Upload New'}
+                      </button>
+                      <button
+                        className="rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={(!editingUser?.profileImageUrl && !selectedProfileImagePreview) || isProfileImageBusy}
+                        type="button"
+                        onClick={handleProfileImageDelete}
+                      >
+                        Delete Current
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <input
               className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
               placeholder="Full Name"
@@ -1218,7 +1338,7 @@ export function AdminUsersPage() {
                         onClick={() => toggleGrade(gradeGroup.grade)}
                       >
                         <div>
-                          <h3 className="text-xl font-semibold text-slate-900">{gradeGroup.grade} Class</h3>
+                          <h3 className="text-xl font-semibold text-slate-900">{toRomanGrade(gradeGroup.grade)} Class</h3>
                           <p className="text-sm text-slate-500">{gradeGroup.sections.reduce((sum, section) => sum + section.students.length, 0)} students</p>
                         </div>
                         <span className="text-slate-500">{isGradeExpanded ? '−' : '+'}</span>

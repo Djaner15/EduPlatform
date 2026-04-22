@@ -2,7 +2,7 @@ import axios from 'axios'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
-import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { gradeOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
@@ -33,7 +33,6 @@ export function TestsPage() {
   const [tests, setTests] = useState<TestSummary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
-  const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
   const [startDateFilter, setStartDateFilter] = useState('')
@@ -45,8 +44,7 @@ export function TestsPage() {
 
   useEffect(() => {
     setSelectedGradeFilter(user?.grade ?? 'all')
-    setSelectedSectionFilter(user?.section ?? 'all')
-  }, [user?.grade, user?.section])
+  }, [user?.grade])
 
   useEffect(() => {
     let isMounted = true
@@ -89,6 +87,16 @@ export function TestsPage() {
     [tests],
   )
 
+  const availableGradeOptions = useMemo(() => {
+    const currentGrade = user?.grade
+
+    if (!currentGrade) {
+      return gradeOptions
+    }
+
+    return gradeOptions.filter((entry) => entry <= currentGrade)
+  }, [user?.grade])
+
   const filteredTests = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
@@ -102,16 +110,15 @@ export function TestsPage() {
         String(test.grade).includes(normalizedSearch)
 
       const matchesGrade = selectedGradeFilter === 'all' || test.grade === selectedGradeFilter
-      const matchesSection = selectedSectionFilter === 'all' || test.section === selectedSectionFilter
       const matchesStatus =
         selectedStatusFilter === 'all' ||
         (selectedStatusFilter === 'active' ? test.createdByIsApproved : !test.createdByIsApproved)
       const matchesSubject = selectedSubjectFilter === 'all' || test.subjectName === selectedSubjectFilter
       const matchesDate = isWithinDateRange(test.createdAt, startDateFilter, endDateFilter)
 
-      return matchesSearch && matchesGrade && matchesSection && matchesStatus && matchesSubject && matchesDate
+      return matchesSearch && matchesGrade && matchesStatus && matchesSubject && matchesDate
     })
-  }, [endDateFilter, searchTerm, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, tests])
+  }, [endDateFilter, searchTerm, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, tests])
 
   useEffect(() => {
     const maxPage = Math.max(0, Math.ceil(filteredTests.length / rowsPerPage) - 1)
@@ -126,7 +133,6 @@ export function TestsPage() {
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedGradeFilter(user?.grade ?? 'all')
-    setSelectedSectionFilter(user?.section ?? 'all')
     setSelectedStatusFilter('all')
     setSelectedSubjectFilter('all')
     setStartDateFilter('')
@@ -160,20 +166,9 @@ export function TestsPage() {
               width={130}
               options={[
                 { value: 'all', label: 'All Grades' },
-                ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                ...availableGradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
               ]}
               onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
-            />
-            <AdminSelectField
-              label="Section"
-              value={selectedSectionFilter}
-              fullWidth={false}
-              width={130}
-              options={[
-                { value: 'all', label: 'All Sections' },
-                ...sectionOptions.map((entry) => ({ value: entry, label: entry })),
-              ]}
-              onChange={setSelectedSectionFilter}
             />
             <AdminSelectField
               label="Status"

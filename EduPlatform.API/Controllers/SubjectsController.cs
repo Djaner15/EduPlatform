@@ -44,7 +44,7 @@ public class SubjectsController : ControllerBase
     /// <summary>
     /// Creates a new subject (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin,Teacher")]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSubjectDto dto)
     {
@@ -84,7 +84,7 @@ public class SubjectsController : ControllerBase
     /// <summary>
     /// Deletes a subject (Admin only)
     /// </summary>
-    [Authorize(Roles = "Admin,Teacher")]
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

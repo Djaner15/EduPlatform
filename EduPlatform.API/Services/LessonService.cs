@@ -28,29 +28,19 @@ public class LessonService : ILessonService
             .Include(l => l.CreatedByUser)
             .AsQueryable();
 
-        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
-        {
-            query = query.Where(l => l.CreatedByUserId == currentUserId);
-        }
-        else if (!ignoreClassFilter &&
+        if (!ignoreClassFilter &&
                  string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
                  currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
 
-            if (!student.Grade.HasValue || string.IsNullOrWhiteSpace(student.Section))
+            if (!student.Grade.HasValue)
             {
-                throw new InvalidOperationException("Student class assignment is missing.");
+                throw new InvalidOperationException("Student grade assignment is missing.");
             }
 
-            var normalizedStudentSection = student.Section.Trim().ToUpper();
-
-            query = query.Where(l =>
-                l.Grade == student.Grade.Value &&
-                (l.Section == null ||
-                 l.Section.Trim() == string.Empty ||
-                 l.Section.Trim().ToUpper() == normalizedStudentSection));
+            query = query.Where(l => l.Grade >= 8 && l.Grade <= student.Grade.Value);
         }
 
         return await query.Select(l => new LessonDto
@@ -89,15 +79,10 @@ public class LessonService : ILessonService
         if (lesson == null)
             return null;
 
-        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase) &&
-            lesson.CreatedByUserId != currentUserId)
-        {
-            return null;
-        }
-        else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
+        if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId);
-            if (student == null || !ClassAssignmentPolicy.Matches(student, lesson.Grade, lesson.Section))
+            if (student == null || !ClassAssignmentPolicy.CanAccessStudentContent(student, lesson.Grade))
             {
                 return null;
             }
@@ -140,29 +125,19 @@ public class LessonService : ILessonService
             .Include(l => l.CreatedByUser)
             .Where(l => l.SubjectId == subjectId);
 
-        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
-        {
-            query = query.Where(l => l.CreatedByUserId == currentUserId);
-        }
-        else if (!ignoreClassFilter &&
+        if (!ignoreClassFilter &&
                  string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
                  currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
 
-            if (!student.Grade.HasValue || string.IsNullOrWhiteSpace(student.Section))
+            if (!student.Grade.HasValue)
             {
-                throw new InvalidOperationException("Student class assignment is missing.");
+                throw new InvalidOperationException("Student grade assignment is missing.");
             }
 
-            var normalizedStudentSection = student.Section.Trim().ToUpper();
-
-            query = query.Where(l =>
-                l.Grade == student.Grade.Value &&
-                (l.Section == null ||
-                 l.Section.Trim() == string.Empty ||
-                 l.Section.Trim().ToUpper() == normalizedStudentSection));
+            query = query.Where(l => l.Grade >= 8 && l.Grade <= student.Grade.Value);
         }
 
         return await query.Select(l => new LessonDto

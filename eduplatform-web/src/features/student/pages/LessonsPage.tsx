@@ -3,7 +3,7 @@ import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
-import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { gradeOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
@@ -33,7 +33,6 @@ export function LessonsPage() {
   const { user } = useAuth()
   const [filter, setFilter] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
-  const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
   const [startDateFilter, setStartDateFilter] = useState('')
@@ -46,8 +45,7 @@ export function LessonsPage() {
 
   useEffect(() => {
     setSelectedGradeFilter(user?.grade ?? 'all')
-    setSelectedSectionFilter(user?.section ?? 'all')
-  }, [user?.grade, user?.section])
+  }, [user?.grade])
 
   useEffect(() => {
     let isMounted = true
@@ -89,6 +87,16 @@ export function LessonsPage() {
     [lessons],
   )
 
+  const availableGradeOptions = useMemo(() => {
+    const currentGrade = user?.grade
+
+    if (!currentGrade) {
+      return gradeOptions
+    }
+
+    return gradeOptions.filter((entry) => entry <= currentGrade)
+  }, [user?.grade])
+
   const filteredLessons = useMemo(() => {
     const normalized = filter.trim().toLowerCase()
     return lessons.filter((lesson) => {
@@ -102,16 +110,15 @@ export function LessonsPage() {
         String(lesson.grade).includes(normalized)
 
       const matchesGrade = selectedGradeFilter === 'all' || lesson.grade === selectedGradeFilter
-      const matchesSection = selectedSectionFilter === 'all' || lesson.section === selectedSectionFilter
       const matchesStatus =
         selectedStatusFilter === 'all' ||
         (selectedStatusFilter === 'active' ? lesson.createdByIsApproved : !lesson.createdByIsApproved)
       const matchesSubject = selectedSubjectFilter === 'all' || lesson.subjectName === selectedSubjectFilter
       const matchesDate = isWithinDateRange(lesson.createdAt, startDateFilter, endDateFilter)
 
-      return matchesSearch && matchesGrade && matchesSection && matchesStatus && matchesSubject && matchesDate
+      return matchesSearch && matchesGrade && matchesStatus && matchesSubject && matchesDate
     })
-  }, [endDateFilter, filter, lessons, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter])
+  }, [endDateFilter, filter, lessons, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter])
 
   const sortedLessons = useMemo(
     () => [...filteredLessons].sort((left, right) => left.title.localeCompare(right.title)),
@@ -131,7 +138,6 @@ export function LessonsPage() {
   const resetFilters = () => {
     setFilter('')
     setSelectedGradeFilter(user?.grade ?? 'all')
-    setSelectedSectionFilter(user?.section ?? 'all')
     setSelectedStatusFilter('all')
     setSelectedSubjectFilter('all')
     setStartDateFilter('')
@@ -178,20 +184,9 @@ export function LessonsPage() {
               width={130}
               options={[
                 { value: 'all', label: 'All Grades' },
-                ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                ...availableGradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
               ]}
               onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
-            />
-            <AdminSelectField
-              label="Section"
-              value={selectedSectionFilter}
-              fullWidth={false}
-              width={130}
-              options={[
-                { value: 'all', label: 'All Sections' },
-                ...sectionOptions.map((entry) => ({ value: entry, label: entry })),
-              ]}
-              onChange={setSelectedSectionFilter}
             />
             <AdminSelectField
               label="Status"

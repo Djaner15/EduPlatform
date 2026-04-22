@@ -48,7 +48,7 @@ export function TeacherLayout() {
                 end={to === '/teacher'}
                 to={to}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-5 w-5" />
                 {t(labelKey)}
               </NavLink>
             ))}

@@ -175,6 +175,7 @@ export function AdminLessonsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const canCreate = user?.role === 'Teacher'
+  const canManageLesson = (lesson: Lesson) => user?.role === 'Admin' || lesson.createdByUserId === user?.id
   const isEditing = editingId !== null
 
   const loadData = async () => {
@@ -782,22 +783,26 @@ export function AdminLessonsPage() {
                           >
                             <VisibilityOutlined sx={{ fontSize: 20 }} />
                           </button>
-                          <button
-                            className="admin-management-icon-button"
-                            title="Edit lesson"
-                            type="button"
-                            onClick={() => openEditModal(lesson)}
-                          >
-                            <EditOutlined sx={{ fontSize: 20 }} />
-                          </button>
-                          <button
-                            className="admin-management-icon-button admin-management-icon-button-danger"
-                            title="Delete lesson"
-                            type="button"
-                            onClick={() => setLessonPendingDelete(lesson)}
-                          >
-                            <DeleteOutline sx={{ fontSize: 20 }} />
-                          </button>
+                          {canManageLesson(lesson) ? (
+                            <>
+                              <button
+                                className="admin-management-icon-button"
+                                title="Edit lesson"
+                                type="button"
+                                onClick={() => openEditModal(lesson)}
+                              >
+                                <EditOutlined sx={{ fontSize: 20 }} />
+                              </button>
+                              <button
+                                className="admin-management-icon-button admin-management-icon-button-danger"
+                                title="Delete lesson"
+                                type="button"
+                                onClick={() => setLessonPendingDelete(lesson)}
+                              >
+                                <DeleteOutline sx={{ fontSize: 20 }} />
+                              </button>
+                            </>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

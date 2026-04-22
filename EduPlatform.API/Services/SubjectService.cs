@@ -33,12 +33,12 @@ public class SubjectService : ISubjectService
             var student = await _context.Users.FindAsync(currentUserId)
                 ?? throw new InvalidOperationException("Student account not found.");
 
-            if (!student.Grade.HasValue || string.IsNullOrWhiteSpace(student.Section))
+            if (!student.Grade.HasValue)
             {
-                throw new InvalidOperationException("Student class assignment is missing.");
+                throw new InvalidOperationException("Student grade assignment is missing.");
             }
 
-            query = query.Where(s => s.Grade == student.Grade.Value && s.Section == student.Section);
+            query = query.Where(s => s.Grade >= 8 && s.Grade <= student.Grade.Value);
         }
 
         return await query
@@ -79,7 +79,7 @@ public class SubjectService : ISubjectService
         else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId);
-            if (student == null || !ClassAssignmentPolicy.Matches(student, subject.Grade, subject.Section))
+            if (student == null || !ClassAssignmentPolicy.CanAccessStudentContent(student, subject.Grade))
             {
                 return null;
             }
@@ -167,16 +167,23 @@ public class SubjectService : ISubjectService
         if (string.IsNullOrWhiteSpace(dto.Description))
             throw new InvalidOperationException("Subject description is required");
 
-        var classAssignment = ClassAssignmentPolicy.EnsureValidClass(dto.Grade, dto.Section);
+        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
+        {
+            subject.Description = dto.Description;
+        }
+        else
+        {
+            var classAssignment = ClassAssignmentPolicy.EnsureValidClass(dto.Grade, dto.Section);
 
-        // Check for duplicate name (excluding current subject)
-        if (await _context.Subjects.AnyAsync(s => s.Name == dto.Name && s.Grade == classAssignment.Grade && s.Section == classAssignment.Section && s.Id != id))
-            throw new InvalidOperationException("Subject with this name already exists");
+            // Check for duplicate name (excluding current subject)
+            if (await _context.Subjects.AnyAsync(s => s.Name == dto.Name && s.Grade == classAssignment.Grade && s.Section == classAssignment.Section && s.Id != id))
+                throw new InvalidOperationException("Subject with this name already exists");
 
-        subject.Name = dto.Name;
-        subject.Description = dto.Description;
-        subject.Grade = classAssignment.Grade;
-        subject.Section = classAssignment.Section;
+            subject.Name = dto.Name;
+            subject.Description = dto.Description;
+            subject.Grade = classAssignment.Grade;
+            subject.Section = classAssignment.Section;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -201,12 +208,13 @@ public class SubjectService : ISubjectService
     /// </summary>
     public async Task DeleteAsync(int id, int currentUserId, string currentRole)
     {
+        if (!string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only admins can delete subjects.");
+
         var subject = await _context.Subjects.FindAsync(id);
 
         if (subject == null)
             throw new KeyNotFoundException($"Subject with ID {id} not found");
-
-        EnsureCanManage(subject.CreatedByUserId, currentUserId, currentRole);
 
         _context.Subjects.Remove(subject);
         await _context.SaveChangesAsync();

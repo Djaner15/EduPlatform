@@ -136,8 +136,8 @@ export function AdminTestsPage() {
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
-  const [sortColumn, setSortColumn] = useState<'name' | 'grade' | 'createdBy' | 'createdAt'>('createdAt')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [sortColumn, setSortColumn] = useState<'name' | 'grade' | 'createdBy' | 'createdAt'>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [testPendingDelete, setTestPendingDelete] = useState<TestItem | null>(null)
@@ -292,8 +292,8 @@ export function AdminTestsPage() {
     setSelectedSubjectFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
-    setSortColumn('createdAt')
-    setSortDirection('desc')
+    setSortColumn('name')
+    setSortDirection('asc')
   }
 
   useEffect(() => {

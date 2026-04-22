@@ -201,6 +201,34 @@ public class UsersController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/profile-image")]
+    public async Task<IActionResult> UploadProfileImage(int id, [FromForm] IFormFile image)
+    {
+        try
+        {
+            var user = await _userService.UpdateProfileImageAsync(id, image);
+            return Ok(new { profileImageUrl = user.ProfileImageUrl });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}/profile-image")]
+    public async Task<IActionResult> DeleteProfileImage(int id)
+    {
+        try
+        {
+            var user = await _userService.RemoveProfileImageAsync(id);
+            return Ok(new { profileImageUrl = user.ProfileImageUrl });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpPut("{id}/password")]
     public async Task<IActionResult> ResetPassword(int id, [FromBody] AdminResetPasswordDto dto)
     {

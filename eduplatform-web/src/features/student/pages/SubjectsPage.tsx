@@ -21,6 +21,26 @@ type Subject = {
   classDisplay: string
 }
 
+function getSubjectEmoji(name: string) {
+  const normalizedName = name.trim().toLowerCase()
+
+  if (normalizedName.includes('матем')) return '📐'
+  if (normalizedName.includes('информ')) return '💻'
+  if (normalizedName.includes('хим')) return '🧪'
+  if (normalizedName.includes('биол')) return '🧬'
+  if (normalizedName.includes('физик')) return '⚛️'
+  if (normalizedName.includes('географ')) return '🌍'
+  if (normalizedName.includes('истор')) return '🏛️'
+  if (normalizedName.includes('философ')) return '🧠'
+  if (normalizedName.includes('граждан')) return '⚖️'
+  if (normalizedName.includes('англий')) return '🇬🇧'
+  if (normalizedName.includes('френ')) return '🇫🇷'
+  if (normalizedName.includes('немск')) return '🇩🇪'
+  if (normalizedName.includes('руск')) return '🇷🇺'
+
+  return '📚'
+}
+
 export function SubjectsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -87,7 +107,17 @@ export function SubjectsPage() {
 
       return matchesSearch && matchesGrade
     })
-  }, [items, searchTerm, selectedGradeFilter])
+  }, [items, searchTerm, selectedGradeFilter, user?.grade])
+
+  const availableGradeOptions = useMemo(() => {
+    const currentGrade = user?.grade
+
+    if (!currentGrade) {
+      return gradeOptions
+    }
+
+    return gradeOptions.filter((entry) => entry <= currentGrade)
+  }, [user?.grade])
 
   const sortedSubjects = useMemo(
     () => [...filteredSubjects].sort((left, right) => left.name.localeCompare(right.name)),
@@ -162,7 +192,7 @@ export function SubjectsPage() {
                 width={130}
                 options={[
                   { value: 'all', label: 'All Grades' },
-                  ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                  ...availableGradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
                 ]}
                 onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
               />
@@ -187,6 +217,7 @@ export function SubjectsPage() {
                   description={subject.description}
                   footer={subject.classDisplay || `Grade ${subject.grade}${subject.section}`}
                   title={subject.name}
+                  visual={getSubjectEmoji(subject.name)}
                 />
               ))}
             </div>
