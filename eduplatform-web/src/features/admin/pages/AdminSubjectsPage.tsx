@@ -99,6 +99,7 @@ export function AdminSubjectsPage() {
   const [grade, setGrade] = useState(8)
   const [section, setSection] = useState('А')
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [viewingSubject, setViewingSubject] = useState<Subject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>('all')
@@ -135,6 +136,7 @@ export function AdminSubjectsPage() {
     setGrade(8)
     setSection('А')
     setEditingId(null)
+    setIsCreateModalOpen(false)
   }
 
   const save = async () => {
@@ -267,6 +269,7 @@ export function AdminSubjectsPage() {
   }
 
   const openEditModal = (subject: Subject) => {
+    setIsCreateModalOpen(false)
     setEditingId(subject.id)
     setName(subject.name)
     setDescription(subject.description)
@@ -276,6 +279,15 @@ export function AdminSubjectsPage() {
 
   const closeEditModal = () => {
     reset()
+  }
+
+  const openCreateModal = () => {
+    setEditingId(null)
+    setName('')
+    setDescription('')
+    setGrade(8)
+    setSection('А')
+    setIsCreateModalOpen(true)
   }
 
   return (
@@ -290,44 +302,7 @@ export function AdminSubjectsPage() {
         title="Subject Management"
       />
 
-      <section className={`grid gap-6 ${canCreate ? 'xl:grid-cols-[0.38fr_0.62fr]' : ''}`}>
-        {canCreate ? (
-          <article className="glass-panel p-6">
-            <h2 className="text-xl font-semibold text-slate-900">New subject</h2>
-            <div className="mt-5 grid gap-4">
-              <input
-                className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                placeholder="Subject name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <textarea
-                className="min-h-32 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                placeholder="Description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <AdminSelectField
-                  label="Grade"
-                  value={String(grade)}
-                  options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
-                  onChange={(value) => setGrade(Number(value))}
-                />
-                <AdminSelectField
-                  label="Section"
-                  value={section}
-                  options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
-                  onChange={setSection}
-                />
-              </div>
-              <button className="button-primary w-fit" type="button" onClick={save}>
-                Create subject
-              </button>
-            </div>
-          </article>
-        ) : null}
-
+      <section>
         <article className="glass-panel p-6">
           <Stack
             className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
@@ -347,7 +322,12 @@ export function AdminSubjectsPage() {
                 value={searchTerm}
                 onChange={setSearchTerm}
               />
-              <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+              <Stack direction="row" justifyContent="flex-end" spacing={1.5} useFlexGap sx={{ flexShrink: 0 }}>
+                {canCreate ? (
+                  <button className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm" type="button" onClick={openCreateModal}>
+                    + Add Subject
+                  </button>
+                ) : null}
                 <AdminResetFiltersButton onClick={resetFilters} />
               </Stack>
             </Stack>
@@ -419,6 +399,13 @@ export function AdminSubjectsPage() {
             <div className="admin-management-table-shell mt-6">
               <div className="overflow-x-auto">
                 <table className="admin-management-table">
+                  <colgroup>
+                    <col className="w-[44%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[8%]" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>
@@ -463,29 +450,31 @@ export function AdminSubjectsPage() {
                   <tbody>
                     {paginatedSubjects.map((subject) => (
                       <tr key={subject.id}>
-                        <td>
+                        <td className="w-[44%]">
                           {(() => {
                             const SubjectIcon = getSubjectIcon(subject.name)
 
                             return (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <SubjectIcon sx={{ fontSize: 'small', color: '#2468a0' }} />
-                              <p className="font-semibold text-slate-900">{subject.name}</p>
-                            </div>
-                            <p className="text-sm text-slate-500">{subject.description}</p>
-                          </div>
+                              <div className="flex items-center gap-5">
+                                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-sky-50/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+                                  <SubjectIcon sx={{ fontSize: '2.5rem', color: '#2468a0' }} />
+                                </div>
+                                <div className="min-w-0 space-y-2">
+                                  <p className="text-lg font-semibold text-slate-900">{subject.name}</p>
+                                  <p className="max-w-3xl leading-6 text-slate-500">{subject.description}</p>
+                                </div>
+                              </div>
                             )
                           })()}
                         </td>
-                        <td>
-                          <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
+                        <td className="whitespace-nowrap">
+                          <span className="inline-flex whitespace-nowrap rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
                             {subject.classDisplay || formatClassDisplay(subject.grade, subject.section)}
                           </span>
                         </td>
-                        <td>{`Created by ${subject.createdByFullName ?? subject.createdByUsername ?? 'Teacher'}`}</td>
-                        <td>{formatDateTime(subject.createdAt)}</td>
-                        <td>
+                        <td className="whitespace-nowrap">{`Created by ${subject.createdByFullName ?? subject.createdByUsername ?? 'Teacher'}`}</td>
+                        <td className="whitespace-nowrap">{formatDateTime(subject.createdAt)}</td>
+                        <td className="whitespace-nowrap">
                           <div className="flex justify-end gap-2">
                             <button
                               className="admin-management-icon-button"
@@ -662,6 +651,66 @@ export function AdminSubjectsPage() {
                   Save changes
                 </button>
                 <button className="rounded-2xl border border-slate-200 px-4 py-3" type="button" onClick={closeEditModal}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCreateModalOpen ? (
+        <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={reset}>
+          <div className="admin-management-modal-card max-w-5xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-8 py-6 lg:px-10">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Subject Management</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">Create subject</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Set up a new subject with a cleaner, full-size form that leaves room for clearer titles and descriptions.
+                </p>
+              </div>
+              <button
+                aria-label="Close subject creator"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                type="button"
+                onClick={reset}
+              >
+                ×
+              </button>
+            </div>
+            <div className="grid gap-6 px-8 py-8 lg:px-10 lg:py-9">
+              <input
+                className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                placeholder="Subject name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+              <textarea
+                className="min-h-40 rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                placeholder="Description"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+              <div className="grid gap-5 md:grid-cols-2">
+                <AdminSelectField
+                  label="Grade"
+                  value={String(grade)}
+                  options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
+                  onChange={(value) => setGrade(Number(value))}
+                />
+                <AdminSelectField
+                  label="Section"
+                  value={section}
+                  options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
+                  onChange={setSection}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={save}>
+                  Create subject
+                </button>
+                <button className="rounded-2xl border border-slate-200 px-5 py-3.5 text-base font-semibold text-slate-700" type="button" onClick={reset}>
                   Cancel
                 </button>
               </div>

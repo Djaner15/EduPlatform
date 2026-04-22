@@ -5,8 +5,10 @@ import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import Stack from '@mui/material/Stack'
 import {
   CalendarClock,
+  Eye,
   FileText,
   ImagePlus,
+  LayoutPanelLeft,
   PlayCircle,
   Upload,
   UserRound,
@@ -141,6 +143,7 @@ export function AdminLessonsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [viewingLesson, setViewingLesson] = useState<Lesson | null>(null)
   const [form, setForm] = useState(
     storedDraft?.form ?? {
@@ -159,7 +162,11 @@ export function AdminLessonsPage() {
   const [existingAttachment, setExistingAttachment] = useState<{ name: string; url: string } | null>(
     storedDraft?.existingAttachment ?? null,
   )
+  const [imageUrlInput, setImageUrlInput] = useState('')
   const [didRestoreDraft] = useState(Boolean(storedDraft))
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true)
+  const [isDraftSaving, setIsDraftSaving] = useState(false)
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>('all')
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
@@ -300,8 +307,29 @@ export function AdminLessonsPage() {
       return imagePreview
     }
 
+    if (imageUrlInput.trim()) {
+      return imageUrlInput.trim()
+    }
+
     return existingImageUrl ? resolveApiAssetUrl(existingImageUrl) : ''
-  }, [existingImageUrl, imagePreview])
+  }, [existingImageUrl, imagePreview, imageUrlInput])
+
+  const contentPlainText = useMemo(() => stripHtml(form.content), [form.content])
+  const wordCount = useMemo(() => (contentPlainText ? contentPlainText.split(/\s+/).filter(Boolean).length : 0), [contentPlainText])
+  const characterCount = contentPlainText.length
+  const draftStatusText = isDraftSaving
+    ? 'Saving...'
+    : lastDraftSavedAt
+      ? `Draft saved at ${lastDraftSavedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+      : 'Draft autosave is ready'
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview)
+      }
+    }
+  }, [imagePreview])
 
   useEffect(() => {
     if (typeof window === 'undefined' || isEditing) {
@@ -325,14 +353,27 @@ export function AdminLessonsPage() {
 
     if (!hasMeaningfulDraft) {
       window.localStorage.removeItem(lessonDraftStorageKey)
+      setLastDraftSavedAt(null)
+      setIsDraftSaving(false)
       return
     }
 
-    window.localStorage.setItem(lessonDraftStorageKey, JSON.stringify(draft))
+    setIsDraftSaving(true)
+
+    const timeoutId = window.setTimeout(() => {
+      window.localStorage.setItem(lessonDraftStorageKey, JSON.stringify(draft))
+      setLastDraftSavedAt(new Date())
+      setIsDraftSaving(false)
+    }, 500)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
   }, [attachmentFile, existingAttachment, existingImageUrl, form, imageFile, isEditing])
 
   const resetForm = ({ clearStoredDraft = true }: { clearStoredDraft?: boolean } = {}) => {
     setEditingId(null)
+    setIsCreateModalOpen(false)
     setForm({
       title: '',
       content: '',
@@ -344,8 +385,11 @@ export function AdminLessonsPage() {
     setImageFile(null)
     setImagePreview('')
     setExistingImageUrl('')
+    setImageUrlInput('')
     setAttachmentFile(null)
     setExistingAttachment(null)
+    setLastDraftSavedAt(null)
+    setIsDraftSaving(false)
 
     if (clearStoredDraft && typeof window !== 'undefined') {
       window.localStorage.removeItem(lessonDraftStorageKey)
@@ -356,6 +400,7 @@ export function AdminLessonsPage() {
     setImageFile(null)
     setImagePreview('')
     setExistingImageUrl('')
+    setImageUrlInput('')
   }
 
   const clearAttachmentSelection = () => {
@@ -364,6 +409,7 @@ export function AdminLessonsPage() {
   }
 
   const openEditModal = (lesson: Lesson) => {
+    setIsCreateModalOpen(false)
     setEditingId(lesson.id)
     setForm({
       title: lesson.title,
@@ -384,11 +430,34 @@ export function AdminLessonsPage() {
     )
     setImageFile(null)
     setImagePreview('')
+    setImageUrlInput('')
     setAttachmentFile(null)
   }
 
   const closeEditModal = () => {
     resetForm({ clearStoredDraft: false })
+  }
+
+  const openCreateModal = () => {
+    resetForm({ clearStoredDraft: false })
+    setIsCreateModalOpen(true)
+  }
+
+  const closeCreateModal = () => {
+    setEditingId(null)
+    setIsCreateModalOpen(false)
+  }
+
+  const applyImageFile = (file: File | null) => {
+    setImageFile(file)
+    setImageUrlInput('')
+    setImagePreview((current) => {
+      if (current.startsWith('blob:')) {
+        URL.revokeObjectURL(current)
+      }
+
+      return file ? URL.createObjectURL(file) : ''
+    })
   }
 
   const save = async () => {
@@ -447,143 +516,277 @@ export function AdminLessonsPage() {
   }
 
   const renderLessonForm = (mode: 'create' | 'edit') => (
-    <div className="grid gap-4">
+    <div className="grid gap-6">
       {mode === 'create' && didRestoreDraft ? (
         <p className="text-sm text-slate-500">
           Your unsaved lesson draft was restored automatically. Uploaded files need to be selected again if you leave the page.
         </p>
       ) : null}
 
-      <input
-        className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-        placeholder="Lesson title"
-        value={form.title}
-        onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-      />
+      <div className={`grid gap-6 ${isPreviewVisible ? 'xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]' : ''}`}>
+        <div className="space-y-6">
+          <div className="rounded-[2rem] border border-sky-200/80 bg-white/78 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">Lesson Studio</h3>
+                <p className="mt-1 text-sm text-slate-500">Write, preview, and polish the lesson exactly as students will see it.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDraftSaving ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-[#2468a0]'}`}>
+                  {draftStatusText}
+                </span>
+                <button
+                  className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+                  type="button"
+                  onClick={() => setIsPreviewVisible((current) => !current)}
+                >
+                  {isPreviewVisible ? <LayoutPanelLeft className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
+                </button>
+              </div>
+            </div>
 
-      <AdminSelectField
-        label="Subject"
-        value={filteredSubjects.some((subject) => subject.id === form.subjectId) ? String(form.subjectId) : '0'}
-        options={
-          filteredSubjects.length
-            ? filteredSubjects.map((subject) => ({
-                value: String(subject.id),
-                label: subject.name,
-              }))
-            : [{ value: '0', label: 'No subjects available' }]
-        }
-        onChange={(value) => setForm((current) => ({ ...current, subjectId: Number(value) }))}
-      />
+            <div className="mt-6 grid gap-4">
+              <input
+                className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                placeholder="Lesson title"
+                value={form.title}
+                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+              />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <AdminSelectField
-          label="Grade"
-          value={String(form.grade)}
-          options={gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) }))}
-          onChange={(value) =>
-            setForm((current) => ({
-              ...current,
-              grade: Number(value),
-              subjectId: 0,
-            }))
-          }
-        />
+              <div className="grid gap-4 lg:grid-cols-3">
+                <AdminSelectField
+                  label="Subject"
+                  value={filteredSubjects.some((subject) => subject.id === form.subjectId) ? String(form.subjectId) : '0'}
+                  options={
+                    filteredSubjects.length
+                      ? filteredSubjects.map((subject) => ({
+                          value: String(subject.id),
+                          label: subject.name,
+                        }))
+                      : [{ value: '0', label: 'No subjects available' }]
+                  }
+                  onChange={(value) => setForm((current) => ({ ...current, subjectId: Number(value) }))}
+                />
 
-        <AdminSelectField
-          label="Section"
-          value={form.section}
-          options={sectionOptions.map((section) => ({ value: section, label: section }))}
-          onChange={(value) =>
-            setForm((current) => ({
-              ...current,
-              section: value,
-              subjectId: 0,
-            }))
-          }
-        />
-      </div>
+                <AdminSelectField
+                  label="Grade"
+                  value={String(form.grade)}
+                  options={gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) }))}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      grade: Number(value),
+                      subjectId: 0,
+                    }))
+                  }
+                />
 
-      {!filteredSubjects.length ? (
-        <p className="text-sm text-amber-700">
-          No subjects exist for class {formatClassDisplay(form.grade, form.section)} yet. Create the subject first.
-        </p>
-      ) : null}
+                <AdminSelectField
+                  label="Section"
+                  value={form.section}
+                  options={sectionOptions.map((section) => ({ value: section, label: section }))}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      section: value,
+                      subjectId: 0,
+                    }))
+                  }
+                />
+              </div>
 
-      <RichTextEditor
-        placeholder="Write a structured lesson with headings, lists, highlighted ideas, and useful links."
-        value={form.content}
-        onChange={(value) => setForm((current) => ({ ...current, content: value }))}
-      />
+              {!filteredSubjects.length ? (
+                <p className="text-sm text-amber-700">
+                  No subjects exist for class {formatClassDisplay(form.grade, form.section)} yet. Create the subject first.
+                </p>
+              ) : null}
 
-      <input
-        className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-        placeholder="YouTube embed link (optional)"
-        value={form.youtubeUrl}
-        onChange={(event) => setForm((current) => ({ ...current, youtubeUrl: event.target.value }))}
-      />
+              <RichTextEditor
+                placeholder="Write a structured lesson with headings, lists, highlighted ideas, and useful links."
+                value={form.content}
+                onChange={(value) => setForm((current) => ({ ...current, content: value }))}
+              />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 p-4 text-sm text-slate-600">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <span className="flex items-center gap-2 font-semibold text-slate-900">
-              <ImagePlus className="h-4 w-4 text-[#2468a0]" />
-              Upload lesson image
-            </span>
-            {imageFile || existingImageUrl ? (
-              <button
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"
-                type="button"
-                onClick={clearImageSelection}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+                <span>{wordCount} words</span>
+                <span>{characterCount} characters</span>
+              </div>
+
+              <input
+                className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                placeholder="YouTube embed link (optional)"
+                value={form.youtubeUrl}
+                onChange={(event) => setForm((current) => ({ ...current, youtubeUrl: event.target.value }))}
+              />
+            </div>
           </div>
-          <input
-            accept="image/*"
-            className="mt-2 block w-full text-sm"
-            type="file"
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null
-              setImageFile(file)
-              setImagePreview(file ? URL.createObjectURL(file) : '')
-            }}
-          />
-          {imageFile || existingImageUrl ? (
-            <p className="mt-3 text-xs text-slate-500">
-              {imageFile ? imageFile.name : 'Current lesson image selected'}
-            </p>
-          ) : null}
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div
+              className="rounded-[2rem] border border-dashed border-sky-200 bg-sky-50/55 p-5 text-sm text-slate-600"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault()
+                applyImageFile(event.dataTransfer.files?.[0] ?? null)
+              }}
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <span className="flex items-center gap-2 font-semibold text-slate-900">
+                    <ImagePlus className="h-4 w-4 text-[#2468a0]" />
+                    Lesson image studio
+                  </span>
+                  <p className="mt-1 text-xs text-slate-500">Drop an image here, select a file, or paste an image URL for instant preview.</p>
+                </div>
+                {imageFile || existingImageUrl || imageUrlInput ? (
+                  <button
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"
+                    type="button"
+                    onClick={clearImageSelection}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+
+              <label className="flex min-h-[9rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-sky-200 bg-white/80 px-4 py-5 text-center transition hover:border-sky-300 hover:bg-white">
+                <span className="text-sm font-semibold text-slate-800">Drag and drop image</span>
+                <span className="mt-1 text-xs text-slate-500">PNG, JPG, WEBP or any image file supported by the browser</span>
+                <span className="mt-4 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">Choose file</span>
+                <input
+                  accept="image/*"
+                  className="sr-only"
+                  type="file"
+                  onChange={(event) => applyImageFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+
+              <input
+                className="mt-4 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-sky-950 placeholder:text-sky-600/70"
+                placeholder="Paste image URL for preview helper"
+                value={imageUrlInput}
+                onChange={(event) => {
+                  setImageUrlInput(event.target.value)
+                  if (event.target.value.trim()) {
+                    setImageFile(null)
+                    setImagePreview((current) => {
+                      if (current.startsWith('blob:')) {
+                        URL.revokeObjectURL(current)
+                      }
+                      return ''
+                    })
+                  }
+                }}
+              />
+
+              {imageFile || existingImageUrl || imageUrlInput ? (
+                <div className="mt-4 overflow-hidden rounded-2xl border border-sky-200 bg-white p-2">
+                  <img alt="Lesson media preview" className="h-40 w-full rounded-xl object-cover" src={previewImageUrl} />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-[2rem] border border-dashed border-sky-200 bg-sky-50/55 p-5 text-sm text-slate-600">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <span className="flex items-center gap-2 font-semibold text-slate-900">
+                    <Upload className="h-4 w-4 text-[#2468a0]" />
+                    Resource attachments
+                  </span>
+                  <p className="mt-1 text-xs text-slate-500">Attach a PDF handout or worksheet students can open from the lesson details page.</p>
+                </div>
+                {attachmentFile || existingAttachment ? (
+                  <button
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"
+                    type="button"
+                    onClick={clearAttachmentSelection}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+              <label className="flex min-h-[9rem] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-sky-200 bg-white/80 px-4 py-5 text-center transition hover:border-sky-300 hover:bg-white">
+                <span className="text-sm font-semibold text-slate-800">Upload PDF resource</span>
+                <span className="mt-1 text-xs text-slate-500">A linked file will appear under the lesson content for students.</span>
+                <span className="mt-4 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">Select PDF</span>
+                <input
+                  accept=".pdf"
+                  className="sr-only"
+                  type="file"
+                  onChange={(event) => setAttachmentFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              {attachmentFile || existingAttachment ? (
+                <p className="mt-4 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-600">
+                  {attachmentFile?.name ?? existingAttachment?.name}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/50 p-4 text-sm text-slate-600">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <span className="flex items-center gap-2 font-semibold text-slate-900">
-              <Upload className="h-4 w-4 text-[#2468a0]" />
-              Attach PDF
-            </span>
-            {attachmentFile || existingAttachment ? (
-              <button
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"
-                type="button"
-                onClick={clearAttachmentSelection}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
-          </div>
-          <input
-            accept=".pdf"
-            className="mt-2 block w-full text-sm"
-            type="file"
-            onChange={(event) => setAttachmentFile(event.target.files?.[0] ?? null)}
-          />
-          {attachmentFile || existingAttachment ? (
-            <p className="mt-3 text-xs text-slate-500">
-              {attachmentFile?.name ?? existingAttachment?.name}
-            </p>
-          ) : null}
-        </div>
+        {isPreviewVisible ? (
+          <aside className="rounded-[2rem] border border-sky-200/80 bg-white/82 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Live Preview</h3>
+                <p className="mt-1 text-sm text-slate-500">This is how the lesson will appear to students.</p>
+              </div>
+              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
+                {formatClassDisplay(form.grade, form.section) || 'Class'}
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {previewImageUrl ? (
+                <img
+                  alt={form.title || 'Lesson preview'}
+                  className="h-48 w-full rounded-3xl object-cover shadow-[0_16px_34px_rgba(36,104,160,0.12)]"
+                  src={previewImageUrl}
+                />
+              ) : null}
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">{filteredSubjects.find((subject) => subject.id === form.subjectId)?.name ?? 'Subject preview'}</p>
+                <h2 className="mt-2 text-3xl font-bold text-slate-900">{form.title.trim() || 'Lesson title preview'}</h2>
+              </div>
+
+              <div
+                className="lesson-content rounded-3xl border border-blue-100/80 bg-white/90 p-6 shadow-[0_14px_28px_rgba(36,104,160,0.06)]"
+                dangerouslySetInnerHTML={{ __html: form.content || '<p>Start writing to see your lesson preview here.</p>' }}
+              />
+
+              {form.youtubeUrl.trim() ? (
+                <div className="rounded-3xl border border-blue-100/80 bg-blue-50/70 p-5">
+                  <span className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <PlayCircle className="h-4 w-4 text-[#0f8b8d]" />
+                    YouTube resource preview
+                  </span>
+                  <iframe
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-64 w-full rounded-2xl"
+                    src={getYoutubeEmbedUrl(form.youtubeUrl) ?? undefined}
+                    title="Lesson preview video"
+                  />
+                </div>
+              ) : null}
+
+              {attachmentFile || existingAttachment ? (
+                <div className="rounded-3xl border border-blue-100/80 bg-blue-50/70 p-5">
+                  <span className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <FileText className="h-4 w-4 text-[#2468a0]" />
+                    Downloadable resource
+                  </span>
+                  <div className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-3 font-semibold text-[#2468a0]">
+                    {attachmentFile?.name ?? existingAttachment?.name}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </aside>
+        ) : null}
       </div>
     </div>
   )
@@ -600,31 +803,19 @@ export function AdminLessonsPage() {
         title="Lesson Management"
       />
 
-      {canCreate ? (
-        <article className="glass-panel p-6">
-          <h2 className="text-xl font-semibold text-slate-900">New rich lesson</h2>
-          <div className="mt-5 space-y-5">
-            {renderLessonForm('create')}
-            <div className="flex gap-3">
-              <button className="button-primary" type="button" onClick={save}>
-                Create lesson
-              </button>
-              <button className="rounded-2xl border border-slate-200 px-4 py-3" type="button" onClick={() => resetForm()}>
-                Clear form
-              </button>
-            </div>
-            {previewImageUrl ? (
-              <img
-                alt="Lesson preview"
-                className="h-56 w-full rounded-3xl object-cover shadow-[0_16px_34px_rgba(36,104,160,0.12)]"
-                src={previewImageUrl}
-              />
-            ) : null}
-          </div>
-        </article>
-      ) : null}
-
       <article className="glass-panel p-6">
+        <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Lesson Library</h2>
+            <p className="mt-1 text-sm text-slate-500">Browse, review, and manage lessons with structured content and media.</p>
+          </div>
+          {canCreate ? (
+            <button className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm" type="button" onClick={openCreateModal}>
+              + Add Lesson
+            </button>
+          ) : null}
+        </div>
+
         <Stack
           className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
           spacing={2}
@@ -936,7 +1127,7 @@ export function AdminLessonsPage() {
 
       {isEditing ? (
         <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={closeEditModal}>
-          <div className="admin-management-modal-card" onClick={(event) => event.stopPropagation()}>
+          <div className="admin-management-modal-card max-w-[95rem]" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Lesson Edit</p>
@@ -960,6 +1151,39 @@ export function AdminLessonsPage() {
                 </button>
                 <button className="rounded-2xl border border-slate-200 px-4 py-3" type="button" onClick={closeEditModal}>
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCreateModalOpen ? (
+        <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={closeCreateModal}>
+          <div className="admin-management-modal-card max-w-[95rem]" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-8 py-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Lesson Studio</p>
+                <h2 className="mt-2 text-3xl font-bold text-slate-900">Create lesson</h2>
+                <p className="mt-2 text-sm text-slate-500">Draft a polished lesson with rich content, live preview, and media support.</p>
+              </div>
+              <button
+                aria-label="Close lesson studio"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                type="button"
+                onClick={closeCreateModal}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="max-h-[calc(92vh-96px)] overflow-y-auto px-8 py-8">
+              {renderLessonForm('create')}
+              <div className="mt-6 flex gap-3">
+                <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={save}>
+                  Create lesson
+                </button>
+                <button className="rounded-2xl border border-slate-200 px-5 py-3.5 font-semibold text-slate-700" type="button" onClick={() => resetForm()}>
+                  Clear draft
                 </button>
               </div>
             </div>

@@ -9,15 +9,15 @@ type InfoCardProps = {
 export function InfoCard({ title, description, footer, action, visual }: InfoCardProps) {
   return (
     <article className="glass-panel flex h-full flex-col gap-5 p-6">
-      <div className={`grid gap-4 ${visual ? 'grid-cols-[auto_1fr] items-start' : ''}`}>
+      <div className={`grid gap-5 ${visual ? 'grid-cols-[5.5rem_1fr] items-start' : ''}`}>
         {visual ? (
-          <div className="flex h-full min-h-[5.5rem] items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-sky-100 via-cyan-50 to-white px-4 py-3 text-5xl shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:text-6xl">
-            <span aria-hidden="true" className="leading-none">
+          <div className="flex min-h-[6.75rem] w-[5.5rem] items-center justify-center self-stretch rounded-[1.9rem] bg-gradient-to-br from-sky-100 via-cyan-50 to-white px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(36,104,160,0.08)]">
+            <span aria-hidden="true" className="text-[3rem] leading-none sm:text-[3.25rem]">
               {visual}
             </span>
           </div>
         ) : null}
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
           <p className="text-sm leading-6 text-slate-600">{description}</p>
         </div>

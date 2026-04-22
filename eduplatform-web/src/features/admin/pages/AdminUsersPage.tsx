@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -241,11 +241,11 @@ const formatDateTime = (value?: string | null) => {
 
 export function AdminUsersPage() {
   const { showNotification } = useNotification()
-  const formCardRef = useRef<HTMLElement | null>(null)
   const [allUsers, setAllUsers] = useState<UserItem[]>([])
   const [management, setManagement] = useState<ManagementResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [isUserFormOpen, setIsUserFormOpen] = useState(false)
   const [form, setForm] = useState<UserForm>(initialForm)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -270,7 +270,6 @@ export function AdminUsersPage() {
   const [classTeacherDrafts, setClassTeacherDrafts] = useState<Record<string, string>>({})
   const [pendingDelete, setPendingDelete] = useState<DeleteCandidate | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isEditFormHighlighted, setIsEditFormHighlighted] = useState(false)
   const [userActionAnchorEl, setUserActionAnchorEl] = useState<HTMLElement | null>(null)
   const [activeUserAction, setActiveUserAction] = useState<ManagedUserAction | null>(null)
   const [profileUser, setProfileUser] = useState<ManagedUserAction | null>(null)
@@ -372,6 +371,7 @@ export function AdminUsersPage() {
   const resetForm = () => {
     setForm(initialForm)
     setEditingId(null)
+    setIsUserFormOpen(false)
     setShowPassword(false)
     setSelectedProfileImage(null)
   }
@@ -483,6 +483,7 @@ export function AdminUsersPage() {
 
   const handleEdit = (user: UserItem) => {
     setEditingId(user.id)
+    setIsUserFormOpen(true)
     setSelectedProfileImage(null)
     setForm({
       username: user.username,
@@ -500,14 +501,14 @@ export function AdminUsersPage() {
       subjectIds: user.subjectIds ?? [],
       assignedClasses: user.assignedClasses ?? [],
     })
-    setIsEditFormHighlighted(true)
+  }
 
-    window.setTimeout(() => {
-      formCardRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }, 80)
+  const handleOpenCreateUser = () => {
+    setEditingId(null)
+    setForm(initialForm)
+    setSelectedProfileImage(null)
+    setShowPassword(false)
+    setIsUserFormOpen(true)
   }
 
   const handleProfileImageUpload = async () => {
@@ -553,18 +554,6 @@ export function AdminUsersPage() {
       setIsProfileImageBusy(false)
     }
   }
-
-  useEffect(() => {
-    if (!isEditFormHighlighted) {
-      return undefined
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setIsEditFormHighlighted(false)
-    }, 1800)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [isEditFormHighlighted])
 
   const handleClassTeacherSave = async (grade: number, section: string) => {
     const key = classKey(grade, section)
@@ -988,204 +977,8 @@ export function AdminUsersPage() {
         title="User Management"
       />
 
-      <section className="flex flex-col items-start gap-6 xl:flex-row-reverse">
-        <article
-          ref={formCardRef}
-          className={`glass-panel h-fit w-full p-7 xl:w-[320px] xl:flex-none transition-all duration-500 ${
-            isEditFormHighlighted
-              ? 'ring-4 ring-cyan-200/80 shadow-[0_0_0_1px_rgba(34,211,238,0.2),0_24px_56px_rgba(36,104,160,0.2)]'
-              : ''
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold text-slate-900">
-              {editingId ? `Edit User (Editing: ${form.fullName || form.username})` : 'Create user'}
-            </h2>
-            {!editingId ? (
-              <button
-                className="rounded-2xl border border-sky-200 bg-white/85 px-4 py-3 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
-                type="button"
-                onClick={() => setIsBulkUploadOpen(true)}
-              >
-                Bulk upload
-              </button>
-            ) : null}
-          </div>
-          <div className="mt-5 grid gap-4.5">
-            {editingId ? (
-              <div className="rounded-2xl border border-sky-200 bg-sky-50/55 p-4">
-                <p className="text-sm font-semibold text-slate-700">Profile Picture</p>
-                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <Avatar
-                    src={selectedProfileImagePreview ?? currentProfileImageSrc}
-                    sx={{ width: 88, height: 88, bgcolor: '#dbeafe', color: '#0f172a', fontSize: '1.5rem', fontWeight: 700 }}
-                  >
-                    {getInitials(form.fullName, form.username)}
-                  </Avatar>
-
-                  <div className="flex-1 space-y-3">
-                    <input
-                      accept=".png,.jpg,.jpeg,.webp"
-                      className="block w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:font-semibold file:text-sky-900"
-                      type="file"
-                      onChange={(event) => setSelectedProfileImage(event.target.files?.[0] ?? null)}
-                    />
-
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        className="button-primary px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={!selectedProfileImage || isProfileImageBusy}
-                        type="button"
-                        onClick={handleProfileImageUpload}
-                      >
-                        {isProfileImageBusy ? 'Saving...' : 'Upload New'}
-                      </button>
-                      <button
-                        className="rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={(!editingUser?.profileImageUrl && !selectedProfileImagePreview) || isProfileImageBusy}
-                        type="button"
-                        onClick={handleProfileImageDelete}
-                      >
-                        Delete Current
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
-              placeholder="Full Name"
-              value={form.fullName}
-              onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
-            />
-            <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
-              placeholder="Username"
-              value={form.username}
-              onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-            />
-            <input
-              className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
-              placeholder="Email"
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-            />
-
-            <div className="password-field">
-              <input
-                className="w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3.5 text-sky-950 placeholder:text-sky-600/70"
-                placeholder={editingId ? 'New password (leave blank to keep current)' : 'Password'}
-                type={showPassword ? 'text' : 'password'}
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              />
-              <button className="ghost-toggle" type="button" onClick={() => setShowPassword((current) => !current)}>
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-
-            <AdminSelectField
-              label="Role"
-              value={String(form.roleId)}
-              options={[
-                { value: '1', label: 'Student' },
-                { value: '2', label: 'Teacher' },
-                { value: '3', label: 'Admin' },
-              ]}
-              onChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  roleId: Number(value),
-                  subjectIds: Number(value) === 2 ? current.subjectIds : [],
-                  assignedClasses: Number(value) === 2 ? current.assignedClasses : [],
-                }))
-              }
-            />
-
-            {isStudentRole ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <AdminSelectField
-                  label="Grade"
-                  value={String(form.grade)}
-                  options={gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) }))}
-                  onChange={(value) => setForm((current) => ({ ...current, grade: Number(value) }))}
-                />
-
-                <AdminSelectField
-                  label="Section"
-                  value={form.section}
-                  options={sectionOptions.map((section) => ({ value: section, label: section }))}
-                  onChange={(value) => setForm((current) => ({ ...current, section: value }))}
-                />
-              </div>
-            ) : null}
-
-            {isTeacherRole && management ? (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Subjects</label>
-                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-3.5">
-                    {management.availableSubjects.map((subject) => {
-                      const checked = form.subjectIds.includes(subject.id)
-                      return (
-                        <label className="flex min-h-[46px] items-start gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-white/70" key={subject.id}>
-                          <input
-                            checked={checked}
-                            className="mt-1 h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
-                            type="checkbox"
-                            onChange={() => toggleSubject(subject.id)}
-                          />
-                          <span className="leading-5">{subject.label}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">Assigned classes</label>
-                  <div className="grid max-h-48 gap-2.5 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-3.5 sm:grid-cols-2 lg:grid-cols-3">
-                    {management.availableClasses.map((assignedClass) => {
-                      const checked = form.assignedClasses.some(
-                        (entry) => entry.grade === assignedClass.grade && entry.section === assignedClass.section,
-                      )
-
-                      return (
-                        <label
-                          className="flex min-h-[46px] items-center gap-3 rounded-xl border border-transparent bg-white/55 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-white/80"
-                          key={classKey(assignedClass.grade, assignedClass.section)}
-                        >
-                          <input
-                            checked={checked}
-                            className="h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
-                            type="checkbox"
-                            onChange={() => toggleAssignedClass(assignedClass)}
-                          />
-                          <span className="truncate">{assignedClass.classDisplay}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-              </>
-            ) : null}
-
-            <div className="flex gap-3">
-              <button className="button-primary" type="button" onClick={handleSubmit}>
-                {editingId ? 'Save Changes' : 'Create user'}
-              </button>
-              {editingId ? (
-                <button className="rounded-2xl border border-slate-200 px-4 py-3 font-semibold text-slate-700" type="button" onClick={resetForm}>
-                  Cancel
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </article>
-
-        <article className="glass-panel min-w-0 flex-1 p-6">
+      <section>
+        <article className="glass-panel min-w-0 p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <h2 className="text-xl font-semibold text-slate-900">School structure</h2>
@@ -1224,6 +1017,20 @@ export function AdminUsersPage() {
                 </span>
               </button>
             </div>
+              <button
+                className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
+                type="button"
+                onClick={handleOpenCreateUser}
+              >
+                + Add User
+              </button>
+              <button
+                className="rounded-2xl border border-sky-200 bg-white/85 px-4 py-2.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+                type="button"
+                onClick={() => setIsBulkUploadOpen(true)}
+              >
+                Bulk upload
+              </button>
               <button
                 className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!hasExportableRows}
@@ -1430,13 +1237,13 @@ export function AdminUsersPage() {
                                       return (
                                         <>
                                     <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                    <table className="w-full min-w-full table-auto divide-y divide-slate-200 text-sm">
                                       <colgroup>
+                                        <col className="w-[32%]" />
                                         <col className="w-[28%]" />
-                                        <col className="w-[26%]" />
-                                        <col className="w-[14%]" />
-                                        <col className="w-[20%]" />
                                         <col className="w-[12%]" />
+                                        <col className="w-[18%]" />
+                                        <col className="w-[10%]" />
                                       </colgroup>
                                       <thead className="bg-slate-50/90">
                                         <tr className="text-left text-slate-500">
@@ -1492,10 +1299,10 @@ export function AdminUsersPage() {
                                                 <p className="text-xs text-slate-500">@{student.username}</p>
                                               </div>
                                             </td>
-                                            <td className="px-4 py-3 text-slate-600">{student.email}</td>
-                                            <td className="px-4 py-3 text-slate-600">Student</td>
-                                            <td className="px-4 py-3 text-slate-600">{formatDateTime(allUsersById.get(student.id)?.approvedAt)}</td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">{student.email}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">Student</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatDateTime(allUsersById.get(student.id)?.approvedAt)}</td>
+                                            <td className="px-4 py-3 text-right whitespace-nowrap">
                                               <IconButton
                                                 aria-label={`Open actions for ${student.fullName}`}
                                                 size="small"
@@ -1581,15 +1388,15 @@ export function AdminUsersPage() {
                   <p className="text-sm text-slate-500">Review teaching assignments, subjects, and class coverage in one table.</p>
                 </div>
                 <div className="mt-4 overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <table className="w-full min-w-full table-auto divide-y divide-slate-200 text-sm">
                   <colgroup>
-                    <col className="w-[18%]" />
-                    <col className="w-[18%]" />
-                    <col className="w-[10%]" />
+                    <col className="w-[20%]" />
                     <col className="w-[22%]" />
-                    <col className="w-[18%]" />
                     <col className="w-[10%]" />
-                    <col className="w-[4%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[2%]" />
                   </colgroup>
                   <thead className="bg-slate-50/90">
                     <tr className="text-left text-slate-500">
@@ -1648,8 +1455,8 @@ export function AdminUsersPage() {
                               <p className="text-xs text-slate-500">@{teacher.username}</p>
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-slate-600">{teacher.email}</td>
-                          <td className="px-3 py-3 text-slate-600">Teacher</td>
+                          <td className="px-3 py-3 whitespace-nowrap text-slate-600">{teacher.email}</td>
+                          <td className="px-3 py-3 whitespace-nowrap text-slate-600">Teacher</td>
                           <td className="px-3 py-3 text-slate-600">
                             <div className="flex flex-wrap gap-2">
                               {teacher.subjectNames.length ? (
@@ -1682,8 +1489,8 @@ export function AdminUsersPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-slate-600">{formatDateTime(allUsersById.get(teacher.id)?.approvedAt)}</td>
-                          <td className="px-3 py-3 text-right">
+                          <td className="px-3 py-3 whitespace-nowrap text-slate-600">{formatDateTime(allUsersById.get(teacher.id)?.approvedAt)}</td>
+                          <td className="px-3 py-3 text-right whitespace-nowrap">
                             <IconButton
                               aria-label={`Open actions for ${teacher.fullName}`}
                               size="small"
@@ -1742,7 +1549,13 @@ export function AdminUsersPage() {
             <div className="mt-6 space-y-6">
               <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white/80 p-4">
                 <h3 className="text-lg font-semibold text-slate-900">Administrators</h3>
-                <table className="mt-4 min-w-full divide-y divide-slate-200 text-sm">
+                <table className="mt-4 w-full min-w-full table-auto divide-y divide-slate-200 text-sm">
+                  <colgroup>
+                    <col className="w-[34%]" />
+                    <col className="w-[34%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[20%]" />
+                  </colgroup>
                   <thead>
                     <tr className="text-left text-slate-500">
                       <th className="px-3 py-3 font-semibold">
@@ -1784,9 +1597,9 @@ export function AdminUsersPage() {
                             <p className="text-xs text-slate-500">@{admin.username}</p>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-slate-600">{admin.email}</td>
-                        <td className="px-3 py-3 text-slate-600">{admin.role}</td>
-                        <td className="px-3 py-3 text-slate-600">{formatDateTime(allUsersById.get(admin.id)?.approvedAt)}</td>
+                        <td className="px-3 py-3 whitespace-nowrap text-slate-600">{admin.email}</td>
+                        <td className="px-3 py-3 whitespace-nowrap text-slate-600">{admin.role}</td>
+                        <td className="px-3 py-3 whitespace-nowrap text-slate-600">{formatDateTime(allUsersById.get(admin.id)?.approvedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1809,6 +1622,240 @@ export function AdminUsersPage() {
           ) : null}
         </article>
       </section>
+
+      {isUserFormOpen ? (
+        <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={resetForm}>
+          <div className="admin-management-modal-card max-w-6xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex flex-col gap-4 border-b border-slate-200/80 px-8 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-10">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">User Management</p>
+                <h2 className="mt-2 text-3xl font-bold text-slate-900">
+                  {editingId ? `Edit User${form.fullName || form.username ? `: ${form.fullName || form.username}` : ''}` : 'Create user'}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {editingId
+                    ? 'Update account details, permissions, and profile information in one place.'
+                    : 'Manage students by class, assign class teachers, and coordinate teacher workload across the school.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                {!editingId ? (
+                  <button
+                    className="rounded-2xl border border-sky-200 bg-white/85 px-4 py-3 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+                    type="button"
+                    onClick={() => setIsBulkUploadOpen(true)}
+                  >
+                    Bulk upload
+                  </button>
+                ) : null}
+                <button
+                  aria-label="Close user form"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                  type="button"
+                  onClick={resetForm}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[calc(92vh-96px)] overflow-y-auto px-8 py-8 lg:px-10 lg:py-9">
+              <div className="grid gap-6">
+                {editingId ? (
+                  <div className="rounded-2xl border border-sky-200 bg-sky-50/55 p-4">
+                    <p className="text-sm font-semibold text-slate-700">Profile Picture</p>
+                    <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <Avatar
+                        src={selectedProfileImagePreview ?? currentProfileImageSrc}
+                        sx={{ width: 88, height: 88, bgcolor: '#dbeafe', color: '#0f172a', fontSize: '1.5rem', fontWeight: 700 }}
+                      >
+                        {getInitials(form.fullName, form.username)}
+                      </Avatar>
+
+                      <div className="flex-1 space-y-3">
+                        <input
+                          accept=".png,.jpg,.jpeg,.webp"
+                          className="block w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:font-semibold file:text-sky-900"
+                          type="file"
+                          onChange={(event) => setSelectedProfileImage(event.target.files?.[0] ?? null)}
+                        />
+
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            className="button-primary px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={!selectedProfileImage || isProfileImageBusy}
+                            type="button"
+                            onClick={handleProfileImageUpload}
+                          >
+                            {isProfileImageBusy ? 'Saving...' : 'Upload New'}
+                          </button>
+                          <button
+                            className="rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={(!editingUser?.profileImageUrl && !selectedProfileImagePreview) || isProfileImageBusy}
+                            type="button"
+                            onClick={handleProfileImageDelete}
+                          >
+                            Delete Current
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="rounded-[2rem] border border-sky-200/80 bg-white/70 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-lg font-semibold text-slate-900">Account Details</h3>
+                    <p className="text-sm text-slate-500">Fill in the core information first, then choose the role and class settings below.</p>
+                  </div>
+
+                  <div className="mt-5 grid gap-4">
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <input
+                        className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                        placeholder="Full Name"
+                        value={form.fullName}
+                        onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
+                      />
+                      <input
+                        className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                        placeholder="Username"
+                        value={form.username}
+                        onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <input
+                        className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                        placeholder="Email"
+                        value={form.email}
+                        onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                      />
+
+                      <div className="password-field">
+                        <input
+                          className="w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                          placeholder={editingId ? 'New password (leave blank to keep current)' : 'Password'}
+                          type={showPassword ? 'text' : 'password'}
+                          value={form.password}
+                          onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                        />
+                        <button className="ghost-toggle" type="button" onClick={() => setShowPassword((current) => !current)}>
+                          {showPassword ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <AdminSelectField
+                        label="Role"
+                        value={String(form.roleId)}
+                        options={[
+                          { value: '1', label: 'Student' },
+                          { value: '2', label: 'Teacher' },
+                          { value: '3', label: 'Admin' },
+                        ]}
+                        onChange={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            roleId: Number(value),
+                            subjectIds: Number(value) === 2 ? current.subjectIds : [],
+                            assignedClasses: Number(value) === 2 ? current.assignedClasses : [],
+                          }))
+                        }
+                      />
+
+                      {isStudentRole ? (
+                        <>
+                          <AdminSelectField
+                            label="Grade"
+                            value={String(form.grade)}
+                            options={gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) }))}
+                            onChange={(value) => setForm((current) => ({ ...current, grade: Number(value) }))}
+                          />
+
+                          <AdminSelectField
+                            label="Section"
+                            value={form.section}
+                            options={sectionOptions.map((section) => ({ value: section, label: section }))}
+                            onChange={(value) => setForm((current) => ({ ...current, section: value }))}
+                          />
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {isTeacherRole && management ? (
+                  <div className="rounded-[2rem] border border-sky-200/80 bg-white/70 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-lg font-semibold text-slate-900">Teaching Assignments</h3>
+                      <p className="text-sm text-slate-500">Choose the subjects and classes this teacher should manage.</p>
+                    </div>
+
+                    <div className="mt-5 grid gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Subjects</label>
+                      <div className="max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-4">
+                        {management.availableSubjects.map((subject) => {
+                          const checked = form.subjectIds.includes(subject.id)
+                          return (
+                            <label className="flex min-h-[52px] items-start gap-3 rounded-xl px-3 py-3 text-sm text-slate-700 hover:bg-white/70" key={subject.id}>
+                              <input
+                                checked={checked}
+                                className="mt-1 h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+                                type="checkbox"
+                                onChange={() => toggleSubject(subject.id)}
+                              />
+                              <span className="leading-5">{subject.label}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Assigned classes</label>
+                      <div className="grid max-h-56 gap-3 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {management.availableClasses.map((assignedClass) => {
+                          const checked = form.assignedClasses.some(
+                            (entry) => entry.grade === assignedClass.grade && entry.section === assignedClass.section,
+                          )
+
+                          return (
+                            <label
+                              className="flex min-h-[52px] items-center gap-3 rounded-xl border border-transparent bg-white/55 px-3 py-3 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-white/80"
+                              key={classKey(assignedClass.grade, assignedClass.section)}
+                            >
+                              <input
+                                checked={checked}
+                                className="h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+                                type="checkbox"
+                                onChange={() => toggleAssignedClass(assignedClass)}
+                              />
+                              <span className="truncate">{assignedClass.classDisplay}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex gap-3">
+                  <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={handleSubmit}>
+                    {editingId ? 'Save Changes' : 'Create user'}
+                  </button>
+                  <button className="rounded-2xl border border-slate-200 px-5 py-3.5 font-semibold text-slate-700" type="button" onClick={resetForm}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <DeleteConfirmationModal
         open={Boolean(pendingDelete)}

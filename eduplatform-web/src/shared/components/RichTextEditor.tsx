@@ -2,12 +2,11 @@ import FormControl from '@mui/material/FormControl'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import type { SelectChangeEvent } from '@mui/material/Select'
-import { Eraser, Highlighter, Type, Table2 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Eraser, Highlighter, Link2, Table2, Type, Unlink } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 
-const toolbarId = `lesson-editor-toolbar`
 const formats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet', 'link', 'color', 'background']
 const textColorOptions = ['#0f172a', '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed']
 const highlightColorOptions = ['#fef08a', '#fde68a', '#fecaca', '#fed7aa', '#bfdbfe', '#bbf7d0', '#ddd6fe', '#fbcfe8']
@@ -91,10 +90,13 @@ type RichTextEditorProps = {
 }
 
 export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+  const toolbarId = useId().replace(/:/g, '-')
   const quillRef = useRef<ReactQuill | null>(null)
   const toolbarRef = useRef<HTMLDivElement | null>(null)
-  const [openMenu, setOpenMenu] = useState<'text' | 'highlight' | null>(null)
+  const savedRangeRef = useRef<{ index: number; length: number } | null>(null)
+  const [openMenu, setOpenMenu] = useState<'text' | 'highlight' | 'link' | null>(null)
   const [headerValue, setHeaderValue] = useState('')
+  const [linkValue, setLinkValue] = useState('')
 
   const toggleInlineFormat = (format: 'bold' | 'italic' | 'underline') => {
     const editor = quillRef.current?.getEditor()
@@ -139,6 +141,59 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     }
 
     editor.format(format, nextValue, 'user')
+  }
+
+  const openLinkMenu = () => {
+    const editor = quillRef.current?.getEditor()
+    if (!editor) {
+      return
+    }
+
+    editor.focus()
+    const range = editor.getSelection(true)
+    if (!range) {
+      return
+    }
+
+    savedRangeRef.current = range
+    const currentFormats = editor.getFormat(range)
+    setLinkValue(typeof currentFormats.link === 'string' ? currentFormats.link : '')
+    setOpenMenu((current) => (current === 'link' ? null : 'link'))
+  }
+
+  const applyLink = () => {
+    const editor = quillRef.current?.getEditor()
+    const range = savedRangeRef.current
+    if (!editor || !range) {
+      return
+    }
+
+    const normalizedValue = linkValue.trim()
+
+    editor.focus()
+    editor.setSelection(range.index, range.length)
+    editor.format('link', normalizedValue || false, 'user')
+    if (range.length > 0) {
+      editor.setSelection(range.index + range.length, 0)
+    }
+    setOpenMenu(null)
+  }
+
+  const removeLink = () => {
+    const editor = quillRef.current?.getEditor()
+    const range = savedRangeRef.current
+    if (!editor || !range) {
+      return
+    }
+
+    editor.focus()
+    editor.setSelection(range.index, range.length)
+    editor.format('link', false, 'user')
+    if (range.length > 0) {
+      editor.setSelection(range.index + range.length, 0)
+    }
+    setLinkValue('')
+    setOpenMenu(null)
   }
 
   useEffect(() => {
@@ -205,10 +260,11 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
             editor.setSelection(index + 1, 0)
             setOpenMenu(null)
           },
+          link: openLinkMenu,
         },
       },
     }),
-    [],
+    [toolbarId],
   )
 
   return (
@@ -325,7 +381,52 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
           <button aria-label="Bullet list" className="ql-list" type="button" value="bullet" />
         </span>
         <span className="ql-formats">
-          <button aria-label="Link" className="ql-link" type="button" />
+          <div className="toolbar-menu">
+            <button
+              aria-expanded={openMenu === 'link'}
+              aria-label="Link"
+              className="toolbar-menu-trigger"
+              type="button"
+              onClick={openLinkMenu}
+            >
+              <Link2 className="h-4 w-4" />
+            </button>
+            {openMenu === 'link' ? (
+              <div className="toolbar-link-popover" onMouseDown={(event) => event.stopPropagation()}>
+                <label className="toolbar-link-label" htmlFor={`${toolbarId}-link-input`}>
+                  Hyperlink
+                </label>
+                <input
+                  autoFocus
+                  className="toolbar-link-input"
+                  id={`${toolbarId}-link-input`}
+                  placeholder="https://example.com"
+                  value={linkValue}
+                  onChange={(event) => setLinkValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      applyLink()
+                    }
+
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      setOpenMenu(null)
+                    }
+                  }}
+                />
+                <div className="toolbar-link-actions">
+                  <button className="toolbar-link-button toolbar-link-button-primary" type="button" onClick={applyLink}>
+                    Apply
+                  </button>
+                  <button className="toolbar-link-button" type="button" onClick={removeLink}>
+                    <Unlink className="h-3.5 w-3.5" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
           <button aria-label="Insert table" className="ql-insertTable" type="button">
             <Table2 className="h-4 w-4" />
           </button>

@@ -81,11 +81,11 @@
   }
 
   .admin-management-table-shell {
-    @apply overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 shadow-[0_18px_36px_rgba(36,104,160,0.08)];
+    @apply w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white/80 shadow-[0_18px_36px_rgba(36,104,160,0.08)];
   }
 
   .admin-management-table {
-    @apply min-w-full border-collapse;
+    @apply w-full min-w-full table-auto border-collapse;
   }
 
   .admin-management-table thead {
@@ -93,7 +93,7 @@
   }
 
   .admin-management-table th {
-    @apply px-5 py-4 text-sm font-semibold text-slate-700;
+    @apply px-5 py-4 text-sm font-semibold whitespace-nowrap text-slate-700;
   }
 
   .admin-management-sort-label {
@@ -668,6 +668,88 @@ html[data-theme='dark'] .settings-pill-active {
   backdrop-filter: blur(14px);
 }
 
+.rich-editor .toolbar-link-popover {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 140;
+  width: 20rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: 0 20px 40px rgba(36, 104, 160, 0.2);
+  backdrop-filter: blur(14px);
+}
+
+.rich-editor .toolbar-link-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #183b5b;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rich-editor .toolbar-link-input {
+  width: 100%;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 0.9rem;
+  background: rgba(240, 249, 255, 0.82);
+  padding: 0.8rem 0.95rem;
+  color: #102133;
+  font-size: 0.95rem;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.rich-editor .toolbar-link-input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 4px rgba(186, 230, 253, 0.35);
+}
+
+.rich-editor .toolbar-link-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.rich-editor .toolbar-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 0.9rem;
+  background: white;
+  color: #183b5b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.rich-editor .toolbar-link-button:hover {
+  background: rgba(239, 246, 255, 0.9);
+  border-color: rgba(125, 211, 252, 0.95);
+}
+
+.rich-editor .toolbar-link-button-primary {
+  border-color: rgba(36, 104, 160, 0.1);
+  background: linear-gradient(90deg, #123d5b 0%, #2468a0 55%, #0f8b8d 100%);
+  color: white;
+}
+
+.rich-editor .toolbar-link-button-primary:hover {
+  border-color: rgba(36, 104, 160, 0.1);
+  background: linear-gradient(90deg, #123d5b 0%, #2468a0 55%, #0f8b8d 100%);
+  filter: brightness(1.04);
+}
+
 .rich-editor .toolbar-color-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -711,6 +793,10 @@ html[data-theme='dark'] .settings-pill-active {
   padding: 1rem 1.1rem;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+
+.rich-editor .ql-tooltip {
+  display: none !important;
 }
 
 .rich-editor .ql-editor table,
