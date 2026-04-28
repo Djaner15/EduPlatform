@@ -69,4 +69,11 @@ public class AdminController : ControllerBase
         var stats = await _testService.GetStatisticsAsync();
         return Ok(stats);
     }
+
+    [HttpGet("recent-activity")]
+    public async Task<IActionResult> GetRecentActivity([FromQuery] int page = 1, [FromQuery] int pageSize = 6)
+    {
+        var result = await _testService.GetRecentActivityPageAsync(page, pageSize);
+        return Ok(result);
+    }
 }

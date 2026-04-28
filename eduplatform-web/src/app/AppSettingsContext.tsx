@@ -1,258 +1,70 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTranslation as useI18nextTranslation } from 'react-i18next'
+import i18n, { normalizeLanguage } from './i18n'
+import { setUiSoundsEnabled } from '../shared/uiAudio'
+import { useAuth } from './AuthContext'
 
 export type AppTheme = 'light' | 'dark'
 export type AppLanguage = 'en' | 'bg'
-
-type TranslationValue = string | ((params?: Record<string, string | number>) => string)
+export type AppCursorMode = 'default' | 'dolphin' | 'pro-circle'
+export type AppBrandTone = 'teal' | 'blue' | 'coral'
 
 type AppSettingsContextValue = {
   theme: AppTheme
   language: AppLanguage
+  cursorMode: AppCursorMode
+  glassLevel: number
+  brandTone: AppBrandTone
+  uiSoundsEnabled: boolean
   setTheme: (theme: AppTheme) => void
   setLanguage: (language: AppLanguage) => void
-  t: (key: string, params?: Record<string, string | number>) => string
+  setCursorMode: (cursorMode: AppCursorMode) => void
+  setGlassLevel: (glassLevel: number) => void
+  setBrandTone: (brandTone: AppBrandTone) => void
+  setUiSoundsEnabled: (enabled: boolean) => void
 }
 
 const THEME_KEY = 'eduplatformTheme'
 const LANGUAGE_KEY = 'eduplatformLanguage'
+const DEFAULT_PERSONALIZATION_SETTINGS = {
+  cursorMode: 'dolphin' as AppCursorMode,
+  glassLevel: 58,
+  brandTone: 'teal' as AppBrandTone,
+  uiSoundsEnabled: true,
+}
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null)
 
-const translations: Record<AppLanguage, Record<string, TranslationValue>> = {
-  en: {
-    appName: 'EduPlatform',
-    dashboard: 'Dashboard',
-    overview: 'Overview',
-    users: 'Users',
-    subjects: 'Subjects',
-    lessons: 'Lessons',
-    tests: 'Tests',
-    profile: 'Profile',
-    settings: 'Settings',
-    logout: 'Logout',
-    adminBoard: 'Admin Board',
-    teacherStudio: 'Teacher Studio',
-    studentHub: 'Student Hub',
-    signedInAs: 'Signed in as {username}',
-    adminSubtitle: 'Administrator control center',
-    teacherSubtitle: 'Teacher content workspace',
-    studentSubtitle: 'Student learning space',
-    siteDescription: 'Online learning platform',
-    privacyPolicy: 'Privacy Policy',
-    contact: 'Contact',
-    copyright: '© {year} EduPlatform. All rights reserved.',
-    administratorDashboard: 'Administrator Dashboard',
-    teacherDashboard: 'Teacher Dashboard',
-    userManagement: 'User Management',
-    subjectManagement: 'Subject Management',
-    lessonManagement: 'Lesson Management',
-    testManagement: 'Test Management',
-    lessonDetails: 'Lesson Details',
-    testSession: 'Test Session',
-    accountSettings: 'Account Settings',
-    reviewRegistrations: 'Review registrations',
-    manageStudentsDescription:
-      'Manage students, approve registrations, and keep lessons and tests up to date for Mathematics High School Academic Kiril Popov.',
-    loadingStatistics: 'Loading statistics...',
-    failedAdminStatistics: 'Failed to load admin statistics.',
-    totalUsers: 'Total users',
-    totalTests: 'Total tests',
-    submittedResults: 'Submitted results',
-    averageScore: 'Average score',
-    teacherOverview: 'Teacher overview',
-    createLessons: 'Create lessons',
-    teacherWorkspaceDescription:
-      'Create subjects, lessons, and tests in your personal teaching workspace.',
-    welcomeRole: 'Welcome, {username}',
-    mySubjects: 'My subjects',
-    myLessons: 'My lessons',
-    myTests: 'My tests',
-    failedTeacherStatistics: 'Failed to load teacher workspace statistics.',
-    roleLogic: 'Role logic',
-    roleLogicTitle: 'Own your content, teach with confidence',
-    roleLogicDescription:
-      'Teachers can create subjects, lessons, and tests, then edit or delete only the content they created. Administrators keep full moderation rights across the platform, while students focus on learning and assessment.',
-    continueLearning: 'Continue learning',
-    studentOverviewDescription:
-      'Track your recent performance, continue lessons, and keep your learning momentum strong.',
-    helloUser: 'Hello, {username}',
-    completedTests: 'Completed tests',
-    completedTestsHelper: 'Finished successfully this month',
-    averageScoreHelper: 'Average across recent assessments',
-    lastTest: 'Last test',
-    lastTestHelper: 'Most recent assessment completed',
-    progressFocus: 'Progress focus',
-    stayOnTrackTitle: 'Stay on track with your next learning goal',
-    stayOnTrackDescription:
-      'You are performing consistently well. Continue with lessons and tests to maintain your average score and strengthen your subject confidence.',
-    weeklyGoal: 'Weekly goal',
-    weeklyGoalDescription:
-      'Two more completed activities will push you past this week’s target.',
-    schoolInformation: 'School information',
-    schoolName: 'Mathematics High School "Academic Kiril Popov"',
-    schoolPortalDescription:
-      'Welcome to the approved student portal of Mathematics High School "Academic Kiril Popov". Here you can access learning materials, complete lessons and tests, and follow your progress in a structured academic environment.',
-    interfacePreferences: 'Interface preferences',
-    interfacePreferencesDescription:
-      'Choose the language and visual theme that feel best for your daily work.',
-    platformLanguage: 'Platform language',
-    platformLanguageDescription:
-      'This preference is saved on this device for your next visit.',
-    themeMode: 'Theme mode',
-    themeModeDescription:
-      'Switch between a bright workspace and a darker evening view.',
-    light: 'Light',
-    dark: 'Dark',
-    changePassword: 'Change password',
-    changePasswordDescription:
-      'Keep your account secure with a strong password that only you know.',
-    currentPassword: 'Current password',
-    newPassword: 'New password',
-    confirmNewPassword: 'Confirm new password',
-    passwordRuleShort:
-      'Use at least 8 characters with uppercase, lowercase, number, and symbol.',
-    updatePassword: 'Update password',
-    savingPassword: 'Saving password...',
-    profileImage: 'Profile image',
-    profileImageDescription:
-      'Upload a personal image for this device. You can change it anytime.',
-    uploadImage: 'Upload image',
-    changeImage: 'Change image',
-    remove: 'Remove',
-    roleAccess: 'Role access',
-    adminSettingsDescription:
-      'Administrator settings stay intentionally minimal here, with account preferences and security only.',
-    teacherSettingsDescription:
-      'Teacher settings currently focus on your account and workspace preferences. More teaching-specific options can be added later.',
-    studentSettingsDescription:
-      'Student settings focus on your personal preferences, theme, language, and password security.',
-    accountSettingsDescriptionAdmin:
-      'Account preferences and security controls for your administrator access.',
-    accountSettingsDescriptionTeacher:
-      'Update your teaching workspace preferences, account security, and profile details.',
-    accountSettingsDescriptionStudent:
-      'Manage your learning preferences, account security, and personal profile details.',
+const brandToneStyles: Record<
+  AppBrandTone,
+  {
+    color: string
+    rgb: string
+    deep: string
+    soft: string
+    contrast: string
+  }
+> = {
+  teal: {
+    color: '#40E0D0',
+    rgb: '64 224 208',
+    deep: '#0f8b8d',
+    soft: '#dffcf8',
+    contrast: '#0f8b8d',
   },
-  bg: {
-    appName: 'EduPlatform',
-    dashboard: 'Табло',
-    overview: 'Преглед',
-    users: 'Потребители',
-    subjects: 'Предмети',
-    lessons: 'Уроци',
-    tests: 'Тестове',
-    profile: 'Профил',
-    settings: 'Настройки',
-    logout: 'Изход',
-    adminBoard: 'Админ панел',
-    teacherStudio: 'Учителско студио',
-    studentHub: 'Учебен център',
-    signedInAs: 'Влезли сте като {username}',
-    adminSubtitle: 'Административен контролен център',
-    teacherSubtitle: 'Учителско работно пространство',
-    studentSubtitle: 'Пространство за обучение',
-    siteDescription: 'Онлайн платформа за обучение',
-    privacyPolicy: 'Политика за поверителност',
-    contact: 'Контакт',
-    copyright: '© {year} EduPlatform. Всички права запазени.',
-    administratorDashboard: 'Администраторско табло',
-    teacherDashboard: 'Учителско табло',
-    userManagement: 'Управление на потребители',
-    subjectManagement: 'Управление на предмети',
-    lessonManagement: 'Управление на уроци',
-    testManagement: 'Управление на тестове',
-    lessonDetails: 'Детайли за урок',
-    testSession: 'Тестова сесия',
-    accountSettings: 'Настройки на акаунта',
-    reviewRegistrations: 'Преглед на регистрации',
-    manageStudentsDescription:
-      'Управлявайте ученици, одобрявайте регистрации и поддържайте уроците и тестовете актуални за Математическа гимназия Академик Кирил Попов.',
-    loadingStatistics: 'Зареждане на статистика...',
-    failedAdminStatistics: 'Статистиката за администратора не можа да се зареди.',
-    totalUsers: 'Общо потребители',
-    totalTests: 'Общо тестове',
-    submittedResults: 'Предадени резултати',
-    averageScore: 'Среден резултат',
-    teacherOverview: 'Учителски преглед',
-    createLessons: 'Създай уроци',
-    teacherWorkspaceDescription:
-      'Създавайте предмети, уроци и тестове във вашето лично учителско пространство.',
-    welcomeRole: 'Добре дошли, {username}',
-    mySubjects: 'Моите предмети',
-    myLessons: 'Моите уроци',
-    myTests: 'Моите тестове',
-    failedTeacherStatistics: 'Статистиката за учителското пространство не можа да се зареди.',
-    roleLogic: 'Ролева логика',
-    roleLogicTitle: 'Създавайте съдържание уверено',
-    roleLogicDescription:
-      'Учителите могат да създават предмети, уроци и тестове, след което да редактират или изтриват само собственото си съдържание. Администраторите запазват пълни права за модерация, а учениците се фокусират върху обучението и оценяването.',
-    continueLearning: 'Продължи обучението',
-    studentOverviewDescription:
-      'Проследявайте последното си представяне, продължавайте уроците и поддържайте учебния си ритъм.',
-    helloUser: 'Здравей, {username}',
-    completedTests: 'Завършени тестове',
-    completedTestsHelper: 'Успешно завършени този месец',
-    averageScoreHelper: 'Среден резултат от последните оценявания',
-    lastTest: 'Последен тест',
-    lastTestHelper: 'Най-скоро завършено оценяване',
-    progressFocus: 'Фокус върху напредъка',
-    stayOnTrackTitle: 'Останете на път към следващата си цел',
-    stayOnTrackDescription:
-      'Представяте се стабилно добре. Продължавайте с уроците и тестовете, за да запазите средния си резултат и да затвърдите увереността си по предметите.',
-    weeklyGoal: 'Седмична цел',
-    weeklyGoalDescription:
-      'Още две завършени активности ще ви изведат над целта за тази седмица.',
-    schoolInformation: 'Информация за училището',
-    schoolName: 'Математическа гимназия "Академик Кирил Попов"',
-    schoolPortalDescription:
-      'Добре дошли в одобрения ученически портал на Математическа гимназия "Академик Кирил Попов". Тук можете да достъпвате учебни материали, да решавате уроци и тестове и да следите напредъка си в структурирана академична среда.',
-    interfacePreferences: 'Настройки на интерфейса',
-    interfacePreferencesDescription:
-      'Изберете езика и визуалната тема, които са най-удобни за ежедневната ви работа.',
-    platformLanguage: 'Език на платформата',
-    platformLanguageDescription:
-      'Тази настройка се запазва на това устройство за следващото ви посещение.',
-    themeMode: 'Режим на тема',
-    themeModeDescription:
-      'Превключвайте между светло работно пространство и по-тъмна вечерна визия.',
-    light: 'Светла',
-    dark: 'Тъмна',
-    changePassword: 'Смяна на парола',
-    changePasswordDescription:
-      'Поддържайте акаунта си защитен със силна парола, която знаете само вие.',
-    currentPassword: 'Текуща парола',
-    newPassword: 'Нова парола',
-    confirmNewPassword: 'Потвърди новата парола',
-    passwordRuleShort:
-      'Използвайте поне 8 символа с главна, малка буква, число и специален знак.',
-    updatePassword: 'Обнови паролата',
-    savingPassword: 'Запазване на паролата...',
-    profileImage: 'Профилна снимка',
-    profileImageDescription:
-      'Качете лична снимка за това устройство. Можете да я променяте по всяко време.',
-    uploadImage: 'Качи снимка',
-    changeImage: 'Смени снимката',
-    remove: 'Премахни',
-    roleAccess: 'Достъп по роля',
-    adminSettingsDescription:
-      'Администраторските настройки тук остават минимални и включват само предпочитания и сигурност.',
-    teacherSettingsDescription:
-      'Учителските настройки засега са фокусирани върху акаунта и предпочитанията на работното пространство. По-късно могат да се добавят още опции.',
-    studentSettingsDescription:
-      'Ученическите настройки се фокусират върху личните предпочитания, тема, език и сигурност на паролата.',
-    accountSettingsDescriptionAdmin:
-      'Предпочитания за акаунта и настройки за сигурност на администраторския достъп.',
-    accountSettingsDescriptionTeacher:
-      'Обновете предпочитанията на учителското си пространство, сигурността на акаунта и профилните си детайли.',
-    accountSettingsDescriptionStudent:
-      'Управлявайте учебните си предпочитания, сигурността на акаунта и личните профилни данни.',
+  blue: {
+    color: '#5BA8FF',
+    rgb: '91 168 255',
+    deep: '#2563eb',
+    soft: '#e0efff',
+    contrast: '#1d4ed8',
+  },
+  coral: {
+    color: '#FF8A7A',
+    rgb: '255 138 122',
+    deep: '#f97360',
+    soft: '#ffe8e2',
+    contrast: '#d85b46',
   },
 }
 
@@ -262,8 +74,55 @@ const readStoredTheme = (): AppTheme => {
 }
 
 const readStoredLanguage = (): AppLanguage => {
-  const storedLanguage = localStorage.getItem(LANGUAGE_KEY)
-  return storedLanguage === 'bg' ? 'bg' : 'en'
+  return normalizeLanguage(localStorage.getItem(LANGUAGE_KEY) ?? i18n.resolvedLanguage)
+}
+
+const resolveUserSettingsKey = (username?: string | null) => {
+  const normalizedUsername = username?.trim().toLowerCase()
+  return normalizedUsername ? `eduplatform_settings_${normalizedUsername}` : null
+}
+
+const readStoredPersonalization = (username?: string | null) => {
+  const storageKey = resolveUserSettingsKey(username)
+
+  if (!storageKey) {
+    return DEFAULT_PERSONALIZATION_SETTINGS
+  }
+
+  try {
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) {
+      return DEFAULT_PERSONALIZATION_SETTINGS
+    }
+
+    const parsed = JSON.parse(raw) as Partial<{
+      cursorMode: AppCursorMode
+      glassLevel: number
+      brandTone: AppBrandTone
+      uiSoundsEnabled: boolean
+    }>
+
+    return {
+      cursorMode:
+        parsed.cursorMode === 'default' || parsed.cursorMode === 'dolphin' || parsed.cursorMode === 'pro-circle'
+          ? parsed.cursorMode
+          : DEFAULT_PERSONALIZATION_SETTINGS.cursorMode,
+      glassLevel:
+        typeof parsed.glassLevel === 'number' && Number.isFinite(parsed.glassLevel) && parsed.glassLevel >= 0 && parsed.glassLevel <= 100
+          ? parsed.glassLevel
+          : DEFAULT_PERSONALIZATION_SETTINGS.glassLevel,
+      brandTone:
+        parsed.brandTone === 'teal' || parsed.brandTone === 'blue' || parsed.brandTone === 'coral'
+          ? parsed.brandTone
+          : DEFAULT_PERSONALIZATION_SETTINGS.brandTone,
+      uiSoundsEnabled:
+        typeof parsed.uiSoundsEnabled === 'boolean'
+          ? parsed.uiSoundsEnabled
+          : DEFAULT_PERSONALIZATION_SETTINGS.uiSoundsEnabled,
+    }
+  } catch {
+    return DEFAULT_PERSONALIZATION_SETTINGS
+  }
 }
 
 type AppSettingsProviderProps = {
@@ -271,13 +130,26 @@ type AppSettingsProviderProps = {
 }
 
 export function AppSettingsProvider({ children }: AppSettingsProviderProps) {
+  const { user } = useAuth()
   const [theme, setThemeState] = useState<AppTheme>('light')
   const [language, setLanguageState] = useState<AppLanguage>('en')
+  const [cursorMode, setCursorModeState] = useState<AppCursorMode>(DEFAULT_PERSONALIZATION_SETTINGS.cursorMode)
+  const [glassLevel, setGlassLevelState] = useState(DEFAULT_PERSONALIZATION_SETTINGS.glassLevel)
+  const [brandTone, setBrandToneState] = useState<AppBrandTone>(DEFAULT_PERSONALIZATION_SETTINGS.brandTone)
+  const [uiSoundsEnabled, setUiSoundsEnabledState] = useState(DEFAULT_PERSONALIZATION_SETTINGS.uiSoundsEnabled)
 
   useEffect(() => {
     setThemeState(readStoredTheme())
     setLanguageState(readStoredLanguage())
   }, [])
+
+  useEffect(() => {
+    const personalization = readStoredPersonalization(user?.username)
+    setCursorModeState(personalization.cursorMode)
+    setGlassLevelState(personalization.glassLevel)
+    setBrandToneState(personalization.brandTone)
+    setUiSoundsEnabledState(personalization.uiSoundsEnabled)
+  }, [user?.username])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -292,34 +164,77 @@ export function AppSettingsProvider({ children }: AppSettingsProviderProps) {
     localStorage.setItem(LANGUAGE_KEY, language)
   }, [language])
 
-  const translate = (key: string, params?: Record<string, string | number>) => {
-    const languageTranslations = translations[language]
-    const entry = languageTranslations[key]
+  useEffect(() => {
+    const blur = 8 + glassLevel * 0.18
+    const opacity = 0.56 + glassLevel * 0.0028
+    document.documentElement.style.setProperty('--glass-blur', `${blur.toFixed(1)}px`)
+    document.documentElement.style.setProperty('--glass-opacity', opacity.toFixed(2))
+    document.documentElement.style.setProperty('--glass-strong-opacity', Math.min(opacity + 0.1, 0.94).toFixed(2))
+  }, [glassLevel])
 
-    if (!entry) {
-      return key
+  useEffect(() => {
+    const selected = brandToneStyles[brandTone]
+    document.documentElement.style.setProperty('--primary-color', selected.color)
+    document.documentElement.style.setProperty('--primary-rgb', selected.rgb)
+    document.documentElement.style.setProperty('--primary-deep', selected.deep)
+    document.documentElement.style.setProperty('--primary-soft', selected.soft)
+    document.documentElement.style.setProperty('--primary-contrast', selected.contrast)
+  }, [brandTone])
+
+  useEffect(() => {
+    setUiSoundsEnabled(uiSoundsEnabled)
+  }, [uiSoundsEnabled])
+
+  useEffect(() => {
+    const storageKey = resolveUserSettingsKey(user?.username)
+    if (!storageKey) {
+      return
     }
 
-    if (typeof entry === 'function') {
-      return entry(params)
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        cursorMode,
+        glassLevel,
+        brandTone,
+        uiSoundsEnabled,
+      }),
+    )
+  }, [brandTone, cursorMode, glassLevel, uiSoundsEnabled, user?.username])
+
+  useEffect(() => {
+    const handleLanguageChanged = (nextLanguage: string) => {
+      setLanguageState(normalizeLanguage(nextLanguage))
     }
 
-    if (!params) {
-      return entry
-    }
+    i18n.on('languageChanged', handleLanguageChanged)
 
-    return entry.replace(/\{(\w+)\}/g, (_match: string, token: string) => String(params[token] ?? ''))
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged)
+    }
+  }, [])
+
+  const setLanguage = (nextLanguage: AppLanguage) => {
+    setLanguageState(nextLanguage)
+    void i18n.changeLanguage(nextLanguage)
   }
 
   const value = useMemo<AppSettingsContextValue>(
     () => ({
       theme,
       language,
+      cursorMode,
+      glassLevel,
+      brandTone,
+      uiSoundsEnabled,
       setTheme: setThemeState,
-      setLanguage: setLanguageState,
-      t: translate,
+      setLanguage,
+      setCursorMode: setCursorModeState,
+      setGlassLevel: setGlassLevelState,
+      setBrandTone: setBrandToneState,
+      setUiSoundsEnabled: setUiSoundsEnabledState,
     }),
-    [language, theme],
+    [brandTone, cursorMode, glassLevel, language, theme, uiSoundsEnabled],
   )
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>
@@ -336,10 +251,12 @@ export function useAppSettings() {
 }
 
 export function useTranslation() {
-  const { language, t } = useAppSettings()
+  const { language } = useAppSettings()
+  const { t, i18n: translationInstance } = useI18nextTranslation()
 
   return {
     language,
     t,
+    i18n: translationInstance,
   }
 }

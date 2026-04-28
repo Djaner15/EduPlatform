@@ -1,16 +1,20 @@
-import axios from 'axios'
 import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAppSettings, useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
-import { gradeOptions } from '../../../shared/classOptions'
+import { formatGradeLabel, formatStoredClassDisplay, gradeOptions } from '../../../shared/classOptions'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
-import { PageHeader } from '../../../shared/components/PageHeader'
-import apiClient from '../../../shared/api/axiosInstance'
+import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { InfoCard } from '../../../shared/components/InfoCard'
+import { PageHeader } from '../../../shared/components/PageHeader'
+import { SubjectIcon } from '../../../shared/components/SubjectIcon'
+import apiClient from '../../../shared/api/axiosInstance'
+import { readApiError } from '../../../shared/apiErrors'
+import { filterSubjectsByLanguage } from '../../../shared/subjectCatalog'
 
 type Subject = {
   id: number
@@ -21,27 +25,9 @@ type Subject = {
   classDisplay: string
 }
 
-function getSubjectEmoji(name: string) {
-  const normalizedName = name.trim().toLowerCase()
-
-  if (normalizedName.includes('матем')) return '📐'
-  if (normalizedName.includes('информ')) return '💻'
-  if (normalizedName.includes('хим')) return '🧪'
-  if (normalizedName.includes('биол')) return '🧬'
-  if (normalizedName.includes('физик')) return '⚛️'
-  if (normalizedName.includes('географ')) return '🌍'
-  if (normalizedName.includes('истор')) return '🏛️'
-  if (normalizedName.includes('философ')) return '🧠'
-  if (normalizedName.includes('граждан')) return '⚖️'
-  if (normalizedName.includes('англий')) return '🇬🇧'
-  if (normalizedName.includes('френ')) return '🇫🇷'
-  if (normalizedName.includes('немск')) return '🇩🇪'
-  if (normalizedName.includes('руск')) return '🇷🇺'
-
-  return '📚'
-}
-
 export function SubjectsPage() {
+  const { language } = useAppSettings()
+  const { t } = useTranslation()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [items, setItems] = useState<Subject[]>([])
@@ -73,12 +59,7 @@ export function SubjectsPage() {
         if (!isMounted) {
           return
         }
-
-        if (axios.isAxiosError(error) && typeof error.response?.data === 'string') {
-          setErrorMessage(error.response.data)
-        } else {
-          setErrorMessage('Failed to load subjects. Please try again.')
-        }
+        setErrorMessage(readApiError(error, t('studentPages.subjects.loadFailed')))
       } finally {
         if (isMounted) {
           setIsLoading(false)
@@ -93,10 +74,12 @@ export function SubjectsPage() {
     }
   }, [])
 
+  const localizedSubjects = useMemo(() => filterSubjectsByLanguage(items, language), [items, language])
+
   const filteredSubjects = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    return items.filter((subject) => {
+    return localizedSubjects.filter((subject) => {
       const matchesSearch =
         !normalizedSearch ||
         subject.name.toLowerCase().includes(normalizedSearch) ||
@@ -107,7 +90,7 @@ export function SubjectsPage() {
 
       return matchesSearch && matchesGrade
     })
-  }, [items, searchTerm, selectedGradeFilter, user?.grade])
+  }, [localizedSubjects, searchTerm, selectedGradeFilter, user?.grade])
 
   const availableGradeOptions = useMemo(() => {
     const currentGrade = user?.grade
@@ -142,20 +125,20 @@ export function SubjectsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        description="Browse your active subjects and jump directly into the relevant lessons."
-        eyebrow="Subjects"
-        title="Your Learning Subjects"
+        description={t('studentPages.subjects.description')}
+        eyebrow={t('studentPages.subjects.eyebrow')}
+        title={t('studentPages.subjects.title')}
       />
 
       {isLoading ? (
         <section className="glass-panel p-6">
-          <p className="text-slate-600">Loading subjects...</p>
+          <p className="text-slate-600">{t('studentPages.subjects.loading')}</p>
         </section>
       ) : null}
 
       {!isLoading && errorMessage ? (
         <section className="glass-panel p-6">
-          <p className="text-rose-700">{errorMessage}</p>
+          <ErrorNotice compact message={errorMessage} />
         </section>
       ) : null}
 
@@ -172,7 +155,7 @@ export function SubjectsPage() {
               alignItems={{ xs: 'stretch', sm: 'center' }}
             >
               <AdminSearchField
-                placeholder="Search by title, description, or grade..."
+                placeholder={t('studentPages.subjects.searchPlaceholder')}
                 flex="1 1 0%"
                 maxWidth="none"
                 fullWidth={false}
@@ -186,13 +169,13 @@ export function SubjectsPage() {
 
             <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               <AdminSelectField
-                label="Grade"
+                label={t('common.grade')}
                 value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Grades' },
-                  ...availableGradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                  { value: 'all', label: t('common.allGrades') },
+                  ...availableGradeOptions.map((entry) => ({ value: String(entry), label: formatGradeLabel(entry) })),
                 ]}
                 onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
               />
@@ -211,13 +194,13 @@ export function SubjectsPage() {
                       onClick={() => navigate('/student/lessons')}
                       type="button"
                     >
-                      View Lessons
+                      {t('common.viewLessons')}
                     </button>
                   }
                   description={subject.description}
-                  footer={subject.classDisplay || `Grade ${subject.grade}${subject.section}`}
+                  footer={formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}
                   title={subject.name}
-                  visual={getSubjectEmoji(subject.name)}
+                  visual={<SubjectIcon subjectName={subject.name} />}
                 />
               ))}
             </div>
@@ -236,9 +219,9 @@ export function SubjectsPage() {
             </>
           ) : (
             <div className="admin-management-empty mt-6">
-              <h3 className="text-lg font-semibold text-slate-900">No subjects found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{t('studentPages.subjects.emptyTitle')}</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try adjusting the search or filters to find your class subjects.
+                {t('studentPages.subjects.emptyDescription')}
               </p>
             </div>
           )}

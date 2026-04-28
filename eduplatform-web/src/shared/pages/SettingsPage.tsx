@@ -1,11 +1,16 @@
 import axios from 'axios'
 import {
+  CircleDot,
   Globe2,
   LockKeyhole,
   MoonStar,
+  MousePointer2,
+  Palette,
+  Sparkles,
   SunMedium,
   Upload,
   UserCircle2,
+  Volume2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { PageHeader } from '../components/PageHeader'
@@ -53,7 +58,20 @@ const validateStrongPassword = (password: string) => {
 export function SettingsPage() {
   const { user } = useAuth()
   const { showNotification } = useNotification()
-  const { language, setLanguage, theme, setTheme } = useAppSettings()
+  const {
+    language,
+    setLanguage,
+    theme,
+    setTheme,
+    cursorMode,
+    setCursorMode,
+    glassLevel,
+    setGlassLevel,
+    brandTone,
+    setBrandTone,
+    uiSoundsEnabled,
+    setUiSoundsEnabled,
+  } = useAppSettings()
   const { t } = useTranslation()
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
@@ -105,6 +123,30 @@ export function SettingsPage() {
 
     return t('accountSettingsDescriptionStudent')
   }, [t, user?.role])
+
+  const cursorOptions = [
+    { value: 'default', label: t('cursorDefault') },
+    { value: 'dolphin', label: t('cursorDolphin') },
+    { value: 'pro-circle', label: t('cursorProCircle') },
+  ] as const
+
+  const brandToneOptions = [
+    {
+      value: 'teal',
+      label: t('brandTeal'),
+      swatch: 'linear-gradient(135deg, #40E0D0 0%, #0f8b8d 100%)',
+    },
+    {
+      value: 'blue',
+      label: t('brandBlue'),
+      swatch: 'linear-gradient(135deg, #5BA8FF 0%, #2563eb 100%)',
+    },
+    {
+      value: 'coral',
+      label: t('brandCoral'),
+      swatch: 'linear-gradient(135deg, #FF8A7A 0%, #f97360 100%)',
+    },
+  ] as const
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -301,6 +343,127 @@ export function SettingsPage() {
           <article className="glass-panel p-6">
             <div className="flex items-start gap-4">
               <div className="settings-card-icon">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-semibold text-slate-900">{t('personalizationHub')}</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  {t('personalizationHubDescription')}
+                </p>
+
+                <div className="settings-personalization-list mt-5">
+                  <div className="settings-personalization-row">
+                    <div className="settings-personalization-meta">
+                      <div className="settings-card-icon">
+                        <MousePointer2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t('cursorSelector')}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t('cursorSelectorDescription')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="settings-pill-group">
+                      {cursorOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          className={`settings-pill ${cursorMode === option.value ? 'settings-pill-active' : ''}`}
+                          type="button"
+                          onClick={() => setCursorMode(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="settings-personalization-row">
+                    <div className="settings-personalization-meta">
+                      <div className="settings-card-icon">
+                        <CircleDot className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t('glassmorphismLevel')}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t('glassmorphismLevelDescription')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex min-w-[220px] items-center gap-3">
+                      <input
+                        aria-label={t('glassmorphismLevel')}
+                        className="settings-slider"
+                        max={100}
+                        min={0}
+                        type="range"
+                        value={glassLevel}
+                        onChange={(event) => setGlassLevel(Number(event.target.value))}
+                      />
+                      <span className="text-sm font-semibold text-slate-600">{glassLevel}%</span>
+                    </div>
+                  </div>
+
+                  <div className="settings-personalization-row">
+                    <div className="settings-personalization-meta">
+                      <div className="settings-card-icon">
+                        <Volume2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t('uiSounds')}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t('uiSoundsDescription')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      aria-pressed={uiSoundsEnabled}
+                      className="settings-switch"
+                      data-on={uiSoundsEnabled}
+                      type="button"
+                      onClick={() => setUiSoundsEnabled(!uiSoundsEnabled)}
+                    >
+                      <span>{uiSoundsEnabled ? t('common.enabled') : t('common.disabled')}</span>
+                    </button>
+                  </div>
+
+                  <div className="settings-personalization-row">
+                    <div className="settings-personalization-meta">
+                      <div className="settings-card-icon">
+                        <Palette className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t('brandAccent')}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t('brandAccentDescription')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="settings-swatch-group">
+                      {brandToneOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          aria-label={option.label}
+                          className="settings-swatch"
+                          data-active={brandTone === option.value}
+                          style={{ background: option.swatch }}
+                          title={option.label}
+                          type="button"
+                          onClick={() => setBrandTone(option.value)}
+                        >
+                          <span>{option.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="glass-panel p-6">
+            <div className="flex items-start gap-4">
+              <div className="settings-card-icon">
                 <LockKeyhole className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -321,7 +484,7 @@ export function SettingsPage() {
                       }
                     />
                     <button className="ghost-toggle" type="button" onClick={() => setShowCurrentPassword((current) => !current)}>
-                      {showCurrentPassword ? 'Hide' : 'Show'}
+                      {showCurrentPassword ? t('common.hide') : t('common.show')}
                     </button>
                   </div>
 
@@ -336,7 +499,7 @@ export function SettingsPage() {
                       }
                     />
                     <button className="ghost-toggle" type="button" onClick={() => setShowNewPassword((current) => !current)}>
-                      {showNewPassword ? 'Hide' : 'Show'}
+                      {showNewPassword ? t('common.hide') : t('common.show')}
                     </button>
                   </div>
 
@@ -351,7 +514,7 @@ export function SettingsPage() {
                       }
                     />
                     <button className="ghost-toggle" type="button" onClick={() => setShowConfirmPassword((current) => !current)}>
-                      {showConfirmPassword ? 'Hide' : 'Show'}
+                      {showConfirmPassword ? t('common.hide') : t('common.show')}
                     </button>
                   </div>
 
@@ -398,8 +561,8 @@ export function SettingsPage() {
                     )}
 
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{user?.username ?? 'User'}</p>
-                      <p className="text-sm text-slate-500">{user?.role ?? 'Member'}</p>
+                      <p className="text-sm font-semibold text-slate-900">{user?.username ?? t('common.user')}</p>
+                      <p className="text-sm text-slate-500">{user?.role ?? t('common.user')}</p>
                     </div>
 
                     <input

@@ -1,0 +1,7383 @@
+[
+  {
+    "file": "src/app/App.tsx",
+    "entries": [
+      {
+        "line": 34,
+        "value": "flex min-h-screen items-center justify-center px-6 text-center text-slate-600"
+      },
+      {
+        "line": 42,
+        "value": "Admin"
+      },
+      {
+        "line": 42,
+        "value": "Teacher"
+      },
+      {
+        "line": 65,
+        "value": "Teacher"
+      },
+      {
+        "line": 71,
+        "value": "subjects"
+      },
+      {
+        "line": 72,
+        "value": "lessons"
+      },
+      {
+        "line": 73,
+        "value": "tests"
+      },
+      {
+        "line": 78,
+        "value": "Admin"
+      },
+      {
+        "line": 84,
+        "value": "users"
+      },
+      {
+        "line": 85,
+        "value": "subjects"
+      },
+      {
+        "line": 86,
+        "value": "lessons"
+      },
+      {
+        "line": 87,
+        "value": "tests"
+      },
+      {
+        "line": 92,
+        "value": "Student"
+      },
+      {
+        "line": 98,
+        "value": "subjects"
+      },
+      {
+        "line": 99,
+        "value": "lessons"
+      },
+      {
+        "line": 100,
+        "value": "lessons/:id"
+      },
+      {
+        "line": 101,
+        "value": "tests"
+      },
+      {
+        "line": 102,
+        "value": "tests/:id"
+      },
+      {
+        "line": 103,
+        "value": "profile"
+      }
+    ]
+  },
+  {
+    "file": "src/app/AppSettingsContext.tsx",
+    "entries": [
+      {
+        "line": 5,
+        "value": "light"
+      },
+      {
+        "line": 15,
+        "value": "eduplatformTheme"
+      },
+      {
+        "line": 16,
+        "value": "eduplatformLanguage"
+      },
+      {
+        "line": 22,
+        "value": "dark"
+      },
+      {
+        "line": 45,
+        "value": "dark"
+      },
+      {
+        "line": 46,
+        "value": "light"
+      }
+    ]
+  },
+  {
+    "file": "src/app/HybridTranslationProvider.tsx",
+    "entries": [
+      {
+        "line": 140,
+        "value": "characterData"
+      },
+      {
+        "line": 145,
+        "value": "attributes"
+      }
+    ]
+  },
+  {
+    "file": "src/app/NotificationContext.tsx",
+    "entries": [
+      {
+        "line": 12,
+        "value": "success"
+      },
+      {
+        "line": 46,
+        "value": "clickaway"
+      },
+      {
+        "line": 76,
+        "value": "filled"
+      }
+    ]
+  },
+  {
+    "file": "src/app/translationMemory.ts",
+    "entries": [
+      {
+        "line": 10,
+        "value": "object"
+      },
+      {
+        "line": 15,
+        "value": "string"
+      },
+      {
+        "line": 34,
+        "value": "string"
+      },
+      {
+        "line": 35,
+        "value": "string"
+      }
+    ]
+  },
+  {
+    "file": "src/features/admin/components/BulkUploadModal.tsx",
+    "entries": [
+      {
+        "line": 105,
+        "value": "student"
+      },
+      {
+        "line": 105,
+        "value": "teacher"
+      },
+      {
+        "line": 134,
+        "value": "student"
+      },
+      {
+        "line": 158,
+        "value": "student"
+      },
+      {
+        "line": 158,
+        "value": "teacher"
+      },
+      {
+        "line": 191,
+        "value": "Escape"
+      },
+      {
+        "line": 203,
+        "value": "${csvHeaders.join(',')}\\nstudent,Petar Ivanov,primer8a,student@example.com,StrongPass1!,,8,А\\nteacher,Maria Petrova,teacher.bio,teacher@example.com,StrongPass1!,\"Math, Physics\",,\\n"
+      },
+      {
+        "line": 307,
+        "value": "teacher"
+      },
+      {
+        "line": 308,
+        "value": "student"
+      },
+      {
+        "line": 309,
+        "value": "student"
+      },
+      {
+        "line": 317,
+        "value": "Import failed. Please review the data and try again."
+      },
+      {
+        "line": 320,
+        "value": "string"
+      },
+      {
+        "line": 322,
+        "value": "string"
+      },
+      {
+        "line": 341,
+        "value": "fixed inset-0 z-[1700] flex min-h-screen w-screen items-center justify-center bg-slate-950/40 px-4 py-6"
+      },
+      {
+        "line": 347,
+        "value": "dialog"
+      },
+      {
+        "line": 348,
+        "value": "true"
+      },
+      {
+        "line": 355,
+        "value": "glass-panel flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden"
+      },
+      {
+        "line": 356,
+        "value": "flex shrink-0 items-start justify-between gap-4 border-b border-blue-100/80 px-6 py-5"
+      },
+      {
+        "line": 358,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-slate-500"
+      },
+      {
+        "line": 359,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 360,
+        "value": "mt-2 max-w-2xl text-sm text-slate-600"
+      },
+      {
+        "line": 361,
+        "value": "font-semibold"
+      },
+      {
+        "line": 365,
+        "value": "rounded-2xl border border-slate-200 p-3 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+      },
+      {
+        "line": 366,
+        "value": "button"
+      },
+      {
+        "line": 369,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 373,
+        "value": "thin-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 pb-8 pt-6"
+      },
+      {
+        "line": 374,
+        "value": "grid min-h-0 gap-6 xl:grid-cols-[0.38fr_0.62fr]"
+      },
+      {
+        "line": 375,
+        "value": "space-y-4 pb-2"
+      },
+      {
+        "line": 376,
+        "value": "button-primary inline-flex items-center gap-2"
+      },
+      {
+        "line": 376,
+        "value": "button"
+      },
+      {
+        "line": 377,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 400,
+        "value": "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#2468a0] shadow-sm"
+      },
+      {
+        "line": 401,
+        "value": "h-8 w-8"
+      },
+      {
+        "line": 403,
+        "value": "mt-4 text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 404,
+        "value": "mt-2 text-sm text-slate-600"
+      },
+      {
+        "line": 406,
+        "value": "mt-5 inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-3 font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+      },
+      {
+        "line": 407,
+        "value": "button"
+      },
+      {
+        "line": 410,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 413,
+        "value": ".csv,text/csv"
+      },
+      {
+        "line": 413,
+        "value": "hidden"
+      },
+      {
+        "line": 413,
+        "value": "file"
+      },
+      {
+        "line": 416,
+        "value": "rounded-3xl border border-sky-100 bg-white/75 p-4"
+      },
+      {
+        "line": 417,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 418,
+        "value": "mt-3 space-y-2 text-sm text-slate-600"
+      },
+      {
+        "line": 430,
+        "value": "rounded-3xl border border-sky-100 bg-white/75 p-4 text-sm text-slate-700"
+      },
+      {
+        "line": 431,
+        "value": "font-semibold text-slate-900"
+      },
+      {
+        "line": 432,
+        "value": "mt-2 break-all"
+      },
+      {
+        "line": 437,
+        "value": "rounded-3xl border border-rose-200 bg-rose-50/90 p-4 text-sm text-rose-700"
+      },
+      {
+        "line": 438,
+        "value": "flex items-start gap-2"
+      },
+      {
+        "line": 439,
+        "value": "mt-0.5 h-4 w-4 shrink-0"
+      },
+      {
+        "line": 446,
+        "value": "flex min-h-0 flex-col rounded-3xl border border-sky-100 bg-white/80 p-4"
+      },
+      {
+        "line": 447,
+        "value": "flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4"
+      },
+      {
+        "line": 449,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 450,
+        "value": "mt-1 text-sm text-slate-600"
+      },
+      {
+        "line": 457,
+        "value": "button-primary inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+      },
+      {
+        "line": 459,
+        "value": "button"
+      },
+      {
+        "line": 462,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 467,
+        "value": "thin-scrollbar mt-4 min-h-0 flex-1 overflow-auto rounded-2xl border border-slate-200"
+      },
+      {
+        "line": 469,
+        "value": "min-w-full divide-y divide-slate-200 text-sm"
+      },
+      {
+        "line": 470,
+        "value": "sticky top-0 bg-slate-50 text-left text-slate-600"
+      },
+      {
+        "line": 472,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 473,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 474,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 475,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 476,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 477,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 478,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 479,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 480,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 483,
+        "value": "divide-y divide-slate-200 bg-white"
+      },
+      {
+        "line": 489,
+        "value": "px-4 py-3 font-medium text-slate-900"
+      },
+      {
+        "line": 490,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 491,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 492,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 493,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 494,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 495,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 496,
+        "value": "px-4 py-3 text-slate-700"
+      },
+      {
+        "line": 497,
+        "value": "px-4 py-3"
+      },
+      {
+        "line": 499,
+        "value": "space-y-1 text-xs text-rose-700"
+      },
+      {
+        "line": 501,
+        "value": "flex items-start gap-1"
+      },
+      {
+        "line": 502,
+        "value": "mt-0.5 h-3.5 w-3.5 shrink-0"
+      },
+      {
+        "line": 508,
+        "value": "inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+      },
+      {
+        "line": 509,
+        "value": "h-3.5 w-3.5"
+      },
+      {
+        "line": 519,
+        "value": "flex h-full min-h-[280px] items-center justify-center px-6 text-center text-sm text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/features/admin/pages/AdminLessonsPage.tsx",
+    "entries": [
+      {
+        "line": 37,
+        "value": "eduplatform.lessonDraft"
+      },
+      {
+        "line": 101,
+        "value": "undefined"
+      },
+      {
+        "line": 210,
+        "value": "Teacher"
+      },
+      {
+        "line": 211,
+        "value": "Admin"
+      },
+      {
+        "line": 262,
+        "value": "all"
+      },
+      {
+        "line": 263,
+        "value": "all"
+      },
+      {
+        "line": 265,
+        "value": "all"
+      },
+      {
+        "line": 266,
+        "value": "active"
+      },
+      {
+        "line": 267,
+        "value": "all"
+      },
+      {
+        "line": 311,
+        "value": "asc"
+      },
+      {
+        "line": 316,
+        "value": "createdAt"
+      },
+      {
+        "line": 316,
+        "value": "grade"
+      },
+      {
+        "line": 343,
+        "value": "undefined"
+      },
+      {
+        "line": 396,
+        "value": "undefined"
+      },
+      {
+        "line": 460,
+        "value": "string"
+      },
+      {
+        "line": 494,
+        "value": "string"
+      },
+      {
+        "line": 520,
+        "value": "flex h-full min-h-0 flex-col gap-5"
+      },
+      {
+        "line": 521,
+        "value": "create"
+      },
+      {
+        "line": 522,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 527,
+        "value": "relative z-[9998] rounded-[2rem] border border-slate-200/80 bg-white/92 px-6 py-5 shadow-[0_18px_38px_rgba(36,104,160,0.08)] pointer-events-auto isolate"
+      },
+      {
+        "line": 528,
+        "value": "flex flex-col gap-4 pointer-events-auto"
+      },
+      {
+        "line": 529,
+        "value": "flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+      },
+      {
+        "line": 531,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 532,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 534,
+        "value": "flex flex-wrap items-center gap-3"
+      },
+      {
+        "line": 539,
+        "value": "inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+      },
+      {
+        "line": 540,
+        "value": "button"
+      },
+      {
+        "line": 543,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 543,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 551,
+        "value": "relative z-[9999] block w-full pointer-events-auto rounded-2xl border border-sky-200 bg-sky-50/65 px-5 py-4 text-lg font-semibold text-sky-950 placeholder:text-sky-600/70 shadow-[0_0_0_1px_rgba(186,230,253,0.55)]"
+      },
+      {
+        "line": 552,
+        "value": "Lesson title"
+      },
+      {
+        "line": 561,
+        "value": "relative z-0 min-h-0 overflow-y-auto px-6 py-5 xl:border-r xl:border-slate-200/80 thin-scrollbar"
+      },
+      {
+        "line": 562,
+        "value": "grid gap-5"
+      },
+      {
+        "line": 563,
+        "value": "grid gap-4 lg:grid-cols-3"
+      },
+      {
+        "line": 565,
+        "value": "Subject"
+      },
+      {
+        "line": 579,
+        "value": "Grade"
+      },
+      {
+        "line": 592,
+        "value": "Section"
+      },
+      {
+        "line": 606,
+        "value": "text-sm text-amber-700"
+      },
+      {
+        "line": 613,
+        "value": "Write a structured lesson with headings, lists, highlighted ideas, and useful links."
+      },
+      {
+        "line": 618,
+        "value": "flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50/85 px-4 py-3 text-sm text-slate-600"
+      },
+      {
+        "line": 623,
+        "value": "grid gap-4 xl:grid-cols-[1.2fr_1fr]"
+      },
+      {
+        "line": 625,
+        "value": "rounded-[1.6rem] bg-slate-50/85 p-4 text-sm text-slate-600"
+      },
+      {
+        "line": 632,
+        "value": "flex items-start justify-between gap-3"
+      },
+      {
+        "line": 634,
+        "value": "flex items-center gap-2 font-semibold text-slate-900"
+      },
+      {
+        "line": 635,
+        "value": "h-4 w-4 text-[#2468a0]"
+      },
+      {
+        "line": 638,
+        "value": "mt-1 text-xs text-slate-500"
+      },
+      {
+        "line": 642,
+        "value": "mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+      },
+      {
+        "line": 644,
+        "value": "w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 645,
+        "value": "Paste image URL and click Insert image"
+      },
+      {
+        "line": 650,
+        "value": "rounded-2xl border border-sky-200 bg-white px-4 py-3 font-semibold text-[#2468a0] transition hover:bg-sky-50"
+      },
+      {
+        "line": 651,
+        "value": "button"
+      },
+      {
+        "line": 658,
+        "value": "mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-sky-300 hover:bg-sky-50/60"
+      },
+      {
+        "line": 659,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 660,
+        "value": "inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100/80 text-[#2468a0]"
+      },
+      {
+        "line": 661,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 664,
+        "value": "text-sm font-semibold text-slate-800"
+      },
+      {
+        "line": 665,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 668,
+        "value": "rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 670,
+        "value": "image/*"
+      },
+      {
+        "line": 671,
+        "value": "sr-only"
+      },
+      {
+        "line": 672,
+        "value": "file"
+      },
+      {
+        "line": 678,
+        "value": "rounded-[1.6rem] bg-slate-50/85 p-4 text-sm text-slate-600"
+      },
+      {
+        "line": 679,
+        "value": "flex items-start justify-between gap-3"
+      },
+      {
+        "line": 681,
+        "value": "flex items-center gap-2 font-semibold text-slate-900"
+      },
+      {
+        "line": 682,
+        "value": "h-4 w-4 text-[#2468a0]"
+      },
+      {
+        "line": 685,
+        "value": "mt-1 text-xs text-slate-500"
+      },
+      {
+        "line": 689,
+        "value": "inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50"
+      },
+      {
+        "line": 690,
+        "value": "button"
+      },
+      {
+        "line": 693,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 698,
+        "value": "mt-4 grid gap-3"
+      },
+      {
+        "line": 700,
+        "value": "rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 701,
+        "value": "Paste YouTube link for the resources section"
+      },
+      {
+        "line": 706,
+        "value": "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-sky-300 hover:bg-sky-50/60"
+      },
+      {
+        "line": 707,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 708,
+        "value": "inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100/80 text-[#2468a0]"
+      },
+      {
+        "line": 709,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 712,
+        "value": "text-sm font-semibold text-slate-800"
+      },
+      {
+        "line": 713,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 716,
+        "value": "rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 718,
+        "value": ".pdf"
+      },
+      {
+        "line": 719,
+        "value": "sr-only"
+      },
+      {
+        "line": 720,
+        "value": "file"
+      },
+      {
+        "line": 727,
+        "value": "mt-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-600"
+      },
+      {
+        "line": 737,
+        "value": "relative z-0 min-h-0 overflow-y-auto px-6 py-5 thin-scrollbar"
+      },
+      {
+        "line": 738,
+        "value": "flex items-center justify-between gap-3"
+      },
+      {
+        "line": 740,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 741,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 743,
+        "value": "rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 748,
+        "value": "mt-5 space-y-5"
+      },
+      {
+        "line": 750,
+        "value": "text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]"
+      },
+      {
+        "line": 751,
+        "value": "mt-2 break-words text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 755,
+        "value": "lesson-content overflow-hidden break-words rounded-[1.6rem] bg-slate-50/85 px-5 py-5"
+      },
+      {
+        "line": 760,
+        "value": "rounded-[1.6rem] bg-slate-50/85 p-5"
+      },
+      {
+        "line": 761,
+        "value": "mb-4"
+      },
+      {
+        "line": 762,
+        "value": "text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]"
+      },
+      {
+        "line": 763,
+        "value": "mt-2 text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 766,
+        "value": "space-y-4"
+      },
+      {
+        "line": 768,
+        "value": "overflow-hidden rounded-3xl border border-sky-200 bg-white shadow-[0_12px_24px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 770,
+        "value": "group relative block"
+      },
+      {
+        "line": 770,
+        "value": "noreferrer"
+      },
+      {
+        "line": 770,
+        "value": "_blank"
+      },
+      {
+        "line": 771,
+        "value": "YouTube preview thumbnail"
+      },
+      {
+        "line": 771,
+        "value": "h-40 w-full object-cover"
+      },
+      {
+        "line": 772,
+        "value": "absolute inset-0 flex items-center justify-center bg-slate-950/25 transition group-hover:bg-slate-950/35"
+      },
+      {
+        "line": 773,
+        "value": "inline-flex items-center gap-2 rounded-full bg-white/92 px-4 py-2 text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 774,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 780,
+        "value": "p-4"
+      },
+      {
+        "line": 781,
+        "value": "mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 782,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 786,
+        "value": "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      },
+      {
+        "line": 788,
+        "value": "aspect-video w-full rounded-2xl"
+      },
+      {
+        "line": 790,
+        "value": "Lesson preview video"
+      },
+      {
+        "line": 797,
+        "value": "flex items-center gap-4 rounded-3xl border border-sky-200 bg-white p-4 shadow-[0_12px_24px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 798,
+        "value": "inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100/90 text-[#2468a0]"
+      },
+      {
+        "line": 799,
+        "value": "h-6 w-6"
+      },
+      {
+        "line": 802,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 803,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 818,
+        "value": "space-y-8"
+      },
+      {
+        "line": 829,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 830,
+        "value": "mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+      },
+      {
+        "line": 832,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 833,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 836,
+        "value": "button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
+      },
+      {
+        "line": 836,
+        "value": "button"
+      },
+      {
+        "line": 843,
+        "value": "rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 855,
+        "value": "none"
+      },
+      {
+        "line": 860,
+        "value": "row"
+      },
+      {
+        "line": 860,
+        "value": "flex-end"
+      },
+      {
+        "line": 865,
+        "value": "row"
+      },
+      {
+        "line": 865,
+        "value": "wrap"
+      },
+      {
+        "line": 865,
+        "value": "center"
+      },
+      {
+        "line": 868,
+        "value": "all"
+      },
+      {
+        "line": 875,
+        "value": "all"
+      },
+      {
+        "line": 912,
+        "value": "Start date"
+      },
+      {
+        "line": 919,
+        "value": "End date"
+      },
+      {
+        "line": 929,
+        "value": "admin-management-table-shell mt-6"
+      },
+      {
+        "line": 930,
+        "value": "overflow-x-auto"
+      },
+      {
+        "line": 931,
+        "value": "admin-management-table"
+      },
+      {
+        "line": 937,
+        "value": "name"
+      },
+      {
+        "line": 946,
+        "value": "grade"
+      },
+      {
+        "line": 955,
+        "value": "createdBy"
+      },
+      {
+        "line": 964,
+        "value": "createdAt"
+      },
+      {
+        "line": 970,
+        "value": "text-right"
+      },
+      {
+        "line": 977,
+        "value": "font-semibold text-slate-900"
+      },
+      {
+        "line": 980,
+        "value": "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 985,
+        "value": "flex items-center gap-2"
+      },
+      {
+        "line": 996,
+        "value": "flex justify-end gap-2"
+      },
+      {
+        "line": 998,
+        "value": "admin-management-icon-button"
+      },
+      {
+        "line": 1000,
+        "value": "button"
+      },
+      {
+        "line": 1008,
+        "value": "admin-management-icon-button"
+      },
+      {
+        "line": 1010,
+        "value": "button"
+      },
+      {
+        "line": 1016,
+        "value": "admin-management-icon-button admin-management-icon-button-danger"
+      },
+      {
+        "line": 1018,
+        "value": "button"
+      },
+      {
+        "line": 1044,
+        "value": "admin-management-empty mt-6"
+      },
+      {
+        "line": 1045,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1046,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 1054,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 1054,
+        "value": "dialog"
+      },
+      {
+        "line": 1054,
+        "value": "true"
+      },
+      {
+        "line": 1055,
+        "value": "admin-management-modal-card"
+      },
+      {
+        "line": 1056,
+        "value": "flex items-center justify-between border-b border-slate-200/80 px-6 py-5"
+      },
+      {
+        "line": 1058,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 1059,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 1062,
+        "value": "Close lesson view"
+      },
+      {
+        "line": 1063,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 1064,
+        "value": "button"
+      },
+      {
+        "line": 1067,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 1071,
+        "value": "max-h-[calc(92vh-96px)] overflow-y-auto px-6 py-6"
+      },
+      {
+        "line": 1072,
+        "value": "flex flex-wrap gap-3"
+      },
+      {
+        "line": 1073,
+        "value": "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 1076,
+        "value": "inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 1077,
+        "value": "h-3.5 w-3.5"
+      },
+      {
+        "line": 1080,
+        "value": "inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 1081,
+        "value": "h-3.5 w-3.5"
+      },
+      {
+        "line": 1084,
+        "value": "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 1090,
+        "value": "lesson-content mt-6 rounded-3xl border border-blue-100/80 bg-white/90 p-6 shadow-[0_14px_28px_rgba(36,104,160,0.06)]"
+      },
+      {
+        "line": 1095,
+        "value": "mt-6 rounded-3xl border border-blue-100/80 bg-blue-50/70 p-5"
+      },
+      {
+        "line": 1096,
+        "value": "mb-4"
+      },
+      {
+        "line": 1097,
+        "value": "text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]"
+      },
+      {
+        "line": 1098,
+        "value": "mt-2 text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1101,
+        "value": "space-y-4"
+      },
+      {
+        "line": 1103,
+        "value": "overflow-hidden rounded-3xl border border-sky-200 bg-white shadow-[0_12px_24px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 1105,
+        "value": "group relative block"
+      },
+      {
+        "line": 1105,
+        "value": "noreferrer"
+      },
+      {
+        "line": 1105,
+        "value": "_blank"
+      },
+      {
+        "line": 1108,
+        "value": "h-44 w-full object-cover"
+      },
+      {
+        "line": 1111,
+        "value": "absolute inset-0 flex items-center justify-center bg-slate-950/25 transition group-hover:bg-slate-950/35"
+      },
+      {
+        "line": 1112,
+        "value": "inline-flex items-center gap-2 rounded-full bg-white/92 px-4 py-2 text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 1113,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 1119,
+        "value": "p-4"
+      },
+      {
+        "line": 1120,
+        "value": "mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 1121,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 1125,
+        "value": "aspect-video w-full rounded-2xl"
+      },
+      {
+        "line": 1128,
+        "value": "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      },
+      {
+        "line": 1137,
+        "value": "flex items-center gap-4 rounded-3xl border border-sky-200 bg-white p-4 text-slate-800 shadow-[0_12px_24px_rgba(36,104,160,0.08)] transition hover:bg-sky-50"
+      },
+      {
+        "line": 1139,
+        "value": "noreferrer"
+      },
+      {
+        "line": 1140,
+        "value": "_blank"
+      },
+      {
+        "line": 1142,
+        "value": "inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100/90 text-[#2468a0]"
+      },
+      {
+        "line": 1143,
+        "value": "h-6 w-6"
+      },
+      {
+        "line": 1146,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 1147,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 1161,
+        "value": "Delete lesson?"
+      },
+      {
+        "line": 1177,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 1177,
+        "value": "dialog"
+      },
+      {
+        "line": 1177,
+        "value": "true"
+      },
+      {
+        "line": 1178,
+        "value": "admin-management-modal-card lesson-studio-modal-card"
+      },
+      {
+        "line": 1179,
+        "value": "admin-management-modal-header flex items-center justify-between px-6 py-5"
+      },
+      {
+        "line": 1181,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 1182,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 1185,
+        "value": "Close lesson editor"
+      },
+      {
+        "line": 1186,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 1187,
+        "value": "button"
+      },
+      {
+        "line": 1190,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 1194,
+        "value": "min-h-0 flex flex-1 flex-col overflow-hidden px-6 py-6"
+      },
+      {
+        "line": 1197,
+        "value": "admin-management-modal-footer"
+      },
+      {
+        "line": 1198,
+        "value": "button-primary"
+      },
+      {
+        "line": 1198,
+        "value": "button"
+      },
+      {
+        "line": 1201,
+        "value": "rounded-2xl border border-slate-200 px-4 py-3"
+      },
+      {
+        "line": 1201,
+        "value": "button"
+      },
+      {
+        "line": 1210,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 1210,
+        "value": "dialog"
+      },
+      {
+        "line": 1210,
+        "value": "true"
+      },
+      {
+        "line": 1211,
+        "value": "admin-management-modal-card lesson-studio-modal-card"
+      },
+      {
+        "line": 1212,
+        "value": "admin-management-modal-header flex items-center justify-between px-8 py-6"
+      },
+      {
+        "line": 1214,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 1215,
+        "value": "mt-2 text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 1216,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 1219,
+        "value": "Close lesson studio"
+      },
+      {
+        "line": 1220,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 1221,
+        "value": "button"
+      },
+      {
+        "line": 1224,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 1227,
+        "value": "min-h-0 flex flex-1 flex-col overflow-hidden px-8 py-8"
+      },
+      {
+        "line": 1230,
+        "value": "admin-management-modal-footer px-8"
+      },
+      {
+        "line": 1231,
+        "value": "button-primary px-5 py-3.5 text-base"
+      },
+      {
+        "line": 1231,
+        "value": "button"
+      },
+      {
+        "line": 1234,
+        "value": "rounded-2xl border border-slate-200 px-5 py-3.5 font-semibold text-slate-700"
+      },
+      {
+        "line": 1234,
+        "value": "button"
+      }
+    ]
+  },
+  {
+    "file": "src/features/admin/pages/AdminOverviewPage.tsx",
+    "entries": [
+      {
+        "line": 35,
+        "value": "string"
+      },
+      {
+        "line": 52,
+        "value": "space-y-8"
+      },
+      {
+        "line": 56,
+        "value": "button-primary inline-flex px-5 text-sm"
+      },
+      {
+        "line": 67,
+        "value": "glass-panel p-6 text-slate-600"
+      },
+      {
+        "line": 69,
+        "value": "glass-panel p-6 text-rose-700"
+      },
+      {
+        "line": 72,
+        "value": "grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      },
+      {
+        "line": 73,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 74,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 75,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 77,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 78,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 79,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 81,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 82,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 83,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 85,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 86,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 87,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      }
+    ]
+  },
+  {
+    "file": "src/features/admin/pages/AdminSubjectsPage.tsx",
+    "entries": [
+      {
+        "line": 119,
+        "value": "Admin"
+      },
+      {
+        "line": 120,
+        "value": "Teacher"
+      },
+      {
+        "line": 157,
+        "value": "string"
+      },
+      {
+        "line": 200,
+        "value": "all"
+      },
+      {
+        "line": 202,
+        "value": "all"
+      },
+      {
+        "line": 205,
+        "value": "all"
+      },
+      {
+        "line": 206,
+        "value": "active"
+      },
+      {
+        "line": 209,
+        "value": "all"
+      },
+      {
+        "line": 254,
+        "value": "asc"
+      },
+      {
+        "line": 259,
+        "value": "createdAt"
+      },
+      {
+        "line": 297,
+        "value": "space-y-8"
+      },
+      {
+        "line": 309,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 311,
+        "value": "rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 323,
+        "value": "none"
+      },
+      {
+        "line": 328,
+        "value": "row"
+      },
+      {
+        "line": 328,
+        "value": "flex-end"
+      },
+      {
+        "line": 330,
+        "value": "button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
+      },
+      {
+        "line": 330,
+        "value": "button"
+      },
+      {
+        "line": 338,
+        "value": "row"
+      },
+      {
+        "line": 338,
+        "value": "wrap"
+      },
+      {
+        "line": 338,
+        "value": "center"
+      },
+      {
+        "line": 341,
+        "value": "all"
+      },
+      {
+        "line": 348,
+        "value": "all"
+      },
+      {
+        "line": 385,
+        "value": "Start date"
+      },
+      {
+        "line": 392,
+        "value": "End date"
+      },
+      {
+        "line": 402,
+        "value": "admin-management-table-shell mt-6"
+      },
+      {
+        "line": 403,
+        "value": "overflow-x-auto"
+      },
+      {
+        "line": 404,
+        "value": "admin-management-table"
+      },
+      {
+        "line": 406,
+        "value": "w-[44%]"
+      },
+      {
+        "line": 407,
+        "value": "w-[14%]"
+      },
+      {
+        "line": 408,
+        "value": "w-[20%]"
+      },
+      {
+        "line": 409,
+        "value": "w-[14%]"
+      },
+      {
+        "line": 410,
+        "value": "w-[8%]"
+      },
+      {
+        "line": 417,
+        "value": "name"
+      },
+      {
+        "line": 426,
+        "value": "grade"
+      },
+      {
+        "line": 435,
+        "value": "createdBy"
+      },
+      {
+        "line": 444,
+        "value": "createdAt"
+      },
+      {
+        "line": 450,
+        "value": "text-right"
+      },
+      {
+        "line": 456,
+        "value": "w-[44%]"
+      },
+      {
+        "line": 461,
+        "value": "flex items-center gap-6"
+      },
+      {
+        "line": 462,
+        "value": "flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-[1.4rem] bg-sky-50/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+      },
+      {
+        "line": 465,
+        "value": "min-w-0 space-y-2"
+      },
+      {
+        "line": 466,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 467,
+        "value": "max-w-3xl leading-6 text-slate-500"
+      },
+      {
+        "line": 473,
+        "value": "whitespace-nowrap"
+      },
+      {
+        "line": 474,
+        "value": "inline-flex whitespace-nowrap rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 478,
+        "value": "whitespace-nowrap"
+      },
+      {
+        "line": 479,
+        "value": "flex items-center gap-2"
+      },
+      {
+        "line": 488,
+        "value": "whitespace-nowrap"
+      },
+      {
+        "line": 489,
+        "value": "whitespace-nowrap"
+      },
+      {
+        "line": 490,
+        "value": "flex justify-end gap-2"
+      },
+      {
+        "line": 492,
+        "value": "admin-management-icon-button"
+      },
+      {
+        "line": 494,
+        "value": "button"
+      },
+      {
+        "line": 500,
+        "value": "admin-management-icon-button"
+      },
+      {
+        "line": 502,
+        "value": "button"
+      },
+      {
+        "line": 509,
+        "value": "admin-management-icon-button admin-management-icon-button-danger"
+      },
+      {
+        "line": 511,
+        "value": "button"
+      },
+      {
+        "line": 536,
+        "value": "admin-management-empty mt-6"
+      },
+      {
+        "line": 537,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 538,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 547,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 547,
+        "value": "dialog"
+      },
+      {
+        "line": 547,
+        "value": "true"
+      },
+      {
+        "line": 548,
+        "value": "admin-management-modal-card max-w-[500px]"
+      },
+      {
+        "line": 549,
+        "value": "relative border-b border-slate-200/80 px-6 pb-5 pt-6"
+      },
+      {
+        "line": 551,
+        "value": "Close subject view"
+      },
+      {
+        "line": 552,
+        "value": "absolute right-4 top-4 inline-flex items-center justify-center p-1 text-slate-500 transition hover:text-slate-700"
+      },
+      {
+        "line": 553,
+        "value": "button"
+      },
+      {
+        "line": 558,
+        "value": "pr-10"
+      },
+      {
+        "line": 559,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 560,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 561,
+        "value": "mt-4 flex flex-wrap items-center gap-2.5"
+      },
+      {
+        "line": 562,
+        "value": "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 565,
+        "value": "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 569,
+        "value": "mt-3 text-sm text-slate-500"
+      },
+      {
+        "line": 572,
+        "value": "space-y-5 px-6 py-6"
+      },
+      {
+        "line": 573,
+        "value": "rounded-3xl border border-blue-100/80 bg-white/90 p-6 shadow-[0_14px_28px_rgba(36,104,160,0.06)]"
+      },
+      {
+        "line": 574,
+        "value": "text-base leading-7 text-slate-700"
+      },
+      {
+        "line": 583,
+        "value": "Delete subject?"
+      },
+      {
+        "line": 599,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 599,
+        "value": "dialog"
+      },
+      {
+        "line": 599,
+        "value": "true"
+      },
+      {
+        "line": 600,
+        "value": "admin-management-modal-card max-w-3xl"
+      },
+      {
+        "line": 601,
+        "value": "admin-management-modal-header flex items-center justify-between px-6 py-5"
+      },
+      {
+        "line": 603,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 604,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 607,
+        "value": "Close subject editor"
+      },
+      {
+        "line": 608,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 609,
+        "value": "button"
+      },
+      {
+        "line": 615,
+        "value": "admin-management-modal-body"
+      },
+      {
+        "line": 616,
+        "value": "admin-management-modal-form-endpad grid gap-4 px-6 py-6"
+      },
+      {
+        "line": 621,
+        "value": "Subject name"
+      },
+      {
+        "line": 627,
+        "value": "min-h-32 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 628,
+        "value": "Description"
+      },
+      {
+        "line": 633,
+        "value": "grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 634,
+        "value": "rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600"
+      },
+      {
+        "line": 635,
+        "value": "block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+      },
+      {
+        "line": 636,
+        "value": "mt-1 block text-base font-medium text-slate-800"
+      },
+      {
+        "line": 638,
+        "value": "rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600"
+      },
+      {
+        "line": 639,
+        "value": "block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+      },
+      {
+        "line": 640,
+        "value": "mt-1 block text-base font-medium text-slate-800"
+      },
+      {
+        "line": 644,
+        "value": "grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 646,
+        "value": "Grade"
+      },
+      {
+        "line": 652,
+        "value": "Section"
+      },
+      {
+        "line": 660,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 664,
+        "value": "admin-management-modal-footer"
+      },
+      {
+        "line": 665,
+        "value": "button-primary"
+      },
+      {
+        "line": 665,
+        "value": "button"
+      },
+      {
+        "line": 668,
+        "value": "rounded-2xl border border-slate-200 px-4 py-3"
+      },
+      {
+        "line": 668,
+        "value": "button"
+      },
+      {
+        "line": 677,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 677,
+        "value": "dialog"
+      },
+      {
+        "line": 677,
+        "value": "true"
+      },
+      {
+        "line": 678,
+        "value": "admin-management-modal-card max-w-5xl"
+      },
+      {
+        "line": 679,
+        "value": "admin-management-modal-header flex items-center justify-between px-8 py-6 lg:px-10"
+      },
+      {
+        "line": 681,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 682,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 683,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 688,
+        "value": "Close subject creator"
+      },
+      {
+        "line": 689,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 690,
+        "value": "button"
+      },
+      {
+        "line": 696,
+        "value": "admin-management-modal-body"
+      },
+      {
+        "line": 697,
+        "value": "admin-management-modal-form-endpad grid gap-6 px-8 py-8 lg:px-10 lg:py-9"
+      },
+      {
+        "line": 699,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 700,
+        "value": "Subject name"
+      },
+      {
+        "line": 705,
+        "value": "min-h-40 rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 706,
+        "value": "Description"
+      },
+      {
+        "line": 710,
+        "value": "grid gap-5 md:grid-cols-2"
+      },
+      {
+        "line": 712,
+        "value": "Grade"
+      },
+      {
+        "line": 718,
+        "value": "Section"
+      },
+      {
+        "line": 726,
+        "value": "admin-management-modal-footer px-8 lg:px-10"
+      },
+      {
+        "line": 727,
+        "value": "button-primary px-5 py-3.5 text-base"
+      },
+      {
+        "line": 727,
+        "value": "button"
+      },
+      {
+        "line": 730,
+        "value": "rounded-2xl border border-slate-200 px-5 py-3.5 text-base font-semibold text-slate-700"
+      },
+      {
+        "line": 730,
+        "value": "button"
+      }
+    ]
+  },
+  {
+    "file": "src/features/admin/pages/AdminTestsPage.tsx",
+    "entries": [
+      {
+        "line": 185,
+        "value": "text"
+      },
+      {
+        "line": 187,
+        "value": "true-false"
+      },
+      {
+        "line": 207,
+        "value": "Admin"
+      },
+      {
+        "line": 211,
+        "value": "Teacher"
+      },
+      {
+        "line": 233,
+        "value": "all"
+      },
+      {
+        "line": 234,
+        "value": "all"
+      },
+      {
+        "line": 236,
+        "value": "all"
+      },
+      {
+        "line": 237,
+        "value": "active"
+      },
+      {
+        "line": 238,
+        "value": "all"
+      },
+      {
+        "line": 282,
+        "value": "asc"
+      },
+      {
+        "line": 287,
+        "value": "createdAt"
+      },
+      {
+        "line": 344,
+        "value": "string"
+      },
+      {
+        "line": 413,
+        "value": "string"
+      },
+      {
+        "line": 415,
+        "value": "string"
+      },
+      {
+        "line": 425,
+        "value": "Admin"
+      },
+      {
+        "line": 426,
+        "value": "Teacher"
+      },
+      {
+        "line": 429,
+        "value": "space-y-8"
+      },
+      {
+        "line": 447,
+        "value": "space-y-6"
+      },
+      {
+        "line": 449,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 450,
+        "value": "flex flex-col gap-3 md:flex-row md:items-start md:justify-between"
+      },
+      {
+        "line": 452,
+        "value": "flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.26em] text-[#2468a0]"
+      },
+      {
+        "line": 453,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 456,
+        "value": "mt-2 text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 457,
+        "value": "mt-2 max-w-2xl text-sm text-slate-600"
+      },
+      {
+        "line": 462,
+        "value": "rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+      },
+      {
+        "line": 468,
+        "value": "mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.45fr_0.35fr_auto]"
+      },
+      {
+        "line": 470,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 471,
+        "value": "Topic, for example Quadratic Equations or World War II"
+      },
+      {
+        "line": 476,
+        "value": "Difficulty"
+      },
+      {
+        "line": 486,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
+      },
+      {
+        "line": 489,
+        "value": "number"
+      },
+      {
+        "line": 494,
+        "value": "button-primary inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+      },
+      {
+        "line": 496,
+        "value": "button"
+      },
+      {
+        "line": 499,
+        "value": "h-4 w-4 animate-spin"
+      },
+      {
+        "line": 499,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 507,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 508,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 509,
+        "value": "mt-5 grid gap-4"
+      },
+      {
+        "line": 511,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 512,
+        "value": "Test title"
+      },
+      {
+        "line": 516,
+        "value": "grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 518,
+        "value": "Grade"
+      },
+      {
+        "line": 527,
+        "value": "Section"
+      },
+      {
+        "line": 537,
+        "value": "Lesson"
+      },
+      {
+        "line": 550,
+        "value": "text-sm text-amber-700"
+      },
+      {
+        "line": 559,
+        "value": "space-y-4"
+      },
+      {
+        "line": 564,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 565,
+        "value": "mb-4 flex items-center justify-between gap-4"
+      },
+      {
+        "line": 567,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-blue-400"
+      },
+      {
+        "line": 570,
+        "value": "mt-2 font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 575,
+        "value": "rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
+      },
+      {
+        "line": 577,
+        "value": "button"
+      },
+      {
+        "line": 582,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 586,
+        "value": "grid gap-4"
+      },
+      {
+        "line": 587,
+        "value": "space-y-2"
+      },
+      {
+        "line": 588,
+        "value": "flex items-center gap-2 text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 589,
+        "value": "h-4 w-4 text-[#2468a0]"
+      },
+      {
+        "line": 593,
+        "value": "min-h-28 w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 594,
+        "value": "Write the question"
+      },
+      {
+        "line": 605,
+        "value": "grid gap-4 md:grid-cols-[0.55fr_0.45fr]"
+      },
+      {
+        "line": 606,
+        "value": "space-y-2"
+      },
+      {
+        "line": 607,
+        "value": "flex items-center gap-2 text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 608,
+        "value": "h-4 w-4 text-[#2468a0]"
+      },
+      {
+        "line": 612,
+        "value": "Question type"
+      },
+      {
+        "line": 624,
+        "value": "true-false"
+      },
+      {
+        "line": 629,
+        "value": "text"
+      },
+      {
+        "line": 642,
+        "value": "space-y-2"
+      },
+      {
+        "line": 643,
+        "value": "flex items-center gap-2 text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 644,
+        "value": "h-4 w-4 text-[#2468a0]"
+      },
+      {
+        "line": 648,
+        "value": "image/*"
+      },
+      {
+        "line": 649,
+        "value": "block w-full rounded-2xl border border-dashed border-sky-200 bg-sky-50/70 px-4 py-3 text-sm text-slate-600"
+      },
+      {
+        "line": 650,
+        "value": "file"
+      },
+      {
+        "line": 666,
+        "value": "max-h-72 w-full rounded-3xl object-cover"
+      },
+      {
+        "line": 671,
+        "value": "text"
+      },
+      {
+        "line": 672,
+        "value": "space-y-2"
+      },
+      {
+        "line": 673,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 675,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 676,
+        "value": "Enter the expected answer"
+      },
+      {
+        "line": 687,
+        "value": "space-y-3 rounded-3xl border border-blue-100/80 bg-blue-50/50 p-4"
+      },
+      {
+        "line": 688,
+        "value": "flex items-center justify-between"
+      },
+      {
+        "line": 689,
+        "value": "flex items-center gap-2 text-sm font-semibold text-slate-800"
+      },
+      {
+        "line": 690,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 693,
+        "value": "multiple-choice"
+      },
+      {
+        "line": 695,
+        "value": "rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 696,
+        "value": "button"
+      },
+      {
+        "line": 709,
+        "value": "grid gap-3"
+      },
+      {
+        "line": 711,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 713,
+        "value": "flex-1 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 714,
+        "value": "true-false"
+      },
+      {
+        "line": 728,
+        "value": "flex items-center gap-2 text-sm text-slate-700"
+      },
+      {
+        "line": 732,
+        "value": "radio"
+      },
+      {
+        "line": 745,
+        "value": "multiple-choice"
+      },
+      {
+        "line": 747,
+        "value": "rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"
+      },
+      {
+        "line": 748,
+        "value": "button"
+      },
+      {
+        "line": 772,
+        "value": "flex flex-wrap gap-3"
+      },
+      {
+        "line": 774,
+        "value": "inline-flex items-center gap-2 rounded-2xl border border-blue-100 bg-white/90 px-4 py-3 text-sm font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 775,
+        "value": "button"
+      },
+      {
+        "line": 778,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 781,
+        "value": "button-primary"
+      },
+      {
+        "line": 781,
+        "value": "button"
+      },
+      {
+        "line": 785,
+        "value": "rounded-2xl border border-slate-200 px-4 py-3"
+      },
+      {
+        "line": 785,
+        "value": "button"
+      },
+      {
+        "line": 793,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 795,
+        "value": "rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 807,
+        "value": "none"
+      },
+      {
+        "line": 812,
+        "value": "row"
+      },
+      {
+        "line": 812,
+        "value": "flex-end"
+      },
+      {
+        "line": 817,
+        "value": "row"
+      },
+      {
+        "line": 817,
+        "value": "wrap"
+      },
+      {
+        "line": 817,
+        "value": "center"
+      },
+      {
+        "line": 820,
+        "value": "all"
+      },
+      {
+        "line": 827,
+        "value": "all"
+      },
+      {
+        "line": 864,
+        "value": "Start date"
+      },
+      {
+        "line": 871,
+        "value": "End date"
+      },
+      {
+        "line": 881,
+        "value": "admin-management-table-shell mt-6"
+      },
+      {
+        "line": 882,
+        "value": "overflow-x-auto"
+      },
+      {
+        "line": 883,
+        "value": "admin-management-table"
+      },
+      {
+        "line": 889,
+        "value": "name"
+      },
+      {
+        "line": 898,
+        "value": "grade"
+      },
+      {
+        "line": 907,
+        "value": "createdBy"
+      },
+      {
+        "line": 916,
+        "value": "createdAt"
+      },
+      {
+        "line": 922,
+        "value": "text-right"
+      },
+      {
+        "line": 929,
+        "value": "space-y-2"
+      },
+      {
+        "line": 930,
+        "value": "flex flex-wrap items-center gap-2"
+      },
+      {
+        "line": 931,
+        "value": "font-semibold text-slate-900"
+      },
+      {
+        "line": 933,
+        "value": "inline-flex rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 938,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 941,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 947,
+        "value": "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 952,
+        "value": "flex items-center gap-2"
+      },
+      {
+        "line": 963,
+        "value": "flex justify-end gap-2"
+      },
+      {
+        "line": 965,
+        "value": "admin-management-icon-button"
+      },
+      {
+        "line": 967,
+        "value": "button"
+      },
+      {
+        "line": 973,
+        "value": "admin-management-icon-button"
+      },
+      {
+        "line": 975,
+        "value": "button"
+      },
+      {
+        "line": 989,
+        "value": "text"
+      },
+      {
+        "line": 1006,
+        "value": "admin-management-icon-button admin-management-icon-button-danger"
+      },
+      {
+        "line": 1008,
+        "value": "button"
+      },
+      {
+        "line": 1032,
+        "value": "admin-management-empty mt-6"
+      },
+      {
+        "line": 1033,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1034,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 1043,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 1043,
+        "value": "dialog"
+      },
+      {
+        "line": 1043,
+        "value": "true"
+      },
+      {
+        "line": 1044,
+        "value": "admin-management-modal-card"
+      },
+      {
+        "line": 1045,
+        "value": "flex items-center justify-between border-b border-slate-200/80 px-6 py-5"
+      },
+      {
+        "line": 1047,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 1048,
+        "value": "mt-2 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 1051,
+        "value": "Close test view"
+      },
+      {
+        "line": 1052,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 1053,
+        "value": "button"
+      },
+      {
+        "line": 1059,
+        "value": "max-h-[calc(92vh-96px)] space-y-6 overflow-y-auto px-6 py-6"
+      },
+      {
+        "line": 1060,
+        "value": "flex flex-wrap gap-3"
+      },
+      {
+        "line": 1061,
+        "value": "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 1064,
+        "value": "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 1067,
+        "value": "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 1070,
+        "value": "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+      },
+      {
+        "line": 1075,
+        "value": "space-y-4"
+      },
+      {
+        "line": 1077,
+        "value": "rounded-3xl border border-blue-100/80 bg-white/90 p-5 shadow-[0_14px_28px_rgba(36,104,160,0.06)]"
+      },
+      {
+        "line": 1078,
+        "value": "text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]"
+      },
+      {
+        "line": 1081,
+        "value": "mt-2 font-semibold text-slate-900"
+      },
+      {
+        "line": 1082,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 1084,
+        "value": "mt-4 space-y-2"
+      },
+      {
+        "line": 1100,
+        "value": "mt-4 text-sm text-slate-700"
+      },
+      {
+        "line": 1101,
+        "value": "font-semibold"
+      },
+      {
+        "line": 1114,
+        "value": "Delete test?"
+      }
+    ]
+  },
+  {
+    "file": "src/features/admin/pages/AdminUsersPage.tsx",
+    "entries": [
+      {
+        "line": 91,
+        "value": "name"
+      },
+      {
+        "line": 196,
+        "value": "${grade}-${section}"
+      },
+      {
+        "line": 289,
+        "value": "string"
+      },
+      {
+        "line": 293,
+        "value": "object"
+      },
+      {
+        "line": 294,
+        "value": "string"
+      },
+      {
+        "line": 298,
+        "value": "string"
+      },
+      {
+        "line": 487,
+        "value": "Teacher"
+      },
+      {
+        "line": 489,
+        "value": "Admin"
+      },
+      {
+        "line": 548,
+        "value": "all"
+      },
+      {
+        "line": 556,
+        "value": "all"
+      },
+      {
+        "line": 567,
+        "value": "all"
+      },
+      {
+        "line": 567,
+        "value": "active"
+      },
+      {
+        "line": 598,
+        "value": "all"
+      },
+      {
+        "line": 602,
+        "value": "all"
+      },
+      {
+        "line": 607,
+        "value": "all"
+      },
+      {
+        "line": 607,
+        "value": "active"
+      },
+      {
+        "line": 637,
+        "value": "all"
+      },
+      {
+        "line": 637,
+        "value": "active"
+      },
+      {
+        "line": 773,
+        "value": "asc"
+      },
+      {
+        "line": 778,
+        "value": "dateCreated"
+      },
+      {
+        "line": 885,
+        "value": "students"
+      },
+      {
+        "line": 892,
+        "value": "students"
+      },
+      {
+        "line": 926,
+        "value": "students"
+      },
+      {
+        "line": 934,
+        "value": "space-y-8"
+      },
+      {
+        "line": 948,
+        "value": "glass-panel min-w-0 p-6"
+      },
+      {
+        "line": 949,
+        "value": "flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+      },
+      {
+        "line": 950,
+        "value": "min-w-0"
+      },
+      {
+        "line": 951,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 952,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 954,
+        "value": "flex flex-wrap items-center gap-2 lg:justify-end"
+      },
+      {
+        "line": 955,
+        "value": "inline-flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1"
+      },
+      {
+        "line": 958,
+        "value": "button"
+      },
+      {
+        "line": 962,
+        "value": "ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600"
+      },
+      {
+        "line": 968,
+        "value": "button"
+      },
+      {
+        "line": 972,
+        "value": "ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600"
+      },
+      {
+        "line": 978,
+        "value": "button"
+      },
+      {
+        "line": 982,
+        "value": "ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600"
+      },
+      {
+        "line": 988,
+        "value": "button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
+      },
+      {
+        "line": 989,
+        "value": "button"
+      },
+      {
+        "line": 995,
+        "value": "inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+      },
+      {
+        "line": 998,
+        "value": "button"
+      },
+      {
+        "line": 1001,
+        "value": "true"
+      },
+      {
+        "line": 1001,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 1001,
+        "value": "none"
+      },
+      {
+        "line": 1001,
+        "value": "currentColor"
+      },
+      {
+        "line": 1002,
+        "value": "M12 3v12"
+      },
+      {
+        "line": 1002,
+        "value": "round"
+      },
+      {
+        "line": 1002,
+        "value": "round"
+      },
+      {
+        "line": 1003,
+        "value": "m7 10 5 5 5-5"
+      },
+      {
+        "line": 1003,
+        "value": "round"
+      },
+      {
+        "line": 1003,
+        "value": "round"
+      },
+      {
+        "line": 1004,
+        "value": "M5 21h14"
+      },
+      {
+        "line": 1004,
+        "value": "round"
+      },
+      {
+        "line": 1004,
+        "value": "round"
+      },
+      {
+        "line": 1012,
+        "value": "mt-5 rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 1024,
+        "value": "none"
+      },
+      {
+        "line": 1029,
+        "value": "row"
+      },
+      {
+        "line": 1029,
+        "value": "flex-end"
+      },
+      {
+        "line": 1034,
+        "value": "row"
+      },
+      {
+        "line": 1034,
+        "value": "wrap"
+      },
+      {
+        "line": 1034,
+        "value": "center"
+      },
+      {
+        "line": 1035,
+        "value": "students"
+      },
+      {
+        "line": 1035,
+        "value": "teachers"
+      },
+      {
+        "line": 1039,
+        "value": "all"
+      },
+      {
+        "line": 1046,
+        "value": "all"
+      },
+      {
+        "line": 1076,
+        "value": "Start date"
+      },
+      {
+        "line": 1083,
+        "value": "End date"
+      },
+      {
+        "line": 1092,
+        "value": "mt-6 text-slate-600"
+      },
+      {
+        "line": 1093,
+        "value": "mt-6 text-rose-700"
+      },
+      {
+        "line": 1095,
+        "value": "students"
+      },
+      {
+        "line": 1096,
+        "value": "mt-6 space-y-4"
+      },
+      {
+        "line": 1101,
+        "value": "rounded-3xl border border-slate-200 bg-white/75 p-4"
+      },
+      {
+        "line": 1103,
+        "value": "flex w-full items-center justify-between text-left"
+      },
+      {
+        "line": 1104,
+        "value": "button"
+      },
+      {
+        "line": 1108,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 1109,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 1111,
+        "value": "text-slate-500"
+      },
+      {
+        "line": 1119,
+        "value": "min-h-0 space-y-3 overflow-hidden"
+      },
+      {
+        "line": 1125,
+        "value": "relative rounded-2xl border border-slate-200 bg-slate-50/80"
+      },
+      {
+        "line": 1129,
+        "value": "flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-white/50"
+      },
+      {
+        "line": 1130,
+        "value": "button"
+      },
+      {
+        "line": 1134,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1135,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 1137,
+        "value": "text-slate-500"
+      },
+      {
+        "line": 1140,
+        "value": "border-t border-slate-200 bg-white/80 px-4 py-4"
+      },
+      {
+        "line": 1141,
+        "value": "flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between"
+      },
+      {
+        "line": 1142,
+        "value": "min-w-0"
+      },
+      {
+        "line": 1143,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 1144,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 1149,
+        "value": "flex flex-1 flex-col gap-2 xl:max-w-md"
+      },
+      {
+        "line": 1150,
+        "value": "flex flex-col gap-2 sm:flex-row sm:items-center"
+      },
+      {
+        "line": 1151,
+        "value": "flex-1"
+      },
+      {
+        "line": 1172,
+        "value": "button-primary px-3 py-2 text-sm"
+      },
+      {
+        "line": 1173,
+        "value": "button"
+      },
+      {
+        "line": 1188,
+        "value": "min-h-0 overflow-hidden px-4"
+      },
+      {
+        "line": 1199,
+        "value": "overflow-x-auto"
+      },
+      {
+        "line": 1200,
+        "value": "w-full min-w-full table-auto divide-y divide-slate-200 text-sm"
+      },
+      {
+        "line": 1202,
+        "value": "w-[32%]"
+      },
+      {
+        "line": 1203,
+        "value": "w-[28%]"
+      },
+      {
+        "line": 1204,
+        "value": "w-[12%]"
+      },
+      {
+        "line": 1205,
+        "value": "w-[18%]"
+      },
+      {
+        "line": 1206,
+        "value": "w-[10%]"
+      },
+      {
+        "line": 1208,
+        "value": "bg-slate-50/90"
+      },
+      {
+        "line": 1209,
+        "value": "text-left text-slate-500"
+      },
+      {
+        "line": 1210,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 1213,
+        "value": "name"
+      },
+      {
+        "line": 1219,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 1222,
+        "value": "email"
+      },
+      {
+        "line": 1228,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 1229,
+        "value": "px-4 py-3 font-semibold"
+      },
+      {
+        "line": 1232,
+        "value": "dateCreated"
+      },
+      {
+        "line": 1238,
+        "value": "px-4 py-3 text-right font-semibold"
+      },
+      {
+        "line": 1241,
+        "value": "divide-y divide-slate-100"
+      },
+      {
+        "line": 1243,
+        "value": "transition hover:bg-sky-50/35"
+      },
+      {
+        "line": 1244,
+        "value": "px-4 py-3"
+      },
+      {
+        "line": 1245,
+        "value": "space-y-1"
+      },
+      {
+        "line": 1246,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 1253,
+        "value": "font-medium text-slate-900"
+      },
+      {
+        "line": 1261,
+        "value": "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
+      },
+      {
+        "line": 1265,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 1268,
+        "value": "px-4 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1269,
+        "value": "px-4 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1270,
+        "value": "px-4 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1271,
+        "value": "px-4 py-3 text-right whitespace-nowrap"
+      },
+      {
+        "line": 1274,
+        "value": "small"
+      },
+      {
+        "line": 1285,
+        "value": "button"
+      },
+      {
+        "line": 1299,
+        "value": "small"
+      },
+      {
+        "line": 1342,
+        "value": "rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-slate-600"
+      },
+      {
+        "line": 1349,
+        "value": "teachers"
+      },
+      {
+        "line": 1350,
+        "value": "mt-6 space-y-6"
+      },
+      {
+        "line": 1351,
+        "value": "overflow-visible rounded-3xl border border-slate-200 bg-white/80 p-4"
+      },
+      {
+        "line": 1352,
+        "value": "flex flex-col gap-1"
+      },
+      {
+        "line": 1353,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1354,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 1356,
+        "value": "mt-4 overflow-x-auto"
+      },
+      {
+        "line": 1357,
+        "value": "w-full min-w-full table-auto divide-y divide-slate-200 text-sm"
+      },
+      {
+        "line": 1359,
+        "value": "w-[20%]"
+      },
+      {
+        "line": 1360,
+        "value": "w-[22%]"
+      },
+      {
+        "line": 1361,
+        "value": "w-[10%]"
+      },
+      {
+        "line": 1362,
+        "value": "w-[20%]"
+      },
+      {
+        "line": 1363,
+        "value": "w-[18%]"
+      },
+      {
+        "line": 1364,
+        "value": "w-[8%]"
+      },
+      {
+        "line": 1365,
+        "value": "w-[2%]"
+      },
+      {
+        "line": 1367,
+        "value": "bg-slate-50/90"
+      },
+      {
+        "line": 1368,
+        "value": "text-left text-slate-500"
+      },
+      {
+        "line": 1369,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1372,
+        "value": "name"
+      },
+      {
+        "line": 1378,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1381,
+        "value": "email"
+      },
+      {
+        "line": 1387,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1388,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1389,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1390,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1393,
+        "value": "dateCreated"
+      },
+      {
+        "line": 1399,
+        "value": "px-3 py-3 text-right font-semibold"
+      },
+      {
+        "line": 1402,
+        "value": "divide-y divide-slate-100"
+      },
+      {
+        "line": 1405,
+        "value": "transition hover:bg-sky-50/35"
+      },
+      {
+        "line": 1406,
+        "value": "px-3 py-3"
+      },
+      {
+        "line": 1407,
+        "value": "space-y-1"
+      },
+      {
+        "line": 1408,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 1415,
+        "value": "font-medium text-slate-900"
+      },
+      {
+        "line": 1423,
+        "value": "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
+      },
+      {
+        "line": 1427,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 1430,
+        "value": "px-3 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1431,
+        "value": "px-3 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1432,
+        "value": "px-3 py-3 text-slate-600"
+      },
+      {
+        "line": 1433,
+        "value": "flex flex-wrap gap-2"
+      },
+      {
+        "line": 1437,
+        "value": "rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 1444,
+        "value": "text-slate-500"
+      },
+      {
+        "line": 1448,
+        "value": "px-3 py-3"
+      },
+      {
+        "line": 1449,
+        "value": "flex flex-wrap items-center gap-1.5"
+      },
+      {
+        "line": 1453,
+        "value": "inline-flex items-center rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 1460,
+        "value": "text-slate-500"
+      },
+      {
+        "line": 1464,
+        "value": "px-3 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1465,
+        "value": "px-3 py-3 text-right whitespace-nowrap"
+      },
+      {
+        "line": 1468,
+        "value": "small"
+      },
+      {
+        "line": 1479,
+        "value": "button"
+      },
+      {
+        "line": 1494,
+        "value": "small"
+      },
+      {
+        "line": 1514,
+        "value": "px-3 py-4 text-sm text-slate-500"
+      },
+      {
+        "line": 1520,
+        "value": "admins"
+      },
+      {
+        "line": 1521,
+        "value": "mt-6 space-y-6"
+      },
+      {
+        "line": 1522,
+        "value": "overflow-x-auto rounded-3xl border border-slate-200 bg-white/80 p-4"
+      },
+      {
+        "line": 1523,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1524,
+        "value": "mt-4 w-full min-w-full table-auto divide-y divide-slate-200 text-sm"
+      },
+      {
+        "line": 1526,
+        "value": "w-[34%]"
+      },
+      {
+        "line": 1527,
+        "value": "w-[34%]"
+      },
+      {
+        "line": 1528,
+        "value": "w-[12%]"
+      },
+      {
+        "line": 1529,
+        "value": "w-[20%]"
+      },
+      {
+        "line": 1532,
+        "value": "text-left text-slate-500"
+      },
+      {
+        "line": 1533,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1536,
+        "value": "name"
+      },
+      {
+        "line": 1542,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1545,
+        "value": "email"
+      },
+      {
+        "line": 1551,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1552,
+        "value": "px-3 py-3 font-semibold"
+      },
+      {
+        "line": 1555,
+        "value": "dateCreated"
+      },
+      {
+        "line": 1563,
+        "value": "divide-y divide-slate-100"
+      },
+      {
+        "line": 1566,
+        "value": "px-3 py-3"
+      },
+      {
+        "line": 1567,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 1575,
+        "value": "font-medium text-slate-900"
+      },
+      {
+        "line": 1576,
+        "value": "text-xs text-slate-500"
+      },
+      {
+        "line": 1580,
+        "value": "px-3 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1581,
+        "value": "px-3 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1582,
+        "value": "px-3 py-3 whitespace-nowrap text-slate-600"
+      },
+      {
+        "line": 1598,
+        "value": "px-3 py-4 text-sm text-slate-500"
+      },
+      {
+        "line": 1607,
+        "value": "admin-management-modal"
+      },
+      {
+        "line": 1607,
+        "value": "dialog"
+      },
+      {
+        "line": 1607,
+        "value": "true"
+      },
+      {
+        "line": 1608,
+        "value": "admin-management-modal-card max-w-6xl"
+      },
+      {
+        "line": 1609,
+        "value": "admin-management-modal-header flex flex-col gap-4 px-8 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-10"
+      },
+      {
+        "line": 1610,
+        "value": "min-w-0"
+      },
+      {
+        "line": 1611,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 1612,
+        "value": "mt-2 text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 1615,
+        "value": "mt-2 text-sm text-slate-500"
+      },
+      {
+        "line": 1621,
+        "value": "flex flex-wrap items-center gap-3 lg:justify-end"
+      },
+      {
+        "line": 1624,
+        "value": "rounded-2xl border border-sky-200 bg-white/85 px-4 py-3 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+      },
+      {
+        "line": 1625,
+        "value": "button"
+      },
+      {
+        "line": 1632,
+        "value": "Close user form"
+      },
+      {
+        "line": 1633,
+        "value": "inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      },
+      {
+        "line": 1634,
+        "value": "button"
+      },
+      {
+        "line": 1641,
+        "value": "admin-management-modal-body px-8 py-8 lg:px-10 lg:py-9"
+      },
+      {
+        "line": 1642,
+        "value": "admin-management-modal-form-endpad grid gap-6"
+      },
+      {
+        "line": 1644,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/55 p-4"
+      },
+      {
+        "line": 1645,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 1646,
+        "value": "mt-3 flex flex-col gap-4 sm:flex-row sm:items-center"
+      },
+      {
+        "line": 1648,
+        "value": "group relative inline-flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full border border-sky-200 bg-white shadow-[0_12px_24px_rgba(36,104,160,0.12)] transition hover:border-sky-300 hover:shadow-[0_16px_30px_rgba(36,104,160,0.16)]"
+      },
+      {
+        "line": 1649,
+        "value": "button"
+      },
+      {
+        "line": 1658,
+        "value": "absolute inset-x-0 bottom-0 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-white opacity-0 transition group-hover:opacity-100"
+      },
+      {
+        "line": 1663,
+        "value": "flex-1 space-y-3"
+      },
+      {
+        "line": 1666,
+        "value": ".png,.jpg,.jpeg,.webp"
+      },
+      {
+        "line": 1667,
+        "value": "sr-only"
+      },
+      {
+        "line": 1668,
+        "value": "file"
+      },
+      {
+        "line": 1672,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 1676,
+        "value": "flex flex-wrap gap-3"
+      },
+      {
+        "line": 1678,
+        "value": "button-primary px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+      },
+      {
+        "line": 1680,
+        "value": "button"
+      },
+      {
+        "line": 1690,
+        "value": "rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+      },
+      {
+        "line": 1692,
+        "value": "button"
+      },
+      {
+        "line": 1700,
+        "value": "text-sm font-medium text-sky-900"
+      },
+      {
+        "line": 1707,
+        "value": "rounded-[2rem] border border-sky-200/80 bg-white/70 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 1708,
+        "value": "flex flex-col gap-1"
+      },
+      {
+        "line": 1709,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1710,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 1713,
+        "value": "mt-5 grid gap-4"
+      },
+      {
+        "line": 1714,
+        "value": "grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 1716,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 1717,
+        "value": "Full Name"
+      },
+      {
+        "line": 1722,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 1723,
+        "value": "Username"
+      },
+      {
+        "line": 1729,
+        "value": "grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 1731,
+        "value": "rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 1732,
+        "value": "Email"
+      },
+      {
+        "line": 1737,
+        "value": "password-field"
+      },
+      {
+        "line": 1739,
+        "value": "w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 1745,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 1745,
+        "value": "button"
+      },
+      {
+        "line": 1751,
+        "value": "grid gap-4 lg:grid-cols-3"
+      },
+      {
+        "line": 1753,
+        "value": "Role"
+      },
+      {
+        "line": 1773,
+        "value": "Grade"
+      },
+      {
+        "line": 1780,
+        "value": "Section"
+      },
+      {
+        "line": 1792,
+        "value": "rounded-[2rem] border border-sky-200/80 bg-white/70 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 1793,
+        "value": "flex flex-col gap-1"
+      },
+      {
+        "line": 1794,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 1795,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 1798,
+        "value": "mt-5 grid gap-6"
+      },
+      {
+        "line": 1799,
+        "value": "space-y-2"
+      },
+      {
+        "line": 1800,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 1801,
+        "value": "max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-4"
+      },
+      {
+        "line": 1805,
+        "value": "flex min-h-[52px] items-start gap-3 rounded-xl px-3 py-3 text-sm text-slate-700 hover:bg-white/70"
+      },
+      {
+        "line": 1808,
+        "value": "mt-1 h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+      },
+      {
+        "line": 1809,
+        "value": "checkbox"
+      },
+      {
+        "line": 1812,
+        "value": "leading-5"
+      },
+      {
+        "line": 1821,
+        "value": "space-y-2"
+      },
+      {
+        "line": 1822,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 1823,
+        "value": "grid max-h-56 gap-3 overflow-y-auto rounded-2xl border border-sky-200 bg-sky-50/55 p-4 sm:grid-cols-2 lg:grid-cols-3"
+      },
+      {
+        "line": 1831,
+        "value": "flex min-h-[52px] items-center gap-3 rounded-xl border border-transparent bg-white/55 px-3 py-3 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-white/80"
+      },
+      {
+        "line": 1836,
+        "value": "h-4 w-4 shrink-0 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+      },
+      {
+        "line": 1837,
+        "value": "checkbox"
+      },
+      {
+        "line": 1840,
+        "value": "truncate"
+      },
+      {
+        "line": 1851,
+        "value": "admin-management-modal-footer px-8 lg:px-10"
+      },
+      {
+        "line": 1852,
+        "value": "button-primary px-5 py-3.5 text-base"
+      },
+      {
+        "line": 1852,
+        "value": "button"
+      },
+      {
+        "line": 1855,
+        "value": "rounded-2xl border border-slate-200 px-5 py-3.5 font-semibold text-slate-700"
+      },
+      {
+        "line": 1855,
+        "value": "button"
+      },
+      {
+        "line": 1865,
+        "value": "Delete user?"
+      },
+      {
+        "line": 1911,
+        "value": "small"
+      },
+      {
+        "line": 1923,
+        "value": "small"
+      },
+      {
+        "line": 1935,
+        "value": "small"
+      },
+      {
+        "line": 1949,
+        "value": "small"
+      },
+      {
+        "line": 1951,
+        "value": "small"
+      },
+      {
+        "line": 1969,
+        "value": "small"
+      },
+      {
+        "line": 2002,
+        "value": "flex items-start justify-between gap-4"
+      },
+      {
+        "line": 2003,
+        "value": "flex min-w-0 items-center gap-4"
+      },
+      {
+        "line": 2027,
+        "value": "min-w-0"
+      },
+      {
+        "line": 2028,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-slate-400"
+      },
+      {
+        "line": 2029,
+        "value": "mt-1 truncate text-[2rem] font-bold leading-tight text-slate-900"
+      },
+      {
+        "line": 2032,
+        "value": "small"
+      },
+      {
+        "line": 2033,
+        "value": "small"
+      },
+      {
+        "line": 2038,
+        "value": "grid gap-5 pt-2 sm:grid-cols-2"
+      },
+      {
+        "line": 2039,
+        "value": "rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)]"
+      },
+      {
+        "line": 2040,
+        "value": "text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+      },
+      {
+        "line": 2041,
+        "value": "mt-3 flex items-center gap-2"
+      },
+      {
+        "line": 2045,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 2050,
+        "value": "rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)]"
+      },
+      {
+        "line": 2051,
+        "value": "text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+      },
+      {
+        "line": 2052,
+        "value": "mt-3 text-sm font-medium text-slate-800"
+      },
+      {
+        "line": 2054,
+        "value": "rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2"
+      },
+      {
+        "line": 2055,
+        "value": "text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+      },
+      {
+        "line": 2056,
+        "value": "mt-3 text-sm font-medium text-slate-800"
+      },
+      {
+        "line": 2058,
+        "value": "Teacher"
+      },
+      {
+        "line": 2060,
+        "value": "rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2"
+      },
+      {
+        "line": 2061,
+        "value": "text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+      },
+      {
+        "line": 2062,
+        "value": "mt-3 flex flex-wrap gap-2"
+      },
+      {
+        "line": 2065,
+        "value": "rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 2070,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 2074,
+        "value": "rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2"
+      },
+      {
+        "line": 2075,
+        "value": "text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+      },
+      {
+        "line": 2076,
+        "value": "mt-3 flex flex-wrap gap-2"
+      },
+      {
+        "line": 2079,
+        "value": "rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 2084,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 2090,
+        "value": "rounded-3xl border border-sky-100 bg-white/90 p-4 shadow-[0_10px_22px_rgba(36,104,160,0.07)] sm:col-span-2"
+      },
+      {
+        "line": 2091,
+        "value": "text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+      },
+      {
+        "line": 2092,
+        "value": "mt-3"
+      },
+      {
+        "line": 2094,
+        "value": "rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 2098,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 2136,
+        "value": "flex items-start justify-between gap-4"
+      },
+      {
+        "line": 2138,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-slate-400"
+      },
+      {
+        "line": 2139,
+        "value": "mt-1 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 2140,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 2143,
+        "value": "small"
+      },
+      {
+        "line": 2150,
+        "value": "small"
+      },
+      {
+        "line": 2155,
+        "value": "space-y-4"
+      },
+      {
+        "line": 2156,
+        "value": "password-field"
+      },
+      {
+        "line": 2158,
+        "value": "w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 2159,
+        "value": "New password"
+      },
+      {
+        "line": 2169,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 2169,
+        "value": "button"
+      },
+      {
+        "line": 2174,
+        "value": "w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 2175,
+        "value": "Confirm new password"
+      },
+      {
+        "line": 2185,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 2192,
+        "value": "rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50"
+      },
+      {
+        "line": 2194,
+        "value": "button"
+      },
+      {
+        "line": 2199,
+        "value": "button-primary px-4 py-2.5 text-sm"
+      },
+      {
+        "line": 2199,
+        "value": "button"
+      }
+    ]
+  },
+  {
+    "file": "src/features/auth/pages/LoginPage.tsx",
+    "entries": [
+      {
+        "line": 24,
+        "value": "login"
+      },
+      {
+        "line": 33,
+        "value": "register"
+      },
+      {
+        "line": 55,
+        "value": "register"
+      },
+      {
+        "line": 73,
+        "value": "Admin"
+      },
+      {
+        "line": 73,
+        "value": "Teacher"
+      },
+      {
+        "line": 92,
+        "value": "string"
+      },
+      {
+        "line": 96,
+        "value": "object"
+      },
+      {
+        "line": 97,
+        "value": "string"
+      },
+      {
+        "line": 101,
+        "value": "string"
+      },
+      {
+        "line": 166,
+        "value": "Admin"
+      },
+      {
+        "line": 166,
+        "value": "Teacher"
+      },
+      {
+        "line": 257,
+        "value": "auth-shell"
+      },
+      {
+        "line": 258,
+        "value": "auth-backdrop auth-backdrop-left"
+      },
+      {
+        "line": 259,
+        "value": "auth-backdrop auth-backdrop-right"
+      },
+      {
+        "line": 261,
+        "value": "auth-layout"
+      },
+      {
+        "line": 262,
+        "value": "auth-panel"
+      },
+      {
+        "line": 263,
+        "value": "auth-panel-top"
+      },
+      {
+        "line": 264,
+        "value": "auth-panel-intro"
+      },
+      {
+        "line": 265,
+        "value": "auth"
+      },
+      {
+        "line": 265,
+        "value": "transparent"
+      },
+      {
+        "line": 266,
+        "value": "auth-brand-copy"
+      },
+      {
+        "line": 267,
+        "value": "auth-brand-title"
+      },
+      {
+        "line": 269,
+        "value": "panel-overline"
+      },
+      {
+        "line": 272,
+        "value": "mode-switch"
+      },
+      {
+        "line": 274,
+        "value": "login"
+      },
+      {
+        "line": 275,
+        "value": "button"
+      },
+      {
+        "line": 283,
+        "value": "register"
+      },
+      {
+        "line": 284,
+        "value": "button"
+      },
+      {
+        "line": 294,
+        "value": "auth-card"
+      },
+      {
+        "line": 295,
+        "value": "login"
+      },
+      {
+        "line": 296,
+        "value": "auth-form"
+      },
+      {
+        "line": 297,
+        "value": "field"
+      },
+      {
+        "line": 300,
+        "value": "username"
+      },
+      {
+        "line": 302,
+        "value": "text"
+      },
+      {
+        "line": 310,
+        "value": "field"
+      },
+      {
+        "line": 312,
+        "value": "password-field"
+      },
+      {
+        "line": 314,
+        "value": "current-password"
+      },
+      {
+        "line": 323,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 324,
+        "value": "button"
+      },
+      {
+        "line": 332,
+        "value": "form-row"
+      },
+      {
+        "line": 333,
+        "value": "checkbox-row"
+      },
+      {
+        "line": 336,
+        "value": "checkbox"
+      },
+      {
+        "line": 343,
+        "value": "text-link"
+      },
+      {
+        "line": 346,
+        "value": "submit-button"
+      },
+      {
+        "line": 346,
+        "value": "submit"
+      },
+      {
+        "line": 350,
+        "value": "form-note"
+      },
+      {
+        "line": 353,
+        "value": "inline-switch"
+      },
+      {
+        "line": 354,
+        "value": "button"
+      },
+      {
+        "line": 364,
+        "value": "auth-form"
+      },
+      {
+        "line": 365,
+        "value": "field"
+      },
+      {
+        "line": 368,
+        "value": "name"
+      },
+      {
+        "line": 370,
+        "value": "text"
+      },
+      {
+        "line": 378,
+        "value": "field"
+      },
+      {
+        "line": 381,
+        "value": "username"
+      },
+      {
+        "line": 383,
+        "value": "text"
+      },
+      {
+        "line": 391,
+        "value": "field"
+      },
+      {
+        "line": 394,
+        "value": "email"
+      },
+      {
+        "line": 396,
+        "value": "email"
+      },
+      {
+        "line": 404,
+        "value": "grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 405,
+        "value": "field"
+      },
+      {
+        "line": 422,
+        "value": "field"
+      },
+      {
+        "line": 440,
+        "value": "field"
+      },
+      {
+        "line": 442,
+        "value": "password-field"
+      },
+      {
+        "line": 444,
+        "value": "new-password"
+      },
+      {
+        "line": 453,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 454,
+        "value": "button"
+      },
+      {
+        "line": 460,
+        "value": "strength-meter"
+      },
+      {
+        "line": 460,
+        "value": "true"
+      },
+      {
+        "line": 463,
+        "value": "strength-label"
+      },
+      {
+        "line": 468,
+        "value": "field"
+      },
+      {
+        "line": 470,
+        "value": "password-field"
+      },
+      {
+        "line": 472,
+        "value": "new-password"
+      },
+      {
+        "line": 484,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 485,
+        "value": "button"
+      },
+      {
+        "line": 493,
+        "value": "checkbox-row"
+      },
+      {
+        "line": 494,
+        "value": "checkbox"
+      },
+      {
+        "line": 498,
+        "value": "submit-button"
+      },
+      {
+        "line": 498,
+        "value": "submit"
+      },
+      {
+        "line": 502,
+        "value": "form-note"
+      },
+      {
+        "line": 505,
+        "value": "inline-switch"
+      },
+      {
+        "line": 506,
+        "value": "button"
+      },
+      {
+        "line": 517,
+        "value": "auth-learn-more"
+      },
+      {
+        "line": 518,
+        "value": "auth-learn-more-link"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/components/QuestionCard.tsx",
+    "entries": [
+      {
+        "line": 38,
+        "value": "grid gap-3"
+      },
+      {
+        "line": 57,
+        "value": "button"
+      },
+      {
+        "line": 73,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 74,
+        "value": "space-y-4"
+      },
+      {
+        "line": 76,
+        "value": "text-xs font-semibold uppercase tracking-[0.3em] text-brand-100/60"
+      },
+      {
+        "line": 79,
+        "value": "mt-2 text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 85,
+        "value": "max-h-80 w-full rounded-3xl object-cover"
+      },
+      {
+        "line": 90,
+        "value": "text"
+      },
+      {
+        "line": 91,
+        "value": "space-y-3"
+      },
+      {
+        "line": 93,
+        "value": "min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
+      },
+      {
+        "line": 95,
+        "value": "Type your answer here"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/components/StatCard.tsx",
+    "entries": [
+      {
+        "line": 9,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 10,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 11,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 12,
+        "value": "mt-3 text-sm text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/LessonDetailsPage.tsx",
+    "entries": [
+      {
+        "line": 96,
+        "value": "string"
+      },
+      {
+        "line": 115,
+        "value": "glass-panel p-6 text-slate-600"
+      },
+      {
+        "line": 119,
+        "value": "glass-panel p-6 text-rose-700"
+      },
+      {
+        "line": 124,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 125,
+        "value": "text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 133,
+        "value": "space-y-8"
+      },
+      {
+        "line": 136,
+        "value": "button-primary inline-flex text-sm"
+      },
+      {
+        "line": 145,
+        "value": "glass-panel max-w-5xl space-y-6 p-6"
+      },
+      {
+        "line": 146,
+        "value": "lesson-content"
+      },
+      {
+        "line": 149,
+        "value": "rounded-3xl border border-blue-100/80 bg-blue-50/55 p-5"
+      },
+      {
+        "line": 150,
+        "value": "mb-4"
+      },
+      {
+        "line": 151,
+        "value": "text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]"
+      },
+      {
+        "line": 152,
+        "value": "mt-2 text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 155,
+        "value": "space-y-4"
+      },
+      {
+        "line": 157,
+        "value": "overflow-hidden rounded-3xl border border-sky-200 bg-white shadow-[0_12px_24px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 159,
+        "value": "group relative block"
+      },
+      {
+        "line": 159,
+        "value": "noreferrer"
+      },
+      {
+        "line": 159,
+        "value": "_blank"
+      },
+      {
+        "line": 162,
+        "value": "h-44 w-full object-cover"
+      },
+      {
+        "line": 165,
+        "value": "absolute inset-0 flex items-center justify-center bg-slate-950/25 transition group-hover:bg-slate-950/35"
+      },
+      {
+        "line": 166,
+        "value": "inline-flex items-center gap-2 rounded-full bg-white/92 px-4 py-2 text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 167,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 173,
+        "value": "p-4"
+      },
+      {
+        "line": 174,
+        "value": "mb-3 flex items-center gap-2 font-semibold text-slate-900"
+      },
+      {
+        "line": 175,
+        "value": "h-4 w-4 text-[#0f8b8d]"
+      },
+      {
+        "line": 178,
+        "value": "aspect-video overflow-hidden rounded-3xl"
+      },
+      {
+        "line": 180,
+        "value": "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      },
+      {
+        "line": 182,
+        "value": "h-full w-full border-0"
+      },
+      {
+        "line": 193,
+        "value": "flex items-center gap-4 rounded-3xl border border-sky-200 bg-white p-4 text-slate-800 shadow-[0_12px_24px_rgba(36,104,160,0.08)] transition hover:bg-sky-50"
+      },
+      {
+        "line": 195,
+        "value": "noreferrer"
+      },
+      {
+        "line": 196,
+        "value": "_blank"
+      },
+      {
+        "line": 198,
+        "value": "inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100/90 text-[#2468a0]"
+      },
+      {
+        "line": 199,
+        "value": "h-6 w-6"
+      },
+      {
+        "line": 202,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 203,
+        "value": "text-xs text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/LessonsPage.tsx",
+    "entries": [
+      {
+        "line": 69,
+        "value": "string"
+      },
+      {
+        "line": 114,
+        "value": "all"
+      },
+      {
+        "line": 116,
+        "value": "all"
+      },
+      {
+        "line": 117,
+        "value": "active"
+      },
+      {
+        "line": 118,
+        "value": "all"
+      },
+      {
+        "line": 150,
+        "value": "space-y-8"
+      },
+      {
+        "line": 157,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 159,
+        "value": "rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 171,
+        "value": "none"
+      },
+      {
+        "line": 176,
+        "value": "row"
+      },
+      {
+        "line": 176,
+        "value": "flex-end"
+      },
+      {
+        "line": 181,
+        "value": "row"
+      },
+      {
+        "line": 181,
+        "value": "wrap"
+      },
+      {
+        "line": 181,
+        "value": "center"
+      },
+      {
+        "line": 184,
+        "value": "all"
+      },
+      {
+        "line": 191,
+        "value": "all"
+      },
+      {
+        "line": 217,
+        "value": "Start date"
+      },
+      {
+        "line": 224,
+        "value": "End date"
+      },
+      {
+        "line": 233,
+        "value": "mt-6 text-slate-600"
+      },
+      {
+        "line": 234,
+        "value": "mt-6 text-rose-700"
+      },
+      {
+        "line": 239,
+        "value": "mt-6 grid gap-4"
+      },
+      {
+        "line": 241,
+        "value": "glass-panel flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between"
+      },
+      {
+        "line": 242,
+        "value": "space-y-2"
+      },
+      {
+        "line": 243,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 244,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 247,
+        "value": "max-w-2xl text-sm text-slate-600"
+      },
+      {
+        "line": 252,
+        "value": "button-primary inline-flex text-sm"
+      },
+      {
+        "line": 258,
+        "value": "mt-4 rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 272,
+        "value": "admin-management-empty mt-6"
+      },
+      {
+        "line": 273,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 274,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 275,
+        "value": "mt-2 text-sm text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/ProfilePage.tsx",
+    "entries": [
+      {
+        "line": 40,
+        "value": "string"
+      },
+      {
+        "line": 71,
+        "value": "space-y-8"
+      },
+      {
+        "line": 73,
+        "value": "Review your account details, recent scores, and overall learning progress."
+      },
+      {
+        "line": 74,
+        "value": "Profile"
+      },
+      {
+        "line": 75,
+        "value": "Student Profile"
+      },
+      {
+        "line": 78,
+        "value": "grid gap-4 xl:grid-cols-[0.85fr_1.15fr]"
+      },
+      {
+        "line": 79,
+        "value": "glass-panel space-y-4 p-6"
+      },
+      {
+        "line": 81,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 82,
+        "value": "mt-1 text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 85,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 86,
+        "value": "mt-1 text-xl font-medium text-slate-900"
+      },
+      {
+        "line": 90,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 91,
+        "value": "mt-2 inline-flex rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-[#2468a0]"
+      },
+      {
+        "line": 97,
+        "value": "flex items-center justify-between text-sm text-slate-500"
+      },
+      {
+        "line": 101,
+        "value": "mt-3 h-3 overflow-hidden rounded-full bg-slate-200"
+      },
+      {
+        "line": 103,
+        "value": "h-full rounded-full bg-gradient-to-r from-brand-500 to-cyan-400"
+      },
+      {
+        "line": 110,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 111,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 112,
+        "value": "mt-5 text-slate-600"
+      },
+      {
+        "line": 113,
+        "value": "mt-5 text-rose-700"
+      },
+      {
+        "line": 115,
+        "value": "mt-5 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-4 text-slate-600"
+      },
+      {
+        "line": 120,
+        "value": "mt-5 space-y-3"
+      },
+      {
+        "line": 123,
+        "value": "flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-4 md:flex-row md:items-center md:justify-between"
+      },
+      {
+        "line": 127,
+        "value": "font-medium text-slate-900"
+      },
+      {
+        "line": 128,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 132,
+        "value": "rounded-full bg-emerald-500/15 px-3 py-1 text-sm font-semibold text-emerald-700"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/StudentHomePage.tsx",
+    "entries": [
+      {
+        "line": 66,
+        "value": "space-y-8"
+      },
+      {
+        "line": 70,
+        "value": "button-primary inline-flex px-5 text-sm"
+      },
+      {
+        "line": 81,
+        "value": "grid gap-4 md:grid-cols-3"
+      },
+      {
+        "line": 87,
+        "value": "glass-panel grid gap-6 p-6 lg:grid-cols-[1.2fr_0.8fr]"
+      },
+      {
+        "line": 88,
+        "value": "space-y-3"
+      },
+      {
+        "line": 89,
+        "value": "text-xs font-semibold uppercase tracking-[0.3em] text-brand-100/60"
+      },
+      {
+        "line": 92,
+        "value": "font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 93,
+        "value": "max-w-2xl text-sm leading-6 text-slate-600"
+      },
+      {
+        "line": 97,
+        "value": "rounded-3xl border border-slate-200 bg-slate-50/90 p-5"
+      },
+      {
+        "line": 98,
+        "value": "flex items-center justify-between text-sm text-slate-500"
+      },
+      {
+        "line": 102,
+        "value": "mt-4 h-3 overflow-hidden rounded-full bg-slate-200"
+      },
+      {
+        "line": 103,
+        "value": "h-full w-[72%] rounded-full bg-gradient-to-r from-brand-500 to-cyan-400"
+      },
+      {
+        "line": 105,
+        "value": "mt-4 text-sm text-slate-600"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/SubjectsPage.tsx",
+    "entries": [
+      {
+        "line": 61,
+        "value": "string"
+      },
+      {
+        "line": 92,
+        "value": "all"
+      },
+      {
+        "line": 129,
+        "value": "space-y-8"
+      },
+      {
+        "line": 137,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 138,
+        "value": "text-slate-600"
+      },
+      {
+        "line": 143,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 144,
+        "value": "text-rose-700"
+      },
+      {
+        "line": 149,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 151,
+        "value": "rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 163,
+        "value": "none"
+      },
+      {
+        "line": 168,
+        "value": "row"
+      },
+      {
+        "line": 168,
+        "value": "flex-end"
+      },
+      {
+        "line": 173,
+        "value": "row"
+      },
+      {
+        "line": 173,
+        "value": "wrap"
+      },
+      {
+        "line": 173,
+        "value": "center"
+      },
+      {
+        "line": 176,
+        "value": "all"
+      },
+      {
+        "line": 183,
+        "value": "all"
+      },
+      {
+        "line": 190,
+        "value": "mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      },
+      {
+        "line": 196,
+        "value": "button-primary inline-flex px-4 py-3 text-sm"
+      },
+      {
+        "line": 198,
+        "value": "button"
+      },
+      {
+        "line": 210,
+        "value": "mt-4 rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 224,
+        "value": "admin-management-empty mt-6"
+      },
+      {
+        "line": 225,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 226,
+        "value": "mt-2 text-sm text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/TestPage.tsx",
+    "entries": [
+      {
+        "line": 91,
+        "value": "string"
+      },
+      {
+        "line": 93,
+        "value": "string"
+      },
+      {
+        "line": 123,
+        "value": "text"
+      },
+      {
+        "line": 125,
+        "value": "number"
+      },
+      {
+        "line": 151,
+        "value": "string"
+      },
+      {
+        "line": 153,
+        "value": "string"
+      },
+      {
+        "line": 187,
+        "value": "string"
+      },
+      {
+        "line": 189,
+        "value": "string"
+      },
+      {
+        "line": 201,
+        "value": "glass-panel p-6 text-slate-600"
+      },
+      {
+        "line": 205,
+        "value": "glass-panel p-6 text-rose-700"
+      },
+      {
+        "line": 210,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 211,
+        "value": "text-2xl font-semibold text-slate-900"
+      },
+      {
+        "line": 217,
+        "value": "space-y-8"
+      },
+      {
+        "line": 224,
+        "value": "glass-panel p-6 text-rose-700"
+      },
+      {
+        "line": 227,
+        "value": "glass-panel flex items-center justify-between gap-6 p-6"
+      },
+      {
+        "line": 229,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 230,
+        "value": "mt-2 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 234,
+        "value": "rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-4 text-sm text-slate-600"
+      },
+      {
+        "line": 240,
+        "value": "grid gap-4"
+      },
+      {
+        "line": 245,
+        "value": "space-y-3"
+      },
+      {
+        "line": 261,
+        "value": "glass-panel px-5 py-4"
+      },
+      {
+        "line": 262,
+        "value": "flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+      },
+      {
+        "line": 264,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]"
+      },
+      {
+        "line": 267,
+        "value": "mt-1 text-sm text-slate-600"
+      },
+      {
+        "line": 272,
+        "value": "inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-[#2468a0] disabled:cursor-not-allowed disabled:opacity-60"
+      },
+      {
+        "line": 274,
+        "value": "button"
+      },
+      {
+        "line": 277,
+        "value": "h-4 w-4 animate-spin"
+      },
+      {
+        "line": 277,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 283,
+        "value": "mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+      },
+      {
+        "line": 289,
+        "value": "mt-3 whitespace-pre-line rounded-3xl border border-cyan-100 bg-cyan-50/70 px-5 py-4 text-sm leading-7 text-slate-700"
+      },
+      {
+        "line": 301,
+        "value": "button-primary inline-flex text-sm disabled:cursor-not-allowed disabled:opacity-60"
+      },
+      {
+        "line": 304,
+        "value": "button"
+      }
+    ]
+  },
+  {
+    "file": "src/features/student/pages/TestsPage.tsx",
+    "entries": [
+      {
+        "line": 68,
+        "value": "string"
+      },
+      {
+        "line": 114,
+        "value": "all"
+      },
+      {
+        "line": 116,
+        "value": "all"
+      },
+      {
+        "line": 117,
+        "value": "active"
+      },
+      {
+        "line": 118,
+        "value": "all"
+      },
+      {
+        "line": 145,
+        "value": "space-y-8"
+      },
+      {
+        "line": 152,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 153,
+        "value": "admin-management-control-bar"
+      },
+      {
+        "line": 156,
+        "value": "1 1 200px"
+      },
+      {
+        "line": 157,
+        "value": "min(100%, 200px)"
+      },
+      {
+        "line": 163,
+        "value": "admin-management-filter-group"
+      },
+      {
+        "line": 166,
+        "value": "all"
+      },
+      {
+        "line": 173,
+        "value": "all"
+      },
+      {
+        "line": 200,
+        "value": "Start date"
+      },
+      {
+        "line": 207,
+        "value": "End date"
+      },
+      {
+        "line": 217,
+        "value": "mt-6 text-slate-600"
+      },
+      {
+        "line": 219,
+        "value": "mt-6 text-rose-700"
+      },
+      {
+        "line": 225,
+        "value": "mt-6 grid gap-4"
+      },
+      {
+        "line": 227,
+        "value": "glass-panel flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between"
+      },
+      {
+        "line": 228,
+        "value": "space-y-2"
+      },
+      {
+        "line": 229,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 230,
+        "value": "text-sm text-slate-600"
+      },
+      {
+        "line": 235,
+        "value": "button-primary inline-flex px-4 py-3 text-sm"
+      },
+      {
+        "line": 243,
+        "value": "mt-4 rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 257,
+        "value": "admin-management-empty mt-6"
+      },
+      {
+        "line": 258,
+        "value": "text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 259,
+        "value": "mt-2 text-sm text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/features/teacher/pages/TeacherOverviewPage.tsx",
+    "entries": [
+      {
+        "line": 39,
+        "value": "string"
+      },
+      {
+        "line": 55,
+        "value": "space-y-8"
+      },
+      {
+        "line": 58,
+        "value": "button-primary inline-flex px-5 text-sm"
+      },
+      {
+        "line": 67,
+        "value": "glass-panel p-6 text-rose-700"
+      },
+      {
+        "line": 69,
+        "value": "grid gap-4 md:grid-cols-3"
+      },
+      {
+        "line": 70,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 71,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 72,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 74,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 75,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 76,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 78,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 79,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 80,
+        "value": "mt-3 font-display text-4xl font-bold text-slate-900"
+      },
+      {
+        "line": 84,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 85,
+        "value": "text-xs font-semibold uppercase tracking-[0.3em] text-brand-100/60"
+      },
+      {
+        "line": 88,
+        "value": "mt-3 font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 91,
+        "value": "mt-3 max-w-3xl text-sm leading-7 text-slate-600"
+      }
+    ]
+  },
+  {
+    "file": "src/layouts/AdminLayout.tsx",
+    "entries": [
+      {
+        "line": 25,
+        "value": "min-h-screen"
+      },
+      {
+        "line": 26,
+        "value": "glass-panel m-3 p-5 lg:fixed lg:inset-y-0 lg:left-0 lg:m-4 lg:flex lg:h-[calc(100vh-2rem)] lg:w-80 lg:flex-col"
+      },
+      {
+        "line": 27,
+        "value": "flex h-full flex-col gap-6"
+      },
+      {
+        "line": 28,
+        "value": "space-y-2"
+      },
+      {
+        "line": 29,
+        "value": "View School Presentation"
+      },
+      {
+        "line": 30,
+        "value": "sidebar-brand-link inline-block"
+      },
+      {
+        "line": 35,
+        "value": "font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 36,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 37,
+        "value": "font-medium text-slate-700"
+      },
+      {
+        "line": 44,
+        "value": "grid gap-2"
+      },
+      {
+        "line": 52,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 58,
+        "value": "mt-auto"
+      },
+      {
+        "line": 62,
+        "value": "px-3 pb-3 lg:ml-[22rem] lg:px-6 lg:pt-4"
+      },
+      {
+        "line": 63,
+        "value": "mx-auto flex min-h-screen max-w-[1200px] flex-col"
+      },
+      {
+        "line": 66,
+        "value": "min-w-0 flex-1 pt-6"
+      }
+    ]
+  },
+  {
+    "file": "src/layouts/RoleBasedLayout.tsx",
+    "entries": [
+      {
+        "line": 9,
+        "value": "Admin"
+      },
+      {
+        "line": 13,
+        "value": "Teacher"
+      }
+    ]
+  },
+  {
+    "file": "src/layouts/StudentLayout.tsx",
+    "entries": [
+      {
+        "line": 25,
+        "value": "min-h-screen"
+      },
+      {
+        "line": 26,
+        "value": "glass-panel m-3 p-5 lg:fixed lg:inset-y-0 lg:left-0 lg:m-4 lg:flex lg:h-[calc(100vh-2rem)] lg:w-72 lg:flex-col"
+      },
+      {
+        "line": 27,
+        "value": "flex h-full flex-col gap-6"
+      },
+      {
+        "line": 28,
+        "value": "space-y-2"
+      },
+      {
+        "line": 29,
+        "value": "View School Presentation"
+      },
+      {
+        "line": 30,
+        "value": "sidebar-brand-link inline-block"
+      },
+      {
+        "line": 35,
+        "value": "font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 36,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 37,
+        "value": "font-medium text-slate-700"
+      },
+      {
+        "line": 44,
+        "value": "grid gap-2"
+      },
+      {
+        "line": 52,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 58,
+        "value": "mt-auto"
+      },
+      {
+        "line": 62,
+        "value": "px-3 pb-3 lg:ml-[19rem] lg:px-6 lg:pt-4"
+      },
+      {
+        "line": 63,
+        "value": "mx-auto flex min-h-screen max-w-[1200px] flex-col"
+      },
+      {
+        "line": 66,
+        "value": "min-w-0 flex-1 pt-6"
+      }
+    ]
+  },
+  {
+    "file": "src/layouts/TeacherLayout.tsx",
+    "entries": [
+      {
+        "line": 24,
+        "value": "min-h-screen"
+      },
+      {
+        "line": 25,
+        "value": "glass-panel m-3 p-5 lg:fixed lg:inset-y-0 lg:left-0 lg:m-4 lg:flex lg:h-[calc(100vh-2rem)] lg:w-80 lg:flex-col"
+      },
+      {
+        "line": 26,
+        "value": "flex h-full flex-col gap-6"
+      },
+      {
+        "line": 27,
+        "value": "space-y-2"
+      },
+      {
+        "line": 28,
+        "value": "View School Presentation"
+      },
+      {
+        "line": 29,
+        "value": "sidebar-brand-link inline-block"
+      },
+      {
+        "line": 34,
+        "value": "font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 35,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 36,
+        "value": "font-medium text-slate-700"
+      },
+      {
+        "line": 43,
+        "value": "grid gap-2"
+      },
+      {
+        "line": 51,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 57,
+        "value": "mt-auto"
+      },
+      {
+        "line": 61,
+        "value": "px-3 pb-3 lg:ml-[22rem] lg:px-6 lg:pt-4"
+      },
+      {
+        "line": 62,
+        "value": "mx-auto flex min-h-screen max-w-[1200px] flex-col"
+      },
+      {
+        "line": 65,
+        "value": "min-w-0 flex-1 pt-6"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/api/axiosInstance.ts",
+    "entries": [
+      {
+        "line": 29,
+        "value": "Bearer ${token}"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/authStorage.ts",
+    "entries": [
+      {
+        "line": 3,
+        "value": "token"
+      },
+      {
+        "line": 4,
+        "value": "authUser"
+      },
+      {
+        "line": 5,
+        "value": "authExpiresAt"
+      },
+      {
+        "line": 6,
+        "value": "authPersistent"
+      },
+      {
+        "line": 7,
+        "value": "username"
+      },
+      {
+        "line": 8,
+        "value": "userRole"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/AdminDateField.tsx",
+    "entries": [
+      {
+        "line": 19,
+        "value": "dd.mm.yyyy"
+      },
+      {
+        "line": 25,
+        "value": "small"
+      },
+      {
+        "line": 26,
+        "value": "date"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/AdminResetFiltersButton.tsx",
+    "entries": [
+      {
+        "line": 11,
+        "value": "Reset filters"
+      },
+      {
+        "line": 12,
+        "value": "small"
+      },
+      {
+        "line": 29,
+        "value": "Reset filters"
+      },
+      {
+        "line": 32,
+        "value": "small"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/AdminSearchField.tsx",
+    "entries": [
+      {
+        "line": 29,
+        "value": "small"
+      },
+      {
+        "line": 34,
+        "value": "start"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/AdminSelectField.tsx",
+    "entries": [
+      {
+        "line": 44,
+        "value": "small"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/AdminSortHeader.tsx",
+    "entries": [
+      {
+        "line": 25,
+        "value": "admin-management-sort-label"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/AppTablePagination.tsx",
+    "entries": [
+      {
+        "line": 20,
+        "value": "dark"
+      },
+      {
+        "line": 24,
+        "value": "div"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/BrandLogo.tsx",
+    "entries": [
+      {
+        "line": 12,
+        "value": "Smart learning journey"
+      },
+      {
+        "line": 13,
+        "value": "EduPlatform"
+      },
+      {
+        "line": 14,
+        "value": "sidebar"
+      },
+      {
+        "line": 16,
+        "value": "photo"
+      },
+      {
+        "line": 19,
+        "value": "auth"
+      },
+      {
+        "line": 20,
+        "value": "header"
+      },
+      {
+        "line": 21,
+        "value": "dark"
+      },
+      {
+        "line": 21,
+        "value": "photo"
+      },
+      {
+        "line": 22,
+        "value": "transparent"
+      },
+      {
+        "line": 30,
+        "value": "brand-logo-mark"
+      },
+      {
+        "line": 31,
+        "value": "EduPlatform dolphin logo"
+      },
+      {
+        "line": 31,
+        "value": "brand-logo-image"
+      },
+      {
+        "line": 34,
+        "value": "brand-logo-copy"
+      },
+      {
+        "line": 35,
+        "value": "brand-logo-title"
+      },
+      {
+        "line": 36,
+        "value": "brand-logo-subtitle"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/DeleteConfirmationModal.tsx",
+    "entries": [
+      {
+        "line": 20,
+        "value": "Are you sure?"
+      },
+      {
+        "line": 21,
+        "value": "This action cannot be undone."
+      },
+      {
+        "line": 27,
+        "value": "dark"
+      },
+      {
+        "line": 64,
+        "value": "flex items-center gap-3"
+      },
+      {
+        "line": 65,
+        "value": "inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-[0_10px_24px_rgba(245,158,11,0.18)]"
+      },
+      {
+        "line": 87,
+        "value": "button"
+      },
+      {
+        "line": 94,
+        "value": "rounded-2xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(225,29,72,0.18)] transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+      },
+      {
+        "line": 95,
+        "value": "button"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/InfoCard.tsx",
+    "entries": [
+      {
+        "line": 11,
+        "value": "glass-panel flex h-full flex-col gap-5 p-6"
+      },
+      {
+        "line": 14,
+        "value": "flex min-h-[6.75rem] w-[5.5rem] items-center justify-center self-stretch rounded-[1.9rem] bg-gradient-to-br from-sky-100 via-cyan-50 to-white px-3 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 15,
+        "value": "true"
+      },
+      {
+        "line": 15,
+        "value": "text-[3rem] leading-none sm:text-[3.25rem]"
+      },
+      {
+        "line": 20,
+        "value": "space-y-2.5"
+      },
+      {
+        "line": 21,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 22,
+        "value": "text-sm leading-6 text-slate-600"
+      },
+      {
+        "line": 25,
+        "value": "mt-auto flex items-center justify-between gap-4"
+      },
+      {
+        "line": 26,
+        "value": "text-xs uppercase tracking-[0.25em] text-slate-500"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/PageHeader.tsx",
+    "entries": [
+      {
+        "line": 10,
+        "value": "flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+      },
+      {
+        "line": 11,
+        "value": "space-y-2"
+      },
+      {
+        "line": 12,
+        "value": "page-header-eyebrow"
+      },
+      {
+        "line": 13,
+        "value": "space-y-1"
+      },
+      {
+        "line": 14,
+        "value": "font-display text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
+      },
+      {
+        "line": 17,
+        "value": "max-w-2xl text-sm text-slate-600 md:text-base"
+      },
+      {
+        "line": 20,
+        "value": "shrink-0"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/ProtectedRoute.tsx",
+    "entries": [
+      {
+        "line": 24,
+        "value": "Admin"
+      },
+      {
+        "line": 24,
+        "value": "Teacher"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/RichTextEditor.tsx",
+    "entries": [
+      {
+        "line": 122,
+        "value": "Lesson image"
+      },
+      {
+        "line": 130,
+        "value": "${escapeHtmlAttribute(src.trim())}"
+      },
+      {
+        "line": 130,
+        "value": "${escapeHtmlAttribute(\n          alt,\n        )}"
+      },
+      {
+        "line": 132,
+        "value": "max-width: 100%; border-radius: 18px; margin: 16px 0;"
+      },
+      {
+        "line": 200,
+        "value": "string"
+      },
+      {
+        "line": 201,
+        "value": "link"
+      },
+      {
+        "line": 266,
+        "value": "number"
+      },
+      {
+        "line": 266,
+        "value": "string"
+      },
+      {
+        "line": 299,
+        "value": "<table><tbody><tr><th>Column 1</th><th>Column 2</th></tr><tr><td>Value</td><td>Value</td></tr><tr><td>Value</td><td>Value</td></tr></tbody></table><p><br></p>"
+      },
+      {
+        "line": 314,
+        "value": "rich-editor rounded-2xl border border-sky-200 bg-white"
+      },
+      {
+        "line": 315,
+        "value": "ql-toolbar ql-snow"
+      },
+      {
+        "line": 316,
+        "value": "ql-formats"
+      },
+      {
+        "line": 317,
+        "value": "small"
+      },
+      {
+        "line": 342,
+        "value": "ql-formats"
+      },
+      {
+        "line": 343,
+        "value": "Bold"
+      },
+      {
+        "line": 343,
+        "value": "ql-bold"
+      },
+      {
+        "line": 343,
+        "value": "button"
+      },
+      {
+        "line": 344,
+        "value": "Italic"
+      },
+      {
+        "line": 344,
+        "value": "ql-italic"
+      },
+      {
+        "line": 344,
+        "value": "button"
+      },
+      {
+        "line": 345,
+        "value": "Underline"
+      },
+      {
+        "line": 345,
+        "value": "ql-underline"
+      },
+      {
+        "line": 345,
+        "value": "button"
+      },
+      {
+        "line": 347,
+        "value": "ql-formats"
+      },
+      {
+        "line": 348,
+        "value": "toolbar-menu"
+      },
+      {
+        "line": 350,
+        "value": "text"
+      },
+      {
+        "line": 351,
+        "value": "Text color"
+      },
+      {
+        "line": 352,
+        "value": "toolbar-menu-trigger"
+      },
+      {
+        "line": 353,
+        "value": "button"
+      },
+      {
+        "line": 354,
+        "value": "text"
+      },
+      {
+        "line": 356,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 358,
+        "value": "text"
+      },
+      {
+        "line": 359,
+        "value": "toolbar-color-popover"
+      },
+      {
+        "line": 360,
+        "value": "toolbar-color-grid"
+      },
+      {
+        "line": 364,
+        "value": "toolbar-color-swatch"
+      },
+      {
+        "line": 367,
+        "value": "button"
+      },
+      {
+        "line": 379,
+        "value": "toolbar-menu"
+      },
+      {
+        "line": 381,
+        "value": "highlight"
+      },
+      {
+        "line": 382,
+        "value": "Highlight color"
+      },
+      {
+        "line": 383,
+        "value": "toolbar-menu-trigger"
+      },
+      {
+        "line": 384,
+        "value": "button"
+      },
+      {
+        "line": 385,
+        "value": "highlight"
+      },
+      {
+        "line": 387,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 389,
+        "value": "highlight"
+      },
+      {
+        "line": 390,
+        "value": "toolbar-color-popover"
+      },
+      {
+        "line": 391,
+        "value": "toolbar-color-grid"
+      },
+      {
+        "line": 393,
+        "value": "Remove highlight"
+      },
+      {
+        "line": 394,
+        "value": "toolbar-color-swatch toolbar-color-swatch-clear"
+      },
+      {
+        "line": 395,
+        "value": "button"
+      },
+      {
+        "line": 401,
+        "value": "h-3.5 w-3.5"
+      },
+      {
+        "line": 406,
+        "value": "toolbar-color-swatch"
+      },
+      {
+        "line": 409,
+        "value": "button"
+      },
+      {
+        "line": 422,
+        "value": "ql-formats"
+      },
+      {
+        "line": 423,
+        "value": "Ordered list"
+      },
+      {
+        "line": 423,
+        "value": "ql-list"
+      },
+      {
+        "line": 423,
+        "value": "button"
+      },
+      {
+        "line": 423,
+        "value": "ordered"
+      },
+      {
+        "line": 424,
+        "value": "Bullet list"
+      },
+      {
+        "line": 424,
+        "value": "ql-list"
+      },
+      {
+        "line": 424,
+        "value": "button"
+      },
+      {
+        "line": 424,
+        "value": "bullet"
+      },
+      {
+        "line": 426,
+        "value": "ql-formats"
+      },
+      {
+        "line": 427,
+        "value": "toolbar-menu"
+      },
+      {
+        "line": 429,
+        "value": "link"
+      },
+      {
+        "line": 430,
+        "value": "Link"
+      },
+      {
+        "line": 431,
+        "value": "toolbar-menu-trigger"
+      },
+      {
+        "line": 432,
+        "value": "button"
+      },
+      {
+        "line": 435,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 437,
+        "value": "link"
+      },
+      {
+        "line": 438,
+        "value": "toolbar-link-popover"
+      },
+      {
+        "line": 439,
+        "value": "toolbar-link-label"
+      },
+      {
+        "line": 444,
+        "value": "toolbar-link-input"
+      },
+      {
+        "line": 450,
+        "value": "Enter"
+      },
+      {
+        "line": 455,
+        "value": "Escape"
+      },
+      {
+        "line": 461,
+        "value": "toolbar-link-actions"
+      },
+      {
+        "line": 462,
+        "value": "toolbar-link-button toolbar-link-button-primary"
+      },
+      {
+        "line": 462,
+        "value": "button"
+      },
+      {
+        "line": 465,
+        "value": "toolbar-link-button"
+      },
+      {
+        "line": 465,
+        "value": "button"
+      },
+      {
+        "line": 466,
+        "value": "h-3.5 w-3.5"
+      },
+      {
+        "line": 473,
+        "value": "Insert table"
+      },
+      {
+        "line": 473,
+        "value": "ql-insertTable"
+      },
+      {
+        "line": 473,
+        "value": "button"
+      },
+      {
+        "line": 474,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 476,
+        "value": "Clear formatting"
+      },
+      {
+        "line": 476,
+        "value": "ql-clean"
+      },
+      {
+        "line": 476,
+        "value": "button"
+      },
+      {
+        "line": 484,
+        "value": "snow"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/SiteFooter.tsx",
+    "entries": [
+      {
+        "line": 9,
+        "value": "site-footer-card mt-10 w-full rounded-[28px] border border-blue-100/90 bg-gradient-to-r from-white/96 via-blue-50/94 to-cyan-50/88 shadow-[0_18px_40px_rgba(36,104,160,0.12)]"
+      },
+      {
+        "line": 10,
+        "value": "flex w-full flex-col items-center justify-center gap-2 px-4 py-5 text-center sm:px-6"
+      },
+      {
+        "line": 11,
+        "value": "flex flex-col items-center gap-2"
+      },
+      {
+        "line": 12,
+        "value": "font-display text-lg font-semibold text-slate-900"
+      },
+      {
+        "line": 13,
+        "value": "site-footer-presentation-link text-[0.85rem] font-medium"
+      },
+      {
+        "line": 18,
+        "value": "flex flex-wrap items-center justify-center gap-4 pt-1 text-[0.85rem] font-medium"
+      },
+      {
+        "line": 19,
+        "value": "site-footer-link"
+      },
+      {
+        "line": 22,
+        "value": "site-footer-link"
+      },
+      {
+        "line": 27,
+        "value": "pt-1 text-[0.75rem] text-blue-400"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/components/SiteHeader.tsx",
+    "entries": [
+      {
+        "line": 41,
+        "value": "Admin"
+      },
+      {
+        "line": 43,
+        "value": "Teacher"
+      },
+      {
+        "line": 55,
+        "value": "site-header-card w-full rounded-[28px] border border-blue-100/90 bg-gradient-to-r from-white/96 via-blue-50/94 to-cyan-50/88 shadow-[0_18px_42px_rgba(36,104,160,0.14)] backdrop-blur-md"
+      },
+      {
+        "line": 56,
+        "value": "flex h-[60px] w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-6"
+      },
+      {
+        "line": 57,
+        "value": "min-w-0"
+      },
+      {
+        "line": 58,
+        "value": "text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-blue-400"
+      },
+      {
+        "line": 61,
+        "value": "truncate font-display text-lg font-bold text-slate-900 sm:text-xl"
+      },
+      {
+        "line": 66,
+        "value": "flex items-center gap-2 sm:gap-3"
+      },
+      {
+        "line": 67,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 78,
+        "value": "inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-3 py-2 text-sm font-semibold text-[#123d5b] transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-[#0f8b8d]"
+      },
+      {
+        "line": 80,
+        "value": "button"
+      },
+      {
+        "line": 82,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 83,
+        "value": "hidden sm:inline"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/pages/AboutPage.tsx",
+    "entries": [
+      {
+        "line": 55,
+        "value": "Admin"
+      },
+      {
+        "line": 55,
+        "value": "Teacher"
+      },
+      {
+        "line": 58,
+        "value": "px-4 py-8 sm:px-6 lg:px-8"
+      },
+      {
+        "line": 59,
+        "value": "mx-auto max-w-6xl space-y-8"
+      },
+      {
+        "line": 60,
+        "value": "relative overflow-hidden rounded-[36px] border border-blue-100/80 shadow-[0_30px_80px_rgba(36,104,160,0.18)]"
+      },
+      {
+        "line": 62,
+        "value": "Mathematics High School \"Academic Kiril Popov\" presentation"
+      },
+      {
+        "line": 63,
+        "value": "h-[420px] w-full object-cover sm:h-[460px]"
+      },
+      {
+        "line": 66,
+        "value": "absolute inset-0 bg-gradient-to-r from-[#102133]/85 via-[#123d5b]/65 to-[#0f8b8d]/45"
+      },
+      {
+        "line": 67,
+        "value": "absolute inset-x-0 bottom-0 p-8 sm:p-10 lg:p-12"
+      },
+      {
+        "line": 68,
+        "value": "max-w-3xl"
+      },
+      {
+        "line": 69,
+        "value": "inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/80 backdrop-blur-sm"
+      },
+      {
+        "line": 70,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 73,
+        "value": "mt-5 font-display text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl"
+      },
+      {
+        "line": 76,
+        "value": "mt-4 max-w-2xl text-base leading-8 text-white/82 sm:text-lg"
+      },
+      {
+        "line": 83,
+        "value": "grid gap-6 lg:grid-cols-[1.05fr_0.95fr]"
+      },
+      {
+        "line": 84,
+        "value": "rounded-[32px] border border-blue-100/90 bg-white/88 p-7 shadow-[0_24px_56px_rgba(37,99,235,0.12)]"
+      },
+      {
+        "line": 85,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-blue-400"
+      },
+      {
+        "line": 88,
+        "value": "mt-3 font-display text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 91,
+        "value": "mt-4 text-base leading-8 text-slate-600"
+      },
+      {
+        "line": 99,
+        "value": "grid gap-4"
+      },
+      {
+        "line": 103,
+        "value": "rounded-[28px] border border-blue-100/90 bg-gradient-to-r from-white to-blue-50/70 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 105,
+        "value": "flex items-start gap-4"
+      },
+      {
+        "line": 106,
+        "value": "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#123d5b] to-[#0f8b8d] text-white shadow-[0_12px_26px_rgba(15,139,141,0.22)]"
+      },
+      {
+        "line": 107,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 110,
+        "value": "font-display text-xl font-bold text-slate-900"
+      },
+      {
+        "line": 111,
+        "value": "mt-2 text-sm leading-7 text-slate-600"
+      },
+      {
+        "line": 119,
+        "value": "rounded-[32px] border border-blue-100/90 bg-white/88 p-7 shadow-[0_24px_56px_rgba(37,99,235,0.12)]"
+      },
+      {
+        "line": 120,
+        "value": "mb-6"
+      },
+      {
+        "line": 121,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-blue-400"
+      },
+      {
+        "line": 124,
+        "value": "mt-3 font-display text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 129,
+        "value": "grid gap-5 md:grid-cols-2 xl:grid-cols-3"
+      },
+      {
+        "line": 133,
+        "value": "group overflow-hidden rounded-[28px] border border-blue-100/80 bg-white shadow-[0_18px_42px_rgba(36,104,160,0.1)]"
+      },
+      {
+        "line": 135,
+        "value": "overflow-hidden"
+      },
+      {
+        "line": 138,
+        "value": "h-64 w-full object-cover transition duration-500 group-hover:scale-105"
+      },
+      {
+        "line": 142,
+        "value": "p-5"
+      },
+      {
+        "line": 143,
+        "value": "font-display text-xl font-bold text-slate-900"
+      },
+      {
+        "line": 144,
+        "value": "mt-2 text-sm leading-7 text-slate-600"
+      },
+      {
+        "line": 151,
+        "value": "rounded-[32px] border border-blue-100/90 bg-gradient-to-r from-white/94 via-blue-50/86 to-cyan-50/82 p-7 shadow-[0_24px_56px_rgba(37,99,235,0.12)]"
+      },
+      {
+        "line": 152,
+        "value": "mb-6"
+      },
+      {
+        "line": 153,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-blue-400"
+      },
+      {
+        "line": 156,
+        "value": "mt-3 font-display text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 161,
+        "value": "grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      },
+      {
+        "line": 165,
+        "value": "rounded-[28px] border border-white/80 bg-white/88 p-6 shadow-[0_16px_34px_rgba(36,104,160,0.08)]"
+      },
+      {
+        "line": 167,
+        "value": "flex items-center justify-between"
+      },
+      {
+        "line": 168,
+        "value": "text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
+      },
+      {
+        "line": 171,
+        "value": "flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-[#2468a0]"
+      },
+      {
+        "line": 172,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 175,
+        "value": "mt-5 font-display text-5xl font-bold text-slate-900"
+      },
+      {
+        "line": 176,
+        "value": "mt-2 text-sm leading-6 text-slate-500"
+      },
+      {
+        "line": 182,
+        "value": "grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"
+      },
+      {
+        "line": 183,
+        "value": "rounded-[32px] border border-blue-100/90 bg-white/88 p-7 shadow-[0_24px_56px_rgba(37,99,235,0.12)]"
+      },
+      {
+        "line": 184,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-blue-400"
+      },
+      {
+        "line": 187,
+        "value": "mt-3 font-display text-3xl font-bold text-slate-900"
+      },
+      {
+        "line": 190,
+        "value": "mt-6 flex items-start gap-4 rounded-[28px] border border-blue-100/80 bg-gradient-to-r from-white to-blue-50/65 p-5"
+      },
+      {
+        "line": 191,
+        "value": "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#123d5b] to-[#0f8b8d] text-white"
+      },
+      {
+        "line": 192,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 195,
+        "value": "font-display text-xl font-bold text-slate-900"
+      },
+      {
+        "line": 196,
+        "value": "mt-2 text-sm leading-7 text-slate-600"
+      },
+      {
+        "line": 205,
+        "value": "overflow-hidden rounded-[32px] border border-blue-100/90 bg-white/88 shadow-[0_24px_56px_rgba(37,99,235,0.12)]"
+      },
+      {
+        "line": 206,
+        "value": "aspect-[16/10] w-full"
+      },
+      {
+        "line": 208,
+        "value": "h-full w-full border-0"
+      },
+      {
+        "line": 209,
+        "value": "lazy"
+      },
+      {
+        "line": 210,
+        "value": "no-referrer-when-downgrade"
+      },
+      {
+        "line": 218,
+        "value": "pb-2"
+      },
+      {
+        "line": 220,
+        "value": "inline-flex items-center text-sm font-semibold text-blue-700 transition hover:text-blue-900"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/pages/ContactPage.tsx",
+    "entries": [
+      {
+        "line": 36,
+        "value": "Please enter your name."
+      },
+      {
+        "line": 40,
+        "value": "Please enter your email address."
+      },
+      {
+        "line": 42,
+        "value": "Please enter a valid email address."
+      },
+      {
+        "line": 46,
+        "value": "Please enter your message."
+      },
+      {
+        "line": 48,
+        "value": "Your message should be at least 10 characters long."
+      },
+      {
+        "line": 81,
+        "value": "object"
+      },
+      {
+        "line": 81,
+        "value": "string"
+      },
+      {
+        "line": 85,
+        "value": "object"
+      },
+      {
+        "line": 85,
+        "value": "string"
+      },
+      {
+        "line": 106,
+        "value": "px-4 py-8 sm:px-6 lg:px-8"
+      },
+      {
+        "line": 107,
+        "value": "mx-auto max-w-6xl rounded-[32px] border border-blue-100/90 bg-white/85 p-8 shadow-[0_28px_70px_rgba(37,99,235,0.12)] backdrop-blur-md sm:p-10"
+      },
+      {
+        "line": 108,
+        "value": "mb-10 max-w-3xl"
+      },
+      {
+        "line": 109,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-blue-400"
+      },
+      {
+        "line": 112,
+        "value": "mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl"
+      },
+      {
+        "line": 115,
+        "value": "mt-4 text-base leading-8 text-slate-600"
+      },
+      {
+        "line": 121,
+        "value": "grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"
+      },
+      {
+        "line": 122,
+        "value": "rounded-[28px] border border-blue-100/80 bg-gradient-to-br from-white to-blue-50/70 p-6 shadow-[0_18px_40px_rgba(36,104,160,0.1)] sm:p-7"
+      },
+      {
+        "line": 123,
+        "value": "mb-6"
+      },
+      {
+        "line": 124,
+        "value": "font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 125,
+        "value": "mt-2 text-sm leading-7 text-slate-600"
+      },
+      {
+        "line": 130,
+        "value": "space-y-5"
+      },
+      {
+        "line": 131,
+        "value": "space-y-2"
+      },
+      {
+        "line": 132,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 132,
+        "value": "contact-name"
+      },
+      {
+        "line": 136,
+        "value": "w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
+      },
+      {
+        "line": 137,
+        "value": "contact-name"
+      },
+      {
+        "line": 138,
+        "value": "Your full name"
+      },
+      {
+        "line": 145,
+        "value": "text-sm text-rose-600"
+      },
+      {
+        "line": 148,
+        "value": "space-y-2"
+      },
+      {
+        "line": 149,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 149,
+        "value": "contact-email"
+      },
+      {
+        "line": 153,
+        "value": "w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
+      },
+      {
+        "line": 154,
+        "value": "contact-email"
+      },
+      {
+        "line": 155,
+        "value": "you@example.com"
+      },
+      {
+        "line": 156,
+        "value": "email"
+      },
+      {
+        "line": 163,
+        "value": "text-sm text-rose-600"
+      },
+      {
+        "line": 166,
+        "value": "space-y-2"
+      },
+      {
+        "line": 167,
+        "value": "text-sm font-semibold text-slate-700"
+      },
+      {
+        "line": 167,
+        "value": "contact-message"
+      },
+      {
+        "line": 171,
+        "value": "min-h-40 w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
+      },
+      {
+        "line": 172,
+        "value": "contact-message"
+      },
+      {
+        "line": 173,
+        "value": "Tell us how we can help you."
+      },
+      {
+        "line": 180,
+        "value": "text-sm text-rose-600"
+      },
+      {
+        "line": 183,
+        "value": "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"
+      },
+      {
+        "line": 184,
+        "value": "button-primary inline-flex items-center gap-2"
+      },
+      {
+        "line": 184,
+        "value": "submit"
+      },
+      {
+        "line": 185,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 188,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 192,
+        "value": "rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"
+      },
+      {
+        "line": 198,
+        "value": "rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+      },
+      {
+        "line": 205,
+        "value": "rounded-[28px] border border-blue-100/80 bg-gradient-to-br from-[#123d5b] via-[#2468a0] to-[#0f8b8d] p-6 text-white shadow-[0_22px_48px_rgba(36,104,160,0.22)] sm:p-7"
+      },
+      {
+        "line": 206,
+        "value": "text-xs font-semibold uppercase tracking-[0.24em] text-white/70"
+      },
+      {
+        "line": 209,
+        "value": "mt-3 font-display text-2xl font-bold"
+      },
+      {
+        "line": 210,
+        "value": "mt-3 text-sm leading-7 text-white/80"
+      },
+      {
+        "line": 216,
+        "value": "mt-6 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-base font-semibold text-white transition hover:bg-white/16"
+      },
+      {
+        "line": 217,
+        "value": "mailto:eduplatform.support@gmail.com"
+      },
+      {
+        "line": 219,
+        "value": "inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/16"
+      },
+      {
+        "line": 220,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 225,
+        "value": "mt-6 rounded-2xl border border-white/12 bg-white/8 p-4"
+      },
+      {
+        "line": 226,
+        "value": "text-sm leading-7 text-white/80"
+      },
+      {
+        "line": 234,
+        "value": "mt-10"
+      },
+      {
+        "line": 236,
+        "value": "inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/75 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-slate-900"
+      },
+      {
+        "line": 238,
+        "value": "button"
+      },
+      {
+        "line": 240,
+        "value": "h-4 w-4"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/pages/PrivacyPage.tsx",
+    "entries": [
+      {
+        "line": 35,
+        "value": "px-4 py-8 sm:px-6 lg:px-8"
+      },
+      {
+        "line": 36,
+        "value": "mx-auto max-w-3xl rounded-[32px] border border-blue-100/90 bg-white/85 p-8 shadow-[0_28px_70px_rgba(37,99,235,0.12)] backdrop-blur-md sm:p-10"
+      },
+      {
+        "line": 37,
+        "value": "mb-10"
+      },
+      {
+        "line": 39,
+        "value": "text-xs font-semibold uppercase tracking-[0.28em] text-blue-400"
+      },
+      {
+        "line": 42,
+        "value": "mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl"
+      },
+      {
+        "line": 45,
+        "value": "mt-4 max-w-2xl text-base leading-8 text-slate-600"
+      },
+      {
+        "line": 52,
+        "value": "space-y-8"
+      },
+      {
+        "line": 56,
+        "value": "rounded-3xl border border-blue-100/80 bg-gradient-to-r from-white to-blue-50/65 p-6"
+      },
+      {
+        "line": 58,
+        "value": "font-display text-2xl font-bold text-slate-900"
+      },
+      {
+        "line": 59,
+        "value": "mt-3 text-base leading-8 text-slate-600"
+      },
+      {
+        "line": 63,
+        "value": "border-t border-blue-100 pt-6"
+      },
+      {
+        "line": 64,
+        "value": "text-sm font-semibold uppercase tracking-[0.22em] text-blue-400"
+      },
+      {
+        "line": 68,
+        "value": "mt-3 inline-block text-base font-semibold text-blue-800 transition hover:text-blue-950"
+      },
+      {
+        "line": 69,
+        "value": "mailto:support@eduplatform.com"
+      },
+      {
+        "line": 75,
+        "value": "mt-10"
+      },
+      {
+        "line": 77,
+        "value": "inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/75 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-slate-900"
+      },
+      {
+        "line": 79,
+        "value": "button"
+      },
+      {
+        "line": 81,
+        "value": "h-4 w-4"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/pages/SettingsPage.tsx",
+    "entries": [
+      {
+        "line": 98,
+        "value": "Admin"
+      },
+      {
+        "line": 102,
+        "value": "Teacher"
+      },
+      {
+        "line": 147,
+        "value": "Failed to update password."
+      },
+      {
+        "line": 152,
+        "value": "string"
+      },
+      {
+        "line": 154,
+        "value": "object"
+      },
+      {
+        "line": 154,
+        "value": "string"
+      },
+      {
+        "line": 186,
+        "value": "Failed to update profile image."
+      },
+      {
+        "line": 190,
+        "value": "object"
+      },
+      {
+        "line": 190,
+        "value": "string"
+      },
+      {
+        "line": 210,
+        "value": "Failed to remove profile image."
+      },
+      {
+        "line": 214,
+        "value": "object"
+      },
+      {
+        "line": 214,
+        "value": "string"
+      },
+      {
+        "line": 224,
+        "value": "space-y-8"
+      },
+      {
+        "line": 231,
+        "value": "Admin"
+      },
+      {
+        "line": 232,
+        "value": "space-y-6"
+      },
+      {
+        "line": 233,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 234,
+        "value": "flex items-start gap-4"
+      },
+      {
+        "line": 235,
+        "value": "settings-card-icon"
+      },
+      {
+        "line": 236,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 238,
+        "value": "min-w-0 flex-1"
+      },
+      {
+        "line": 239,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 240,
+        "value": "mt-1 text-sm text-slate-600"
+      },
+      {
+        "line": 244,
+        "value": "mt-5 grid gap-4 md:grid-cols-2"
+      },
+      {
+        "line": 245,
+        "value": "settings-option-card"
+      },
+      {
+        "line": 247,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 248,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 252,
+        "value": "settings-pill-group mt-4"
+      },
+      {
+        "line": 255,
+        "value": "button"
+      },
+      {
+        "line": 262,
+        "value": "button"
+      },
+      {
+        "line": 270,
+        "value": "settings-option-card"
+      },
+      {
+        "line": 272,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 273,
+        "value": "mt-1 text-sm text-slate-500"
+      },
+      {
+        "line": 277,
+        "value": "settings-pill-group mt-4"
+      },
+      {
+        "line": 279,
+        "value": "light"
+      },
+      {
+        "line": 280,
+        "value": "button"
+      },
+      {
+        "line": 283,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 287,
+        "value": "dark"
+      },
+      {
+        "line": 288,
+        "value": "button"
+      },
+      {
+        "line": 291,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 301,
+        "value": "glass-panel p-6"
+      },
+      {
+        "line": 302,
+        "value": "flex items-start gap-4"
+      },
+      {
+        "line": 303,
+        "value": "settings-card-icon"
+      },
+      {
+        "line": 304,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 306,
+        "value": "min-w-0 flex-1"
+      },
+      {
+        "line": 307,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 308,
+        "value": "mt-1 text-sm text-slate-600"
+      },
+      {
+        "line": 312,
+        "value": "mt-5 grid gap-4"
+      },
+      {
+        "line": 313,
+        "value": "password-field"
+      },
+      {
+        "line": 315,
+        "value": "w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 323,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 323,
+        "value": "button"
+      },
+      {
+        "line": 328,
+        "value": "password-field"
+      },
+      {
+        "line": 330,
+        "value": "w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 338,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 338,
+        "value": "button"
+      },
+      {
+        "line": 343,
+        "value": "password-field"
+      },
+      {
+        "line": 345,
+        "value": "w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+      },
+      {
+        "line": 353,
+        "value": "ghost-toggle"
+      },
+      {
+        "line": 353,
+        "value": "button"
+      },
+      {
+        "line": 358,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 363,
+        "value": "button-primary"
+      },
+      {
+        "line": 363,
+        "value": "submit"
+      },
+      {
+        "line": 373,
+        "value": "Admin"
+      },
+      {
+        "line": 374,
+        "value": "space-y-6"
+      },
+      {
+        "line": 375,
+        "value": "glass-panel self-start p-6"
+      },
+      {
+        "line": 376,
+        "value": "flex items-start gap-4"
+      },
+      {
+        "line": 377,
+        "value": "settings-card-icon"
+      },
+      {
+        "line": 378,
+        "value": "h-5 w-5"
+      },
+      {
+        "line": 380,
+        "value": "min-w-0 flex-1"
+      },
+      {
+        "line": 381,
+        "value": "text-xl font-semibold text-slate-900"
+      },
+      {
+        "line": 382,
+        "value": "mt-1 text-sm text-slate-600"
+      },
+      {
+        "line": 386,
+        "value": "mt-5 flex flex-col items-center gap-4 rounded-3xl border border-blue-100/80 bg-white/70 p-5 text-center"
+      },
+      {
+        "line": 390,
+        "value": "block h-24 w-24 rounded-full border border-blue-100 object-cover shadow-sm"
+      },
+      {
+        "line": 395,
+        "value": "flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 text-[#2468a0]"
+      },
+      {
+        "line": 396,
+        "value": "h-12 w-12"
+      },
+      {
+        "line": 401,
+        "value": "text-sm font-semibold text-slate-900"
+      },
+      {
+        "line": 402,
+        "value": "text-sm text-slate-500"
+      },
+      {
+        "line": 406,
+        "value": "hidden"
+      },
+      {
+        "line": 408,
+        "value": "image/*"
+      },
+      {
+        "line": 409,
+        "value": "file"
+      },
+      {
+        "line": 413,
+        "value": "flex flex-wrap justify-center gap-3"
+      },
+      {
+        "line": 415,
+        "value": "inline-flex items-center gap-2 rounded-2xl border border-blue-100 bg-white/90 px-4 py-2 text-sm font-semibold text-[#123d5b] transition hover:border-cyan-200 hover:bg-cyan-50"
+      },
+      {
+        "line": 416,
+        "value": "button"
+      },
+      {
+        "line": 419,
+        "value": "h-4 w-4"
+      },
+      {
+        "line": 424,
+        "value": "rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+      },
+      {
+        "line": 425,
+        "value": "button"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/subjectCatalog.ts",
+    "entries": [
+      {
+        "line": 77,
+        "value": "${getSubjectCatalogKey(subject.name)}::${subject.grade}::${subject.section}"
+      },
+      {
+        "line": 94,
+        "value": "unknown"
+      }
+    ]
+  },
+  {
+    "file": "src/shared/tableSorting.ts",
+    "entries": [
+      {
+        "line": 1,
+        "value": "asc"
+      },
+      {
+        "line": 3,
+        "value": "text"
+      },
+      {
+        "line": 12,
+        "value": "number"
+      },
+      {
+        "line": 29,
+        "value": "date"
+      },
+      {
+        "line": 33,
+        "value": "alphanumeric"
+      },
+      {
+        "line": 53,
+        "value": "asc"
+      }
+    ]
+  },
+  {
+    "file": "src/vite-env.d.ts",
+    "entries": [
+      {
+        "line": 1,
+        "value": "vite/client"
+      }
+    ]
+  }
+]

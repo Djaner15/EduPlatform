@@ -1,10 +1,13 @@
 import axios from 'axios'
+import { Globe } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAppSettings, useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
 import apiClient from '../../../shared/api/axiosInstance'
-import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { readApiError } from '../../../shared/apiErrors'
+import { formatGradeLabel, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { BrandLogo } from '../../../shared/components/BrandLogo'
 
@@ -26,6 +29,8 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { t } = useTranslation()
+  const { language, setLanguage } = useAppSettings()
   const { login, logout, isAuthenticated, user } = useAuth()
   const { showNotification } = useNotification()
   const initialMode = searchParams.get('mode') === 'register' ? 'register' : 'login'
@@ -83,46 +88,24 @@ export function LoginPage() {
     return Math.min(score, 4)
   }, [registerForm.password])
 
-  const readApiError = (error: unknown, fallback: string) => {
-    if (axios.isAxiosError(error)) {
-      const payload = error.response?.data
-
-      if (typeof payload === 'string') {
-        return payload
-      }
-
-      if (payload && typeof payload === 'object') {
-        if ('error' in payload && typeof payload.error === 'string') {
-          return payload.error
-        }
-
-        if ('title' in payload && typeof payload.title === 'string') {
-          return payload.title
-        }
-      }
-    }
-
-    return fallback
-  }
-
   const readLoginError = (error: unknown) => {
-    const message = readApiError(error, 'Login failed. Please try again.')
+    const message = readApiError(error, t('auth.validation.loginFailed'))
     const normalizedMessage = message.trim().toLowerCase()
 
     if (normalizedMessage.includes('pending admin approval') || normalizedMessage.includes('pending approval')) {
-      return 'Your account is waiting for admin approval. You will be able to log in after approval.'
+      return t('auth.validation.pendingApproval')
     }
 
     if (normalizedMessage.includes('invalid credentials') || normalizedMessage.includes('unauthorized')) {
-      return 'Login failed. Incorrect username or password.'
+      return t('auth.validation.invalidCredentials')
     }
 
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return 'This account was not found. Please check your username or register first.'
+      return t('auth.validation.accountNotFound')
     }
 
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return 'Login failed. Incorrect username or password.'
+      return t('auth.validation.invalidCredentials')
     }
 
     return message
@@ -132,7 +115,7 @@ export function LoginPage() {
     event.preventDefault()
 
     if (!loginForm.username.trim() || !loginForm.password.trim()) {
-      showNotification('Please enter your username and password.', 'error')
+      showNotification(t('auth.validation.missingLoginCredentials'), 'error')
       return
     }
 
@@ -159,7 +142,7 @@ export function LoginPage() {
         rememberMe: loginForm.rememberMe,
       })
 
-      showNotification(`Welcome back, ${data.username}. Login successful.`, 'success')
+      showNotification(t('auth.notifications.welcomeBack', { username: data.username }), 'success')
 
       const fallbackPath = data.role === 'Admin' ? '/admin' : data.role === 'Teacher' ? '/teacher' : '/student'
       const redirectTo = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
@@ -182,37 +165,37 @@ export function LoginPage() {
       !registerForm.confirmPassword.trim() ||
       !registerForm.section.trim()
     ) {
-      showNotification('Please complete all registration fields.', 'error')
+      showNotification(t('auth.validation.completeRegistrationFields'), 'error')
       return
     }
 
     if (registerForm.password.length < 8) {
-      showNotification('Password must be at least 8 characters long.', 'error')
+      showNotification(t('auth.validation.passwordMinLength'), 'error')
       return
     }
 
     if (!/[A-Z]/.test(registerForm.password)) {
-      showNotification('Password must contain at least one uppercase letter.', 'error')
+      showNotification(t('auth.validation.passwordUppercase'), 'error')
       return
     }
 
     if (!/[a-z]/.test(registerForm.password)) {
-      showNotification('Password must contain at least one lowercase letter.', 'error')
+      showNotification(t('auth.validation.passwordLowercase'), 'error')
       return
     }
 
     if (!/[0-9]/.test(registerForm.password)) {
-      showNotification('Password must contain at least one number.', 'error')
+      showNotification(t('auth.validation.passwordNumber'), 'error')
       return
     }
 
     if (!/[^A-Za-z0-9]/.test(registerForm.password)) {
-      showNotification('Password must contain at least one symbol.', 'error')
+      showNotification(t('auth.validation.passwordSymbol'), 'error')
       return
     }
 
     if (registerForm.password !== registerForm.confirmPassword) {
-      showNotification('Passwords do not match.', 'error')
+      showNotification(t('auth.validation.passwordsDoNotMatch'), 'error')
       return
     }
 
@@ -243,9 +226,9 @@ export function LoginPage() {
         section: 'А',
       })
       setMode('login')
-      showNotification('Registration submitted. An administrator must approve your account before login.', 'success')
+      showNotification(t('auth.notifications.registrationSubmitted'), 'success')
     } catch (error) {
-      showNotification(readApiError(error, 'Registration failed. Please try again.'), 'error')
+      showNotification(readApiError(error, t('auth.validation.registrationFailed')), 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -255,6 +238,27 @@ export function LoginPage() {
     <main className="auth-shell">
       <div className="auth-backdrop auth-backdrop-left" />
       <div className="auth-backdrop auth-backdrop-right" />
+      <div className="auth-language-floating">
+        <div className="auth-language-switch" aria-label={t('auth.language')}>
+          <span className="auth-language-icon" aria-hidden="true">
+            <Globe className="h-4 w-4" />
+          </span>
+          <button
+            className={language === 'bg' ? 'active' : ''}
+            type="button"
+            onClick={() => setLanguage('bg')}
+          >
+            BG
+          </button>
+          <button
+            className={language === 'en' ? 'active' : ''}
+            type="button"
+            onClick={() => setLanguage('en')}
+          >
+            EN
+          </button>
+        </div>
+      </div>
 
       <section className="auth-layout">
         <section className="auth-panel">
@@ -262,12 +266,12 @@ export function LoginPage() {
             <div className="auth-panel-intro">
               <BrandLogo showCopy={false} size="auth" variant="transparent" />
               <div className="auth-brand-copy">
-                <div className="auth-brand-title">EduPlatform</div>
+                <div className="auth-brand-title">{t('appName')}</div>
               </div>
-              <p className="panel-overline">Student portal</p>
+              <p className="panel-overline">{t('auth.portal')}</p>
             </div>
 
-            <div className="mode-switch" aria-label="Authentication mode">
+            <div className="mode-switch" aria-label={t('auth.modeLabel')}>
               <button
                 className={mode === 'login' ? 'active' : ''}
                 type="button"
@@ -275,7 +279,7 @@ export function LoginPage() {
                   setMode('login')
                 }}
               >
-                Login
+                {t('auth.login')}
               </button>
               <button
                 className={mode === 'register' ? 'active' : ''}
@@ -284,7 +288,7 @@ export function LoginPage() {
                   setMode('register')
                 }}
               >
-                Register
+                {t('auth.register')}
               </button>
             </div>
           </div>
@@ -293,10 +297,10 @@ export function LoginPage() {
             {mode === 'login' ? (
               <form className="auth-form" onSubmit={handleLoginSubmit}>
                 <label className="field">
-                  <span>Username</span>
+                  <span>{t('auth.username')}</span>
                   <input
                     autoComplete="username"
-                    placeholder="Enter your username"
+                    placeholder={t('auth.usernamePlaceholder')}
                     type="text"
                     value={loginForm.username}
                     onChange={(event) =>
@@ -306,11 +310,11 @@ export function LoginPage() {
                 </label>
 
                 <label className="field">
-                  <span>Password</span>
+                  <span>{t('auth.password')}</span>
                   <div className="password-field">
                     <input
                       autoComplete="current-password"
-                      placeholder="Enter your password"
+                      placeholder={t('auth.passwordPlaceholder')}
                       type={showLoginPassword ? 'text' : 'password'}
                       value={loginForm.password}
                       onChange={(event) =>
@@ -322,7 +326,7 @@ export function LoginPage() {
                       type="button"
                       onClick={() => setShowLoginPassword((current) => !current)}
                     >
-                      {showLoginPassword ? 'Hide' : 'Show'}
+                      {showLoginPassword ? t('common.hide') : t('common.show')}
                     </button>
                   </div>
                 </label>
@@ -336,17 +340,17 @@ export function LoginPage() {
                         setLoginForm((current) => ({ ...current, rememberMe: event.target.checked }))
                       }
                     />
-                    <span>Keep me signed in on this device</span>
+                    <span>{t('auth.rememberMe')}</span>
                   </label>
-                  <span className="text-link">Student access portal</span>
+                  <span className="text-link">{t('auth.accessPortal')}</span>
                 </div>
 
                 <button className="submit-button" disabled={isSubmitting} type="submit">
-                  <span>{isSubmitting ? 'Signing in...' : 'Sign in to EduPlatform'}</span>
+                  <span>{isSubmitting ? t('auth.signingIn') : t('auth.signInButton')}</span>
                 </button>
 
                 <p className="form-note">
-                  New here?{' '}
+                  {t('auth.newHere')}{' '}
                   <button
                     className="inline-switch"
                     type="button"
@@ -354,17 +358,17 @@ export function LoginPage() {
                       setMode('register')
                     }}
                   >
-                    Create an account
+                    {t('auth.createAccount')}
                   </button>
                 </p>
               </form>
             ) : (
               <form className="auth-form" onSubmit={handleRegisterSubmit}>
                 <label className="field">
-                  <span>Full name</span>
+                  <span>{t('auth.fullName')}</span>
                   <input
                     autoComplete="name"
-                    placeholder="Enter your full name"
+                    placeholder={t('auth.fullNamePlaceholder')}
                     type="text"
                     value={registerForm.fullName}
                     onChange={(event) =>
@@ -374,10 +378,10 @@ export function LoginPage() {
                 </label>
 
                 <label className="field">
-                  <span>Username</span>
+                  <span>{t('auth.username')}</span>
                   <input
                     autoComplete="username"
-                    placeholder="Choose a username"
+                    placeholder={t('auth.usernameRegistrationPlaceholder')}
                     type="text"
                     value={registerForm.username}
                     onChange={(event) =>
@@ -387,10 +391,10 @@ export function LoginPage() {
                 </label>
 
                 <label className="field">
-                  <span>Email</span>
+                  <span>{t('auth.email')}</span>
                   <input
                     autoComplete="email"
-                    placeholder="name@school.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     type="email"
                     value={registerForm.email}
                     onChange={(event) =>
@@ -402,11 +406,11 @@ export function LoginPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="field">
                     <AdminSelectField
-                      label="Grade"
+                      label={t('auth.grade', { defaultValue: 'Grade' })}
                       value={String(registerForm.grade)}
                       options={gradeOptions.map((grade) => ({
                         value: String(grade),
-                        label: `Grade ${grade}`,
+                        label: formatGradeLabel(grade),
                       }))}
                       onChange={(value) =>
                         setRegisterForm((current) => ({
@@ -419,11 +423,11 @@ export function LoginPage() {
 
                   <div className="field">
                     <AdminSelectField
-                      label="Section"
+                      label={t('auth.section', { defaultValue: 'Section' })}
                       value={registerForm.section}
                       options={sectionOptions.map((section) => ({
                         value: section,
-                        label: `Section ${section}`,
+                        label: t('auth.sectionOption', { section }),
                       }))}
                       onChange={(value) =>
                         setRegisterForm((current) => ({
@@ -436,11 +440,11 @@ export function LoginPage() {
                 </div>
 
                 <label className="field">
-                  <span>Password</span>
+                  <span>{t('auth.password')}</span>
                   <div className="password-field">
                     <input
                       autoComplete="new-password"
-                      placeholder="Create a password"
+                      placeholder={t('auth.passwordRegistrationPlaceholder')}
                       type={showRegisterPassword ? 'text' : 'password'}
                       value={registerForm.password}
                       onChange={(event) =>
@@ -452,23 +456,23 @@ export function LoginPage() {
                       type="button"
                       onClick={() => setShowRegisterPassword((current) => !current)}
                     >
-                      {showRegisterPassword ? 'Hide' : 'Show'}
+                      {showRegisterPassword ? t('common.hide') : t('common.show')}
                     </button>
                   </div>
                   <div className="strength-meter" aria-hidden="true">
                     <span style={{ width: `${passwordStrength * 25}%` }} />
                   </div>
                   <p className="strength-label">
-                    Use at least 8 characters with uppercase, lowercase, number, and symbol.
+                    {t('passwordRuleShort')}
                   </p>
                 </label>
 
                 <label className="field">
-                  <span>Confirm password</span>
+                  <span>{t('auth.confirmPassword')}</span>
                   <div className="password-field">
                     <input
                       autoComplete="new-password"
-                      placeholder="Repeat your password"
+                      placeholder={t('auth.confirmPasswordPlaceholder')}
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={registerForm.confirmPassword}
                       onChange={(event) =>
@@ -483,22 +487,22 @@ export function LoginPage() {
                       type="button"
                       onClick={() => setShowConfirmPassword((current) => !current)}
                     >
-                      {showConfirmPassword ? 'Hide' : 'Show'}
+                      {showConfirmPassword ? t('common.hide') : t('common.show')}
                     </button>
                   </div>
                 </label>
 
                 <label className="checkbox-row">
                   <input type="checkbox" defaultChecked />
-                  <span>I agree to respectful platform use and communication.</span>
+                  <span>{t('auth.respectfulUseAgreement')}</span>
                 </label>
 
                 <button className="submit-button" disabled={isSubmitting} type="submit">
-                  <span>{isSubmitting ? 'Creating account...' : 'Create account'}</span>
+                  <span>{isSubmitting ? t('auth.creatingAccount') : t('auth.createAccountButton')}</span>
                 </button>
 
                 <p className="form-note">
-                  Already registered?{' '}
+                  {t('auth.alreadyRegistered')}{' '}
                   <button
                     className="inline-switch"
                     type="button"
@@ -506,7 +510,7 @@ export function LoginPage() {
                       setMode('login')
                     }}
                   >
-                    Return to login
+                    {t('auth.returnToLogin')}
                   </button>
                 </p>
               </form>
@@ -514,7 +518,7 @@ export function LoginPage() {
 
             <div className="auth-learn-more">
               <Link className="auth-learn-more-link" to="/about">
-                Learn more about the platform
+                {t('auth.learnMore')}
               </Link>
             </div>
           </div>

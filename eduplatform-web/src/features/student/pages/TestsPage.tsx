@@ -1,15 +1,17 @@
-import axios from 'axios'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
-import { gradeOptions } from '../../../shared/classOptions'
+import { formatGradeLabel, formatStoredClassDisplay, gradeOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient from '../../../shared/api/axiosInstance'
+import { readApiError } from '../../../shared/apiErrors'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 
 type TestSummary = {
@@ -29,6 +31,7 @@ type TestSummary = {
 }
 
 export function TestsPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [tests, setTests] = useState<TestSummary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -62,12 +65,7 @@ export function TestsPage() {
         if (!isMounted) {
           return
         }
-
-        if (axios.isAxiosError(error) && typeof error.response?.data === 'string') {
-          setErrorMessage(error.response.data)
-        } else {
-          setErrorMessage('Failed to load tests. Please try again.')
-        }
+        setErrorMessage(readApiError(error, t('studentPages.tests.loadFailed')))
       } finally {
         if (isMounted) {
           setIsLoading(false)
@@ -142,15 +140,15 @@ export function TestsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        description="Review your available tests and launch an assessment when you feel ready."
-        eyebrow="Tests"
-        title="Available Assessments"
+        description={t('studentPages.tests.description')}
+        eyebrow={t('studentPages.tests.eyebrow')}
+        title={t('studentPages.tests.title')}
       />
 
       <section className="glass-panel p-6">
         <div className="admin-management-control-bar">
           <AdminSearchField
-            placeholder="Search by title, teacher, or grade..."
+            placeholder={t('studentPages.tests.searchPlaceholder')}
             flex="1 1 200px"
             maxWidth="min(100%, 200px)"
             fullWidth={false}
@@ -160,36 +158,36 @@ export function TestsPage() {
 
           <div className="admin-management-filter-group">
             <AdminSelectField
-              label="Grade"
+              label={t('common.grade')}
               value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
               fullWidth={false}
               width={130}
               options={[
-                { value: 'all', label: 'All Grades' },
-                ...availableGradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                { value: 'all', label: t('common.allGrades') },
+                ...availableGradeOptions.map((entry) => ({ value: String(entry), label: formatGradeLabel(entry) })),
               ]}
               onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
             />
             <AdminSelectField
-              label="Status"
+              label={t('common.status')}
               value={selectedStatusFilter}
               fullWidth={false}
               width={130}
               options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
+                { value: 'all', label: t('common.allStatuses') },
+                { value: 'active', label: t('common.active') },
+                { value: 'inactive', label: t('common.inactive') },
               ]}
               onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
             />
 
             <AdminSelectField
-              label="Subject"
+              label={t('common.subject')}
               value={selectedSubjectFilter}
               fullWidth={false}
               width={130}
               options={[
-                { value: 'all', label: 'All Subjects' },
+                { value: 'all', label: t('common.allSubjects') },
                 ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
               ]}
               onChange={setSelectedSubjectFilter}
@@ -212,9 +210,9 @@ export function TestsPage() {
           </div>
         </div>
 
-        {isLoading ? <div className="mt-6 text-slate-600">Loading tests...</div> : null}
+        {isLoading ? <div className="mt-6 text-slate-600">{t('studentPages.tests.loading')}</div> : null}
         {!isLoading && errorMessage ? (
-          <div className="mt-6 text-rose-700">{errorMessage}</div>
+          <ErrorNotice className="mt-6" compact message={errorMessage} />
         ) : null}
 
         {!isLoading && !errorMessage ? (
@@ -226,14 +224,14 @@ export function TestsPage() {
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-slate-900">{test.title}</h2>
                     <p className="text-sm text-slate-600">
-                      {test.subjectName} · {test.classDisplay} · {test.questions.length} questions
+                      {test.subjectName} · {formatStoredClassDisplay(test.classDisplay, test.grade, test.section)} · {t('studentPages.tests.questionsCount', { count: test.questions.length })}
                     </p>
                   </div>
                   <Link
                     className="button-primary inline-flex px-4 py-3 text-sm"
                     to={`/student/tests/${test.id}`}
                   >
-                    Start
+                    {t('common.start')}
                   </Link>
                 </article>
               ))}
@@ -253,9 +251,9 @@ export function TestsPage() {
             </>
           ) : (
             <div className="admin-management-empty mt-6">
-              <h3 className="text-lg font-semibold text-slate-900">No tests found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{t('studentPages.tests.emptyTitle')}</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try adjusting the search or filters within your class assessments.
+                {t('studentPages.tests.emptyDescription')}
               </p>
             </div>
           )

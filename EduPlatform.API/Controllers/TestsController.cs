@@ -43,6 +43,23 @@ public class TestsController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("me/results/{resultId:int}")]
+    public async Task<IActionResult> GetMyResultDetails(int resultId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                               ?? User.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Unauthorized(new { error = "User id claim missing" });
+
+        var userId = int.Parse(userIdClaim);
+        var result = await _testService.GetResultDetailsForUserAsync(resultId, userId);
+        if (result == null)
+            return NotFound(new { error = "Test result not found" });
+
+        return Ok(result);
+    }
+
+    [Authorize]
     [HttpGet("me/dashboard")]
     public async Task<IActionResult> GetMyDashboardStats()
     {

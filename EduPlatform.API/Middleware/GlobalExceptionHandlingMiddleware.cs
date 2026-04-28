@@ -55,6 +55,12 @@ public class GlobalExceptionHandlingMiddleware
                 response.ErrorCode = "INVALID_OPERATION";
                 break;
 
+            case BadImageFormatException:
+                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                response.Message = "The server couldn't process this request correctly. Please try again in a moment.";
+                response.ErrorCode = "SERVER_FORMAT_ERROR";
+                break;
+
             // Not found errors
             case KeyNotFoundException:
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
@@ -69,6 +75,8 @@ public class GlobalExceptionHandlingMiddleware
                 response.ErrorCode = "INTERNAL_SERVER_ERROR";
                 break;
         }
+
+        response.StatusCode = context.Response.StatusCode;
 
         return context.Response.WriteAsJsonAsync(response);
     }

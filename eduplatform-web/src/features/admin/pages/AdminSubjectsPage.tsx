@@ -1,19 +1,14 @@
 import axios from 'axios'
 import DeleteOutline from '@mui/icons-material/DeleteOutline'
-import DnsOutlined from '@mui/icons-material/DnsOutlined'
 import EditOutlined from '@mui/icons-material/EditOutlined'
-import FunctionsOutlined from '@mui/icons-material/FunctionsOutlined'
 import CloseOutlined from '@mui/icons-material/CloseOutlined'
-import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined'
-import PsychologyAltOutlined from '@mui/icons-material/PsychologyAltOutlined'
-import PublicOutlined from '@mui/icons-material/PublicOutlined'
-import ScienceOutlined from '@mui/icons-material/ScienceOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
+import { useAppSettings, useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
-import { formatClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { formatClassDisplay, formatGradeDisplay, formatGradeLabel, formatStoredClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
@@ -22,8 +17,11 @@ import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
 import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal'
 import { PageHeader } from '../../../shared/components/PageHeader'
+import { SubjectIcon } from '../../../shared/components/SubjectIcon'
+import { UserAvatar } from '../../../shared/components/UserAvatar'
 import apiClient from '../../../shared/api/axiosInstance'
 import { isWithinDateRange } from '../../../shared/dateFilters'
+import { filterSubjectsByLanguage } from '../../../shared/subjectCatalog'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
 
 type Subject = {
@@ -38,37 +36,6 @@ type Subject = {
   createdByUsername?: string | null
   createdByFullName?: string | null
   createdByIsApproved: boolean
-}
-
-const getSubjectIcon = (subjectName: string) => {
-  const normalized = subjectName.trim().toLowerCase()
-
-  if (normalized.includes('bio')) {
-    return ScienceOutlined
-  }
-
-  if (normalized.includes('math') || normalized.includes('algebra') || normalized.includes('geometry')) {
-    return FunctionsOutlined
-  }
-
-  if (
-    normalized.includes('informatic') ||
-    normalized.includes('computer') ||
-    normalized.includes('program') ||
-    normalized.includes('it')
-  ) {
-    return DnsOutlined
-  }
-
-  if (normalized.includes('geo')) {
-    return PublicOutlined
-  }
-
-  if (normalized.includes('psych') || normalized.includes('logic')) {
-    return PsychologyAltOutlined
-  }
-
-  return MenuBookOutlined
 }
 
 const formatDateTime = (value?: string | null) => {
@@ -91,6 +58,8 @@ const formatDateTime = (value?: string | null) => {
 }
 
 export function AdminSubjectsPage() {
+  const { language } = useAppSettings()
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { showNotification } = useNotification()
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -143,10 +112,10 @@ export function AdminSubjectsPage() {
     try {
       if (editingId) {
         await apiClient.put(`/subjects/${editingId}`, { name, description, grade, section })
-        showNotification('Subject updated.', 'success')
+        showNotification(t('adminPages.common.saveChanges'), 'success')
       } else {
         await apiClient.post('/subjects', { name, description, grade, section })
-        showNotification('Subject created.', 'success')
+        showNotification(t('adminPages.common.create'), 'success')
       }
 
       reset()
@@ -178,15 +147,17 @@ export function AdminSubjectsPage() {
     }
   }
 
+  const localizedSubjects = useMemo(() => filterSubjectsByLanguage(subjects, language), [subjects, language])
+
   const subjectOptions = useMemo(
-    () => Array.from(new Set(subjects.map((subject) => subject.name))).sort((left, right) => left.localeCompare(right)),
-    [subjects],
+    () => Array.from(new Set(localizedSubjects.map((subject) => subject.name))).sort((left, right) => left.localeCompare(right)),
+    [localizedSubjects],
   )
 
   const filteredSubjects = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    return subjects.filter((subject) => {
+    return localizedSubjects.filter((subject) => {
       const matchesSearch =
         !normalizedSearch ||
         subject.name.toLowerCase().includes(normalizedSearch) ||
@@ -209,7 +180,7 @@ export function AdminSubjectsPage() {
 
       return matchesSearch && matchesGrade && matchesSection && matchesStatus && matchesSubject && matchesDate
     })
-  }, [endDateFilter, searchTerm, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, subjects])
+  }, [endDateFilter, localizedSubjects, searchTerm, selectedGradeFilter, selectedSectionFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter])
 
   const sortedSubjects = useMemo(() => {
     const getCreatedBy = (subject: Subject) => subject.createdByFullName ?? subject.createdByUsername ?? 'Teacher'
@@ -295,11 +266,11 @@ export function AdminSubjectsPage() {
       <PageHeader
         description={
           isAdmin
-            ? 'Create, edit, and remove subjects across the platform.'
-            : 'Review your subjects and update their descriptions.'
+            ? t('adminPages.subjects.descriptionAdmin')
+            : t('adminPages.subjects.descriptionTeacher')
         }
-        eyebrow="Subjects"
-        title="Subject Management"
+        eyebrow={t('adminPages.subjects.eyebrow')}
+        title={t('adminPages.subjects.title')}
       />
 
       <section>
@@ -315,17 +286,17 @@ export function AdminSubjectsPage() {
               alignItems={{ xs: 'stretch', sm: 'center' }}
             >
               <AdminSearchField
-                placeholder="Search by title, teacher, or grade..."
+                placeholder={t('adminPages.subjects.searchPlaceholder')}
                 flex="1 1 0%"
                 maxWidth="none"
                 fullWidth={false}
                 value={searchTerm}
                 onChange={setSearchTerm}
               />
-              <Stack direction="row" justifyContent="flex-end" spacing={1.5} useFlexGap sx={{ flexShrink: 0 }}>
+              <Stack direction="row" justifyContent="flex-end" spacing={1.5} useFlexGap sx={{ flexShrink: 0, alignItems: 'center' }}>
                 {canCreate ? (
-                  <button className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm" type="button" onClick={openCreateModal}>
-                    + Add Subject
+                  <button className="admin-add-button" type="button" onClick={openCreateModal}>
+                    {t('adminPages.subjects.addButton')}
                   </button>
                 ) : null}
                 <AdminResetFiltersButton onClick={resetFilters} />
@@ -334,46 +305,46 @@ export function AdminSubjectsPage() {
 
             <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               <AdminSelectField
-                label="Grade"
+                label={t('common.grade')}
                 value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Grades' },
-                  ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                  { value: 'all', label: t('common.allGrades') },
+                  ...gradeOptions.map((entry) => ({ value: String(entry), label: formatGradeLabel(entry) })),
                 ]}
                 onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
               />
               <AdminSelectField
-                label="Section"
+                label={t('common.section')}
                 value={selectedSectionFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Sections' },
+                  { value: 'all', label: t('adminPages.common.allSections') },
                   ...sectionOptions.map((entry) => ({ value: entry, label: entry })),
                 ]}
                 onChange={(value) => setSelectedSectionFilter(value)}
               />
               <AdminSelectField
-                label="Status"
+                label={t('common.status')}
                 value={selectedStatusFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'all', label: t('common.allStatuses') },
+                  { value: 'active', label: t('common.active') },
+                  { value: 'inactive', label: t('common.inactive') },
                 ]}
                 onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
               />
               <AdminSelectField
-                label="Subject"
+                label={t('common.subject')}
                 value={selectedSubjectFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Subjects' },
+                  { value: 'all', label: t('common.allSubjects') },
                   ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
                 ]}
                 onChange={(value) => setSelectedSubjectFilter(value)}
@@ -410,7 +381,7 @@ export function AdminSubjectsPage() {
                     <tr>
                       <th>
                         <AdminSortHeader
-                          label="Name"
+                          label={t('adminPages.subjects.tableName')}
                           column="name"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -419,7 +390,7 @@ export function AdminSubjectsPage() {
                       </th>
                       <th>
                         <AdminSortHeader
-                          label="Grade"
+                          label={t('common.grade')}
                           column="grade"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -428,7 +399,7 @@ export function AdminSubjectsPage() {
                       </th>
                       <th>
                         <AdminSortHeader
-                          label="Created by"
+                          label={t('adminPages.common.createdBy')}
                           column="createdBy"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -437,48 +408,49 @@ export function AdminSubjectsPage() {
                       </th>
                       <th>
                         <AdminSortHeader
-                          label="Date Created"
+                          label={t('adminPages.common.dateCreated')}
                           column="createdAt"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="text-right">Actions</th>
+                      <th className="text-right">{t('adminPages.common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedSubjects.map((subject) => (
-                      <tr key={subject.id}>
-                        <td className="w-[44%]">
-                          {(() => {
-                            const SubjectIcon = getSubjectIcon(subject.name)
-
-                            return (
-                              <div className="flex items-center gap-5">
-                                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-sky-50/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
-                                  <SubjectIcon sx={{ fontSize: '2.5rem', color: '#2468a0' }} />
-                                </div>
-                                <div className="min-w-0 space-y-2">
-                                  <p className="text-lg font-semibold text-slate-900">{subject.name}</p>
-                                  <p className="max-w-3xl leading-6 text-slate-500">{subject.description}</p>
-                                </div>
-                              </div>
-                            )
-                          })()}
-                        </td>
+                    <tr key={subject.id}>
+                      <td className="w-[44%]">
+                        <div className="flex items-center gap-6">
+                          <SubjectIcon subjectName={subject.name} />
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-lg font-semibold text-slate-900">{subject.name}</p>
+                            <p className="max-w-3xl leading-6 text-slate-500">{subject.description}</p>
+                          </div>
+                        </div>
+                      </td>
                         <td className="whitespace-nowrap">
                           <span className="inline-flex whitespace-nowrap rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                            {subject.classDisplay || formatClassDisplay(subject.grade, subject.section)}
+                            {formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}
                           </span>
                         </td>
-                        <td className="whitespace-nowrap">{`Created by ${subject.createdByFullName ?? subject.createdByUsername ?? 'Teacher'}`}</td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <UserAvatar
+                              fullName={subject.createdByFullName}
+                              size={24}
+                              username={subject.createdByUsername}
+                            />
+                            <span>{`${t('adminPages.common.createdBy')} ${subject.createdByFullName ?? subject.createdByUsername ?? t('adminPages.common.unknownTeacher')}`}</span>
+                          </div>
+                        </td>
                         <td className="whitespace-nowrap">{formatDateTime(subject.createdAt)}</td>
                         <td className="whitespace-nowrap">
                           <div className="flex justify-end gap-2">
                             <button
                               className="admin-management-icon-button"
-                              title="View subject"
+                              title={t('adminPages.common.view')}
                               type="button"
                               onClick={() => setViewingSubject(subject)}
                             >
@@ -486,7 +458,7 @@ export function AdminSubjectsPage() {
                             </button>
                             <button
                               className="admin-management-icon-button"
-                              title={isTeacher ? 'Edit subject description' : 'Edit subject'}
+                              title={t('adminPages.common.edit')}
                               type="button"
                               onClick={() => openEditModal(subject)}
                             >
@@ -495,7 +467,7 @@ export function AdminSubjectsPage() {
                             {canDelete ? (
                               <button
                                 className="admin-management-icon-button admin-management-icon-button-danger"
-                                title="Delete subject"
+                                title={t('adminPages.common.delete')}
                                 type="button"
                                 onClick={() => setSubjectPendingDelete(subject)}
                               >
@@ -522,9 +494,9 @@ export function AdminSubjectsPage() {
             </div>
           ) : (
             <div className="admin-management-empty mt-6">
-              <h3 className="text-lg font-semibold text-slate-900">No subjects found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{t('adminPages.subjects.emptyTitle')}</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try adjusting the search or filters, or create a new subject first.
+                {t('adminPages.subjects.emptyDescription')}
               </p>
             </div>
           )}
@@ -534,10 +506,10 @@ export function AdminSubjectsPage() {
       {viewingSubject ? (
         <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={() => setViewingSubject(null)}>
           <div className="admin-management-modal-card max-w-[500px]" onClick={(event) => event.stopPropagation()}>
-            <div className="relative border-b border-slate-200/80 px-6 pb-5 pt-6">
+            <div className="admin-management-modal-header relative px-6 pb-5 pt-6">
               <button
                 aria-label="Close subject view"
-                className="absolute right-4 top-4 inline-flex items-center justify-center p-1 text-slate-500 transition hover:text-slate-700"
+                className="modal-close-button absolute right-4 top-4 inline-flex items-center justify-center rounded-full p-1 text-slate-500 transition hover:text-slate-700"
                 type="button"
                 onClick={() => setViewingSubject(null)}
               >
@@ -548,7 +520,7 @@ export function AdminSubjectsPage() {
                 <h2 className="mt-2 text-2xl font-semibold text-slate-900">{viewingSubject.name}</h2>
                 <div className="mt-4 flex flex-wrap items-center gap-2.5">
                   <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                    {viewingSubject.classDisplay || formatClassDisplay(viewingSubject.grade, viewingSubject.section)}
+                    {formatStoredClassDisplay(viewingSubject.classDisplay, viewingSubject.grade, viewingSubject.section)}
                   </span>
                   <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                     {`Created by ${viewingSubject.createdByFullName ?? viewingSubject.createdByUsername ?? 'Teacher'}`}
@@ -586,74 +558,76 @@ export function AdminSubjectsPage() {
       {isEditing ? (
         <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={closeEditModal}>
           <div className="admin-management-modal-card max-w-3xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-5">
+            <div className="admin-management-modal-header flex items-center justify-between px-6 py-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Subject Edit</p>
                 <h2 className="mt-2 text-2xl font-semibold text-slate-900">Edit subject</h2>
               </div>
               <button
                 aria-label="Close subject editor"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                className="modal-close-button inline-flex h-11 w-11 rounded-full"
                 type="button"
                 onClick={closeEditModal}
               >
                 ×
               </button>
             </div>
-            <div className="grid gap-4 px-6 py-6">
-              <input
-                className={`rounded-2xl border px-4 py-3 text-sky-950 placeholder:text-sky-600/70 ${
-                  isTeacher ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500' : 'border-sky-200 bg-sky-50/70'
-                }`}
-                placeholder="Subject name"
-                disabled={isTeacher}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <textarea
-                className="min-h-32 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                placeholder="Description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-              {isTeacher ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
-                    <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Grade</span>
-                    <span className="mt-1 block text-base font-medium text-slate-800">{grade}</span>
+            <div className="admin-management-modal-body">
+              <div className="admin-management-modal-form-endpad grid gap-4 px-6 py-6">
+                <input
+                  className={`rounded-2xl border px-4 py-3 text-sky-950 placeholder:text-sky-600/70 ${
+                    isTeacher ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500' : 'border-sky-200 bg-sky-50/70'
+                  }`}
+                  placeholder="Subject name"
+                  disabled={isTeacher}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+                <textarea
+                  className="min-h-32 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
+                  placeholder="Description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+                {isTeacher ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                      <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Grade</span>
+                      <span className="mt-1 block text-base font-medium text-slate-800">{formatGradeDisplay(grade)}</span>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                      <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Section</span>
+                      <span className="mt-1 block text-base font-medium text-slate-800">{section}</span>
+                    </div>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
-                    <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Section</span>
-                    <span className="mt-1 block text-base font-medium text-slate-800">{section}</span>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <AdminSelectField
+                      label="Grade"
+                      value={String(grade)}
+                      options={gradeOptions.map((entry) => ({ value: String(entry), label: formatGradeDisplay(entry) }))}
+                      onChange={(value) => setGrade(Number(value))}
+                    />
+                    <AdminSelectField
+                      label="Section"
+                      value={section}
+                      options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
+                      onChange={setSection}
+                    />
                   </div>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <AdminSelectField
-                    label="Grade"
-                    value={String(grade)}
-                    options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
-                    onChange={(value) => setGrade(Number(value))}
-                  />
-                  <AdminSelectField
-                    label="Section"
-                    value={section}
-                    options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
-                    onChange={setSection}
-                  />
-                </div>
-              )}
-              {isTeacher ? (
-                <p className="text-sm text-slate-500">Teachers can update the subject description only. Name and class assignment are managed by admins.</p>
-              ) : null}
-              <div className="flex gap-3">
-                <button className="button-primary" type="button" onClick={save}>
-                  Save changes
-                </button>
-                <button className="rounded-2xl border border-slate-200 px-4 py-3" type="button" onClick={closeEditModal}>
-                  Cancel
-                </button>
+                )}
+                {isTeacher ? (
+                  <p className="text-sm text-slate-500">Teachers can update the subject description only. Name and class assignment are managed by admins.</p>
+                ) : null}
               </div>
+            </div>
+            <div className="admin-management-modal-footer">
+              <button className="button-primary" type="button" onClick={save}>
+                Save changes
+              </button>
+              <button className="modal-outline-button px-4 py-3" type="button" onClick={closeEditModal}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -662,7 +636,7 @@ export function AdminSubjectsPage() {
       {isCreateModalOpen ? (
         <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={reset}>
           <div className="admin-management-modal-card max-w-5xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-200/80 px-8 py-6 lg:px-10">
+            <div className="admin-management-modal-header flex items-center justify-between px-8 py-6 lg:px-10">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Subject Management</p>
                 <h2 className="mt-2 text-2xl font-semibold text-slate-900">Create subject</h2>
@@ -672,48 +646,50 @@ export function AdminSubjectsPage() {
               </div>
               <button
                 aria-label="Close subject creator"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                className="modal-close-button inline-flex h-11 w-11 rounded-full"
                 type="button"
                 onClick={reset}
               >
                 ×
               </button>
             </div>
-            <div className="grid gap-6 px-8 py-8 lg:px-10 lg:py-9">
-              <input
-                className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
-                placeholder="Subject name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <textarea
-                className="min-h-40 rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
-                placeholder="Description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-              <div className="grid gap-5 md:grid-cols-2">
-                <AdminSelectField
-                  label="Grade"
-                  value={String(grade)}
-                  options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
-                  onChange={(value) => setGrade(Number(value))}
+            <div className="admin-management-modal-body">
+              <div className="admin-management-modal-form-endpad grid gap-6 px-8 py-8 lg:px-10 lg:py-9">
+                <input
+                  className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                  placeholder="Subject name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
                 />
-                <AdminSelectField
-                  label="Section"
-                  value={section}
-                  options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
-                  onChange={setSection}
+                <textarea
+                  className="min-h-40 rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
+                  placeholder="Description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
                 />
+                <div className="grid gap-5 md:grid-cols-2">
+                  <AdminSelectField
+                    label="Grade"
+                    value={String(grade)}
+                    options={gradeOptions.map((entry) => ({ value: String(entry), label: formatGradeDisplay(entry) }))}
+                    onChange={(value) => setGrade(Number(value))}
+                  />
+                  <AdminSelectField
+                    label="Section"
+                    value={section}
+                    options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
+                    onChange={setSection}
+                  />
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={save}>
-                  Create subject
-                </button>
-                <button className="rounded-2xl border border-slate-200 px-5 py-3.5 text-base font-semibold text-slate-700" type="button" onClick={reset}>
-                  Cancel
-                </button>
-              </div>
+            </div>
+            <div className="admin-management-modal-footer px-8 lg:px-10">
+              <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={save}>
+                Create subject
+              </button>
+              <button className="rounded-2xl border border-slate-200 px-5 py-3.5 text-base font-semibold text-slate-700" type="button" onClick={reset}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>

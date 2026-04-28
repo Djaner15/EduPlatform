@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<Answer> Answers => Set<Answer>();
     public DbSet<TestResult> TestResults => Set<TestResult>();
+    public DbSet<TestResultAnswer> TestResultAnswers => Set<TestResultAnswer>();
     public DbSet<ClassSection> ClassSections => Set<ClassSection>();
     public DbSet<TeacherSubjectAssignment> TeacherSubjectAssignments => Set<TeacherSubjectAssignment>();
     public DbSet<TeacherClassAssignment> TeacherClassAssignments => Set<TeacherClassAssignment>();
@@ -142,6 +143,12 @@ public class AppDbContext : DbContext
             .HasOne(tr => tr.Test)
             .WithMany(t => t.TestResults) 
             .HasForeignKey(tr => tr.TestId);
+
+        modelBuilder.Entity<TestResultAnswer>()
+            .HasOne(tra => tra.TestResult)
+            .WithMany(tr => tr.SubmittedAnswers)
+            .HasForeignKey(tra => tra.TestResultId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<ClassSection>()
             .HasOne(cs => cs.ClassTeacher)

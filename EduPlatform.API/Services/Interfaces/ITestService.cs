@@ -18,10 +18,14 @@ public interface ITestService
     /// </summary>
     Task<List<TestResultDto>> GetAllResultsAsync();
     Task<List<TestResultDto>> GetResultsForUserAsync(int userId);
+    Task<TestResultDetailsDto?> GetResultDetailsForUserAsync(int resultId, int userId);
     Task<StudentDashboardStatsDto> GetDashboardStatsForUserAsync(int userId);
+    Task<TeacherOverviewStatsDto> GetTeacherOverviewStatsAsync(int teacherId);
+    Task<PublicPlatformOverviewDto> GetPlatformOverviewAsync();
 
     /// <summary>
     /// Returns basic statistics
     /// </summary>
     Task<StatisticsDto> GetStatisticsAsync();
+    Task<RecentActivityPageDto> GetRecentActivityPageAsync(int page, int pageSize);
 }

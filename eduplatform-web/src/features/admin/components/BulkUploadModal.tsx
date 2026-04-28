@@ -338,12 +338,8 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1700] flex min-h-screen w-screen items-center justify-center bg-slate-950/40 px-4 py-6"
-      style={{
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        transition: 'backdrop-filter 220ms ease, background-color 220ms ease',
-      }}
+      className="admin-management-modal items-center"
+      style={{ transition: 'backdrop-filter 220ms ease, background-color 220ms ease' }}
       role="dialog"
       aria-modal="true"
       onClick={(event) => {
@@ -352,8 +348,8 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
         }
       }}
     >
-      <div className="glass-panel flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden">
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-blue-100/80 px-6 py-5">
+      <div className="admin-management-modal-card flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden">
+        <div className="admin-management-modal-header flex shrink-0 items-start justify-between gap-4 px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Bulk import</p>
             <h2 className="mt-2 text-2xl font-semibold text-slate-900">Bulk User Import</h2>
@@ -362,7 +358,7 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
             </p>
           </div>
           <button
-            className="rounded-2xl border border-slate-200 p-3 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            className="modal-close-button rounded-2xl p-3 text-slate-500 hover:text-slate-900"
             type="button"
             onClick={onClose}
           >

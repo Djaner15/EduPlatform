@@ -75,7 +75,7 @@ export function StudentHomePage() {
         }
         description={t('studentOverviewDescription')}
         eyebrow={t('overview')}
-        title={t('helloUser', { username: user?.username ?? 'Student' })}
+        title={t('helloUser', { username: user?.username ?? t('common.user') })}
       />
 
       <section className="grid gap-4 md:grid-cols-3">

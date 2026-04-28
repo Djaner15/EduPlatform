@@ -30,7 +30,7 @@ builder.Services.AddCors(options =>
 
 // --- Database ---
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=eduplatform.db"));
+    options.UseSqlite("Data Source=eduplatform.db;Default Timeout=5"));
 
 // --- Services ---
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -131,11 +131,42 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// --- Database Seeding ---
-using (var scope = app.Services.CreateScope())
+// --- Optional Database Bootstrap ---
+if (Environment.GetEnvironmentVariable("EDUPLATFORM_ENABLE_BOOTSTRAP") == "1")
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var databasePath = Path.Combine(Directory.GetCurrentDirectory(), "eduplatform.db");
+    var isExistingDatabase = File.Exists(databasePath);
+
+    if (!isExistingDatabase)
+    {
+        db.Database.Migrate();
+    }
+
+    db.Database.ExecuteSqlRaw(
+        """
+        CREATE TABLE IF NOT EXISTS TestResultAnswers (
+            Id INTEGER NOT NULL CONSTRAINT PK_TestResultAnswers PRIMARY KEY AUTOINCREMENT,
+            TestResultId INTEGER NOT NULL,
+            QuestionId INTEGER NOT NULL,
+            OrderIndex INTEGER NOT NULL,
+            QuestionText TEXT NOT NULL,
+            QuestionType TEXT NOT NULL,
+            SelectedAnswerId INTEGER NULL,
+            StudentAnswerText TEXT NULL,
+            CorrectAnswerText TEXT NOT NULL,
+            IsCorrect INTEGER NOT NULL,
+            Explanation TEXT NULL,
+            CONSTRAINT FK_TestResultAnswers_TestResults_TestResultId
+                FOREIGN KEY (TestResultId) REFERENCES TestResults (Id) ON DELETE CASCADE
+        );
+        """);
+    db.Database.ExecuteSqlRaw(
+        """
+        CREATE INDEX IF NOT EXISTS IX_TestResultAnswers_TestResultId
+        ON TestResultAnswers (TestResultId);
+        """);
 
     if (!db.Roles.Any())
     {
@@ -144,7 +175,6 @@ using (var scope = app.Services.CreateScope())
             new Role { Name = "Teacher" },
             new Role { Name = "Student" }
         );
-
         db.SaveChanges();
     }
 
@@ -163,202 +193,8 @@ using (var scope = app.Services.CreateScope())
             IsApproved = true,
             ApprovedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         });
-
         db.SaveChanges();
     }
-
-    var teacherRole = db.Roles.First(role => role.Name == "Teacher");
-    var studentRole = db.Roles.First(role => role.Name == "Student");
-    var defaultHash = "$2a$11$9lfjmmIr/Z11LPdbBA73vONJxsylNnMgtMZs1swmkYvIiddyhVmY.";
-    var seededSections = new[] { "А", "Б", "В", "Г", "Д", "Е", "Ж", "З" };
-
-    foreach (var grade in Enumerable.Range(8, 5))
-    {
-        foreach (var section in seededSections)
-        {
-            if (!db.ClassSections.Any(entry => entry.Grade == grade && entry.Section == section))
-            {
-                db.ClassSections.Add(new ClassSection { Grade = grade, Section = section });
-            }
-        }
-    }
-
-    db.SaveChanges();
-
-    if (db.Users.Count(user => user.RoleId == teacherRole.Id) < 4)
-    {
-        var teacherSeeds = new[]
-        {
-            new { FullName = "Maria Petrova", Username = "teacher.math", Email = "teacher.math@schoolmath.eu" },
-            new { FullName = "Elena Georgieva", Username = "teacher.bio", Email = "teacher.bio@schoolmath.eu" },
-            new { FullName = "Nikolay Dimitrov", Username = "teacher.info", Email = "teacher.info@schoolmath.eu" },
-            new { FullName = "Ivan Stoyanov", Username = "teacher.class", Email = "teacher.class@schoolmath.eu" },
-            new { FullName = "Petya Todorova", Username = "teacher.physics", Email = "teacher.physics@schoolmath.eu" }
-        };
-
-        foreach (var teacherSeed in teacherSeeds)
-        {
-            if (!db.Users.Any(user => user.Username == teacherSeed.Username))
-            {
-                db.Users.Add(new User
-                {
-                    FullName = teacherSeed.FullName,
-                    Username = teacherSeed.Username,
-                    Email = teacherSeed.Email,
-                    PasswordHash = defaultHash,
-                    RoleId = teacherRole.Id,
-                    IsApproved = true,
-                    ApprovedAt = DateTime.UtcNow
-                });
-            }
-        }
-
-        db.SaveChanges();
-    }
-
-    var teachers = db.Users.Where(user => user.RoleId == teacherRole.Id).OrderBy(user => user.Id).Take(5).ToList();
-
-    var mockClasses = new[]
-    {
-        new { Grade = 8, Section = "А" },
-        new { Grade = 8, Section = "Б" },
-        new { Grade = 9, Section = "А" },
-        new { Grade = 9, Section = "Б" },
-        new { Grade = 10, Section = "А" },
-        new { Grade = 10, Section = "Б" }
-    };
-
-    if (db.Subjects.Count() < 12 && teachers.Count >= 3)
-    {
-        foreach (var classInfo in mockClasses)
-        {
-            var subjectSeeds = new[]
-            {
-                new { Name = "Mathematics", Description = $"Advanced mathematics for {classInfo.Grade}{classInfo.Section}.", TeacherId = teachers[0].Id },
-                new { Name = "Biology", Description = $"Biology curriculum for {classInfo.Grade}{classInfo.Section}.", TeacherId = teachers[1].Id },
-                new { Name = "Informatics", Description = $"Informatics and technology for {classInfo.Grade}{classInfo.Section}.", TeacherId = teachers[2].Id }
-            };
-
-            foreach (var subjectSeed in subjectSeeds)
-            {
-                if (!db.Subjects.Any(subject => subject.Name == subjectSeed.Name && subject.Grade == classInfo.Grade && subject.Section == classInfo.Section))
-                {
-                    db.Subjects.Add(new Subject
-                    {
-                        Name = subjectSeed.Name,
-                        Description = subjectSeed.Description,
-                        Grade = classInfo.Grade,
-                        Section = classInfo.Section,
-                        CreatedByUserId = subjectSeed.TeacherId
-                    });
-                }
-            }
-        }
-
-        db.SaveChanges();
-    }
-
-    if (db.Users.Count(user => user.RoleId == studentRole.Id) < 60)
-    {
-        foreach (var classInfo in mockClasses)
-        {
-            var latinSection = classInfo.Section == "А" ? "a" : "b";
-
-            for (var index = 1; index <= 10; index++)
-            {
-                var username = $"student_{classInfo.Grade}{latinSection}_{index:00}";
-                if (db.Users.Any(user => user.Username == username))
-                {
-                    continue;
-                }
-
-                db.Users.Add(new User
-                {
-                    FullName = $"Student {classInfo.Grade}{classInfo.Section} {index:00}",
-                    Username = username,
-                    Email = $"{username}@schoolmath.eu",
-                    PasswordHash = defaultHash,
-                    RoleId = studentRole.Id,
-                    Grade = classInfo.Grade,
-                    Section = classInfo.Section,
-                    IsApproved = true,
-                    ApprovedAt = DateTime.UtcNow
-                });
-            }
-        }
-
-        db.SaveChanges();
-    }
-
-    var allSubjects = db.Subjects.ToList();
-    var allClassSections = db.ClassSections.ToList();
-
-    if (!db.TeacherSubjectAssignments.Any() && teachers.Count >= 5)
-    {
-        foreach (var subject in allSubjects)
-        {
-            var teacher = subject.Name switch
-            {
-                "Mathematics" => teachers[0],
-                "Biology" => teachers[1],
-                "Informatics" => teachers[2],
-                _ => teachers[3]
-            };
-
-            db.TeacherSubjectAssignments.Add(new TeacherSubjectAssignment
-            {
-                TeacherId = teacher.Id,
-                SubjectId = subject.Id
-            });
-        }
-
-        db.SaveChanges();
-    }
-
-    if (!db.TeacherClassAssignments.Any() && teachers.Count >= 5)
-    {
-        foreach (var classInfo in mockClasses)
-        {
-            var sectionRecord = allClassSections.First(section => section.Grade == classInfo.Grade && section.Section == classInfo.Section);
-            var assignedTeacherIds = classInfo.Grade switch
-            {
-                8 => new[] { teachers[0].Id, teachers[3].Id },
-                9 => new[] { teachers[1].Id, teachers[3].Id },
-                10 => new[] { teachers[2].Id, teachers[4].Id },
-                _ => new[] { teachers[0].Id }
-            };
-
-            foreach (var teacherId in assignedTeacherIds.Distinct())
-            {
-                db.TeacherClassAssignments.Add(new TeacherClassAssignment
-                {
-                    TeacherId = teacherId,
-                    ClassSectionId = sectionRecord.Id
-                });
-            }
-        }
-
-        db.SaveChanges();
-    }
-
-    foreach (var classInfo in mockClasses)
-    {
-        var sectionRecord = db.ClassSections.First(section => section.Grade == classInfo.Grade && section.Section == classInfo.Section);
-        if (sectionRecord.ClassTeacherId.HasValue)
-        {
-            continue;
-        }
-
-        sectionRecord.ClassTeacherId = classInfo.Grade switch
-        {
-            8 => teachers.ElementAtOrDefault(3)?.Id,
-            9 => teachers.ElementAtOrDefault(1)?.Id,
-            10 => teachers.ElementAtOrDefault(2)?.Id,
-            _ => null
-        };
-    }
-
-    db.SaveChanges();
 }
 
 app.Run();

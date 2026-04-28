@@ -1,9 +1,12 @@
 import axios from 'axios'
 import { Loader2, Sparkles } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useTranslation } from '../../../app/AppSettingsContext'
 import { useNotification } from '../../../app/NotificationContext'
 import apiClient from '../../../shared/api/axiosInstance'
+import { readApiError } from '../../../shared/apiErrors'
+import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import { QuestionCard } from '../components/QuestionCard'
 
@@ -49,8 +52,11 @@ type QuestionExplanation = {
   explanation: string
 }
 
+type SubmissionMode = 'manual' | 'auto-cheat'
+
 export function TestPage() {
   const { id } = useParams()
+  const { t } = useTranslation()
   const { showNotification } = useNotification()
   const [test, setTest] = useState<TestDto | null>(null)
   const [answers, setAnswers] = useState<Record<number, SubmittedAnswer>>({})
@@ -62,13 +68,31 @@ export function TestPage() {
   const [explanations, setExplanations] = useState<Record<number, string>>({})
   const [loadingExplanationIds, setLoadingExplanationIds] = useState<number[]>([])
   const [explanationErrors, setExplanationErrors] = useState<Record<number, string>>({})
+  const [autoSubmittedForCheating, setAutoSubmittedForCheating] = useState(false)
+  const isSubmittingRef = useRef(false)
+  const submittedRef = useRef(false)
+  const autoSubmitTriggeredRef = useRef(false)
+  const answersRef = useRef<Record<number, SubmittedAnswer>>({})
+  const antiCheatStorageKey = id ? `anti-cheat-test-lock:${id}` : null
+
+  useEffect(() => {
+    submittedRef.current = submitted
+  }, [submitted])
+
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting
+  }, [isSubmitting])
+
+  useEffect(() => {
+    answersRef.current = answers
+  }, [answers])
 
   useEffect(() => {
     let isMounted = true
 
     const loadTest = async () => {
       if (!id) {
-        setErrorMessage('Test not found.')
+        setErrorMessage(t('studentPages.testSession.notFound'))
         setIsLoading(false)
         return
       }
@@ -80,19 +104,30 @@ export function TestPage() {
         const { data } = await apiClient.get<TestDto>(`/tests/${id}`)
         if (isMounted) {
           setTest(data)
+
+          if (antiCheatStorageKey) {
+            const storedLock = sessionStorage.getItem(antiCheatStorageKey)
+
+            if (storedLock) {
+              try {
+                const parsed = JSON.parse(storedLock) as { result?: TestResultDto }
+                if (parsed.result) {
+                  setResult(parsed.result)
+                }
+              } catch {
+                // Ignore malformed storage and still enforce the lock screen.
+              }
+
+              setSubmitted(true)
+              setAutoSubmittedForCheating(true)
+            }
+          }
         }
       } catch (error) {
         if (!isMounted) {
           return
         }
-
-        if (axios.isAxiosError(error) && typeof error.response?.data === 'string') {
-          setErrorMessage(error.response.data)
-        } else if (axios.isAxiosError(error) && typeof error.response?.data?.error === 'string') {
-          setErrorMessage(error.response.data.error)
-        } else {
-          setErrorMessage('Failed to load test. Please try again.')
-        }
+        setErrorMessage(readApiError(error, t('studentPages.testSession.loadFailed')))
       } finally {
         if (isMounted) {
           setIsLoading(false)
@@ -105,7 +140,7 @@ export function TestPage() {
     return () => {
       isMounted = false
     }
-  }, [id])
+  }, [antiCheatStorageKey, id, t])
 
   const allQuestionsAnswered = useMemo(() => {
     if (!test) {
@@ -124,17 +159,26 @@ export function TestPage() {
     })
   }, [answers, test])
 
-  const handleSubmit = async () => {
-    if (!test) {
+  const submitTest = async (mode: SubmissionMode) => {
+    if (!test || submittedRef.current || isSubmittingRef.current) {
       return
     }
 
+    if (mode === 'auto-cheat' && autoSubmitTriggeredRef.current) {
+      return
+    }
+
+    if (mode === 'auto-cheat') {
+      autoSubmitTriggeredRef.current = true
+    }
+
+    isSubmittingRef.current = true
     setIsSubmitting(true)
     setErrorMessage(null)
 
     try {
       const { data } = await apiClient.post<TestResultDto>(`/tests/${test.id}/submit`, {
-        answers: Object.entries(answers).map(([questionId, answer]) => ({
+        answers: Object.entries(answersRef.current).map(([questionId, answer]) => ({
           questionId: Number(questionId),
           answerId: answer.answerId ?? null,
           textAnswer: answer.textAnswer ?? null,
@@ -143,21 +187,58 @@ export function TestPage() {
 
       setResult(data)
       setSubmitted(true)
-      showNotification(`Test submitted successfully. Score: ${data.scorePercentage}%`, 'success')
+      submittedRef.current = true
+
+      if (mode === 'auto-cheat') {
+        setAutoSubmittedForCheating(true)
+        if (antiCheatStorageKey) {
+          sessionStorage.setItem(antiCheatStorageKey, JSON.stringify({ result: data, submittedAt: data.completedAt }))
+        }
+        showNotification(t('studentPages.testSession.autoSubmittedNotification'), 'error')
+      } else {
+        if (antiCheatStorageKey) {
+          sessionStorage.removeItem(antiCheatStorageKey)
+        }
+        showNotification(t('studentPages.testSession.submittedNotification', { score: data.scorePercentage }), 'success')
+      }
     } catch (error) {
-      const message =
-        axios.isAxiosError(error) && typeof error.response?.data === 'string'
-          ? error.response.data
-          : axios.isAxiosError(error) && typeof error.response?.data?.error === 'string'
-            ? error.response.data.error
-            : 'Failed to submit the test. Please try again.'
+      const message = readApiError(error, t('studentPages.testSession.submitFailed'))
 
       setErrorMessage(message)
       showNotification(message, 'error')
+
+      if (mode === 'auto-cheat') {
+        autoSubmitTriggeredRef.current = false
+      }
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    if (!test || submitted || autoSubmittedForCheating) {
+      return
+    }
+
+    const handleFocusLoss = () => {
+      void submitTest('auto-cheat')
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden || document.visibilityState === 'hidden') {
+        void submitTest('auto-cheat')
+      }
+    }
+
+    window.addEventListener('blur', handleFocusLoss)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('blur', handleFocusLoss)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [autoSubmittedForCheating, submitted, test])
 
   const explainAnswer = async (question: QuestionDto) => {
     if (!test) {
@@ -186,7 +267,7 @@ export function TestPage() {
           ? error.response.data.message
           : axios.isAxiosError(error) && typeof error.response?.data?.error === 'string'
             ? error.response.data.error
-            : 'Failed to generate the explanation.'
+            : t('studentPages.testSession.explainFailed')
 
       setExplanationErrors((current) => ({ ...current, [question.id]: message }))
       showNotification(message, 'error')
@@ -196,17 +277,17 @@ export function TestPage() {
   }
 
   if (isLoading) {
-    return <div className="glass-panel p-6 text-slate-600">Loading test...</div>
+    return <div className="glass-panel p-6 text-slate-600">{t('studentPages.testSession.loading')}</div>
   }
 
   if (errorMessage && !test) {
-    return <div className="glass-panel p-6 text-rose-700">{errorMessage}</div>
+    return <ErrorNotice message={errorMessage} />
   }
 
   if (!test) {
     return (
       <div className="glass-panel p-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Test not found</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">{t('studentPages.testSession.notFound')}</h1>
       </div>
     )
   }
@@ -214,95 +295,119 @@ export function TestPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        description={`Complete the ${test.subjectName} assessment and review your results immediately after submission.`}
-        eyebrow="Test session"
+        description={t('studentPages.testSession.description', { subject: test.subjectName })}
+        eyebrow={t('studentPages.testSession.eyebrow')}
         title={test.title}
       />
 
-      {errorMessage ? <div className="glass-panel p-6 text-rose-700">{errorMessage}</div> : null}
+      {errorMessage ? <ErrorNotice message={errorMessage} /> : null}
+
+      {!submitted ? (
+        <div className="glass-panel border border-amber-300 bg-amber-50/90 px-5 py-4 text-sm font-semibold text-amber-900">
+          {t('studentPages.testSession.antiCheatWarning')}
+        </div>
+      ) : null}
 
       {result ? (
         <section className="glass-panel flex items-center justify-between gap-6 p-6">
           <div>
-            <p className="text-sm text-slate-500">Final result</p>
+            <p className="text-sm text-slate-500">{t('studentPages.testSession.finalResult')}</p>
             <h2 className="mt-2 font-display text-4xl font-bold text-slate-900">
               {result.scorePercentage}%
             </h2>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-4 text-sm text-slate-600">
-            Results reflect multiple choice, true/false, and text-based responses.
+            {t('studentPages.testSession.resultsReflect')}
           </div>
         </section>
       ) : null}
 
-      <div className="grid gap-4">
-        {test.questions.map((question, index) => {
-          const isExplanationLoading = loadingExplanationIds.includes(question.id)
+      {autoSubmittedForCheating ? (
+        <section className="glass-panel space-y-3 border border-rose-200 bg-rose-50/90 p-6 text-rose-900">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
+            {t('studentPages.testSession.autoSubmittedLabel')}
+          </p>
+          <h2 className="text-2xl font-semibold text-rose-950">
+            {t('studentPages.testSession.autoSubmittedTitle')}
+          </h2>
+          <p className="max-w-3xl text-sm leading-7 text-rose-800">
+            {t('studentPages.testSession.autoSubmittedMessage')}
+          </p>
+        </section>
+      ) : null}
 
-          return (
-            <div className="space-y-3" key={question.id}>
-              <QuestionCard
-                index={index}
-                question={question}
-                selectedAnswerId={answers[question.id]?.answerId}
-                submitted={submitted}
-                textAnswer={answers[question.id]?.textAnswer}
-                onSelectAnswer={(answerId) =>
-                  setAnswers((current) => ({ ...current, [question.id]: { answerId } }))
-                }
-                onTextAnswer={(value) =>
-                  setAnswers((current) => ({ ...current, [question.id]: { textAnswer: value } }))
-                }
-              />
+      {!autoSubmittedForCheating ? (
+        <div className="grid gap-4">
+          {test.questions.map((question, index) => {
+            const isExplanationLoading = loadingExplanationIds.includes(question.id)
 
-              {submitted ? (
-                <div className="glass-panel px-5 py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">
-                        AI explanation
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        See why the correct answer works and where your response fits.
-                      </p>
+            return (
+              <div className="space-y-3" key={question.id}>
+                <QuestionCard
+                  index={index}
+                  question={question}
+                  selectedAnswerId={answers[question.id]?.answerId}
+                  submitted={submitted}
+                  textAnswer={answers[question.id]?.textAnswer}
+                  onSelectAnswer={(answerId) =>
+                    setAnswers((current) => ({ ...current, [question.id]: { answerId } }))
+                  }
+                  onTextAnswer={(value) =>
+                    setAnswers((current) => ({ ...current, [question.id]: { textAnswer: value } }))
+                  }
+                />
+
+                {submitted ? (
+                  <div className="glass-panel px-5 py-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">
+                          {t('studentPages.testSession.aiExplanation')}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {t('studentPages.testSession.aiExplanationDescription')}
+                        </p>
+                      </div>
+                      <button
+                        className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-[#2468a0] disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={isExplanationLoading}
+                        type="button"
+                        onClick={() => void explainAnswer(question)}
+                      >
+                        {isExplanationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        {isExplanationLoading ? t('studentPages.testSession.explaining') : t('studentPages.testSession.explainAnswer')}
+                      </button>
                     </div>
-                    <button
-                      className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-[#2468a0] disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={isExplanationLoading}
-                      type="button"
-                      onClick={() => void explainAnswer(question)}
-                    >
-                      {isExplanationLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      {isExplanationLoading ? 'Explaining...' : 'Explain answer'}
-                    </button>
+
+                    {explanationErrors[question.id] ? (
+                      <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {explanationErrors[question.id]}
+                      </div>
+                    ) : null}
+
+                    {explanations[question.id] ? (
+                      <div className="mt-3 whitespace-pre-line rounded-3xl border border-cyan-100 bg-cyan-50/70 px-5 py-4 text-sm leading-7 text-slate-700">
+                        {explanations[question.id]}
+                      </div>
+                    ) : null}
                   </div>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
 
-                  {explanationErrors[question.id] ? (
-                    <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                      {explanationErrors[question.id]}
-                    </div>
-                  ) : null}
-
-                  {explanations[question.id] ? (
-                    <div className="mt-3 whitespace-pre-line rounded-3xl border border-cyan-100 bg-cyan-50/70 px-5 py-4 text-sm leading-7 text-slate-700">
-                      {explanations[question.id]}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          )
-        })}
-      </div>
-
-      <button
-        className="button-primary inline-flex text-sm disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={submitted || isSubmitting || !allQuestionsAnswered}
-        onClick={() => void handleSubmit()}
-        type="button"
-      >
-        {isSubmitting ? 'Submitting...' : 'Submit Test'}
-      </button>
+      {!autoSubmittedForCheating ? (
+        <button
+          className="button-primary inline-flex text-sm disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={submitted || isSubmitting || !allQuestionsAnswered}
+          onClick={() => void submitTest('manual')}
+          type="button"
+        >
+          {isSubmitting ? t('studentPages.testSession.submitting') : t('studentPages.testSession.submitTest')}
+        </button>
+      ) : null}
     </div>
   )
 }

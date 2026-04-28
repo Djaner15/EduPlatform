@@ -3,7 +3,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { Eraser, Highlighter, Link2, Table2, Type, Unlink } from 'lucide-react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 
@@ -89,7 +89,22 @@ type RichTextEditorProps = {
   placeholder?: string
 }
 
-export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+export type RichTextEditorHandle = {
+  focus: () => void
+  insertImageAtCursor: (src: string, alt?: string) => void
+}
+
+const escapeHtmlAttribute = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+
+export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
+  { value, onChange, placeholder },
+  ref,
+) {
   const toolbarId = useId().replace(/:/g, '-')
   const quillRef = useRef<ReactQuill | null>(null)
   const toolbarRef = useRef<HTMLDivElement | null>(null)
@@ -97,6 +112,31 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
   const [openMenu, setOpenMenu] = useState<'text' | 'highlight' | 'link' | null>(null)
   const [headerValue, setHeaderValue] = useState('')
   const [linkValue, setLinkValue] = useState('')
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        quillRef.current?.getEditor().focus()
+      },
+      insertImageAtCursor: (src: string, alt = 'Lesson image') => {
+        const editor = quillRef.current?.getEditor()
+        if (!editor || !src.trim()) {
+          return
+        }
+
+        editor.focus()
+        const range = editor.getSelection(true) ?? savedRangeRef.current ?? { index: editor.getLength(), length: 0 }
+        const imageMarkup = `<p><img src="${escapeHtmlAttribute(src.trim())}" alt="${escapeHtmlAttribute(
+          alt,
+        )}" style="max-width: 100%; border-radius: 18px; margin: 16px 0;" /></p><p><br></p>`
+
+        editor.clipboard.dangerouslyPasteHTML(range.index, imageMarkup, 'user')
+        editor.setSelection(range.index + 2, 0, 'silent')
+      },
+    }),
+    [],
+  )
 
   const toggleInlineFormat = (format: 'bold' | 'italic' | 'underline') => {
     const editor = quillRef.current?.getEditor()
@@ -217,8 +257,11 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     }
 
     const syncHeader = () => {
-      const range = editor.getSelection()
-      const formats = range ? editor.getFormat(range) : editor.getFormat()
+      const activeRange = editor.getSelection()
+      if (activeRange) {
+        savedRangeRef.current = activeRange
+      }
+      const formats = activeRange ? editor.getFormat(activeRange) : editor.getFormat()
       const nextValue =
         typeof formats.header === 'number' || typeof formats.header === 'string'
           ? String(formats.header)
@@ -394,14 +437,20 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
             {openMenu === 'link' ? (
               <div className="toolbar-link-popover" onMouseDown={(event) => event.stopPropagation()}>
                 <label className="toolbar-link-label" htmlFor={`${toolbarId}-link-input`}>
-                  Hyperlink
+                  Text hyperlink
                 </label>
+                <p className="mb-3 text-xs text-slate-500">
+                  This adds a link inside the lesson text. For YouTube videos, use the dedicated resources field below.
+                </p>
                 <input
                   autoFocus
                   className="toolbar-link-input"
                   id={`${toolbarId}-link-input`}
                   placeholder="https://example.com"
                   value={linkValue}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                  onFocus={(event) => event.stopPropagation()}
                   onChange={(event) => setLinkValue(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
@@ -444,4 +493,4 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
       />
     </div>
   )
-}
+})

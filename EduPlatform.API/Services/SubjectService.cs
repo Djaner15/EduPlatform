@@ -26,7 +26,9 @@ public class SubjectService : ISubjectService
 
         if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(s => s.CreatedByUserId == currentUserId);
+            query = query.Where(s =>
+                s.CreatedByUserId == currentUserId ||
+                s.TeacherAssignments.Any(assignment => assignment.TeacherId == currentUserId));
         }
         else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
         {
@@ -71,10 +73,16 @@ public class SubjectService : ISubjectService
         if (subject == null)
             return null;
 
-        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase) &&
-            subject.CreatedByUserId != currentUserId)
+        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
         {
-            return null;
+            var hasAccess = subject.CreatedByUserId == currentUserId ||
+                await _context.Set<TeacherSubjectAssignment>()
+                    .AnyAsync(assignment => assignment.TeacherId == currentUserId && assignment.SubjectId == id);
+
+            if (!hasAccess)
+            {
+                return null;
+            }
         }
         else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
         {

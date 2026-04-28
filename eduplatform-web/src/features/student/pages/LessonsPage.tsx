@@ -1,16 +1,18 @@
-import axios from 'axios'
 import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
-import { gradeOptions } from '../../../shared/classOptions'
+import { formatGradeLabel, formatStoredClassDisplay, gradeOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient from '../../../shared/api/axiosInstance'
+import { readApiError } from '../../../shared/apiErrors'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 
 type Lesson = {
@@ -30,6 +32,7 @@ type Lesson = {
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
 export function LessonsPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [filter, setFilter] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
@@ -63,12 +66,7 @@ export function LessonsPage() {
         if (!isMounted) {
           return
         }
-
-        if (axios.isAxiosError(error) && typeof error.response?.data?.error === 'string') {
-          setErrorMessage(error.response.data.error)
-        } else {
-          setErrorMessage('Failed to load lessons. Please try again.')
-        }
+        setErrorMessage(readApiError(error, t('studentPages.lessons.loadFailed')))
       } finally {
         if (isMounted) {
           setIsLoading(false)
@@ -147,9 +145,9 @@ export function LessonsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        description="Explore rich lessons with media, embedded resources, and downloadable materials."
-        eyebrow="Lessons"
-        title="Lesson Library"
+        description={t('studentPages.lessons.description')}
+        eyebrow={t('studentPages.lessons.eyebrow')}
+        title={t('studentPages.lessons.title')}
       />
 
       <section className="glass-panel p-6">
@@ -164,7 +162,7 @@ export function LessonsPage() {
             alignItems={{ xs: 'stretch', sm: 'center' }}
           >
             <AdminSearchField
-              placeholder="Search by title, teacher, or grade..."
+              placeholder={t('studentPages.lessons.searchPlaceholder')}
               flex="1 1 0%"
               maxWidth="none"
               fullWidth={false}
@@ -178,35 +176,35 @@ export function LessonsPage() {
 
           <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
             <AdminSelectField
-              label="Grade"
+              label={t('common.grade')}
               value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
               fullWidth={false}
               width={130}
               options={[
-                { value: 'all', label: 'All Grades' },
-                ...availableGradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                { value: 'all', label: t('common.allGrades') },
+                ...availableGradeOptions.map((entry) => ({ value: String(entry), label: formatGradeLabel(entry) })),
               ]}
               onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
             />
             <AdminSelectField
-              label="Status"
+              label={t('common.status')}
               value={selectedStatusFilter}
               fullWidth={false}
               width={130}
               options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
+                { value: 'all', label: t('common.allStatuses') },
+                { value: 'active', label: t('common.active') },
+                { value: 'inactive', label: t('common.inactive') },
               ]}
               onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
             />
             <AdminSelectField
-              label="Subject"
+              label={t('common.subject')}
               value={selectedSubjectFilter}
               fullWidth={false}
               width={130}
               options={[
-                { value: 'all', label: 'All Subjects' },
+                { value: 'all', label: t('common.allSubjects') },
                 ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
               ]}
               onChange={setSelectedSubjectFilter}
@@ -228,8 +226,8 @@ export function LessonsPage() {
           </Stack>
         </Stack>
 
-        {isLoading ? <div className="mt-6 text-slate-600">Loading lessons...</div> : null}
-        {!isLoading && errorMessage ? <div className="mt-6 text-rose-700">{errorMessage}</div> : null}
+        {isLoading ? <div className="mt-6 text-slate-600">{t('studentPages.lessons.loading')}</div> : null}
+        {!isLoading && errorMessage ? <ErrorNotice className="mt-6" compact message={errorMessage} /> : null}
 
         {!isLoading && !errorMessage ? (
           sortedLessons.length ? (
@@ -240,7 +238,7 @@ export function LessonsPage() {
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-slate-900">{lesson.title}</h2>
                     <p className="text-sm text-slate-500">
-                      {lesson.subjectName} · {lesson.classDisplay}
+                      {lesson.subjectName} · {formatStoredClassDisplay(lesson.classDisplay, lesson.grade, lesson.section)}
                     </p>
                     <p className="max-w-2xl text-sm text-slate-600">
                       {stripHtml(lesson.content).slice(0, 180)}
@@ -248,7 +246,7 @@ export function LessonsPage() {
                     </p>
                   </div>
                   <Link className="button-primary inline-flex text-sm" to={`/student/lessons/${lesson.id}`}>
-                    Open
+                    {t('common.open')}
                   </Link>
                 </article>
               ))}
@@ -269,8 +267,9 @@ export function LessonsPage() {
           ) : (
             <div className="admin-management-empty mt-6">
               <h3 className="text-lg font-semibold text-slate-900">No lessons found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{t('studentPages.lessons.emptyTitle')}</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try adjusting the search or filters within your class lessons.
+                {t('studentPages.lessons.emptyDescription')}
               </p>
             </div>
           )

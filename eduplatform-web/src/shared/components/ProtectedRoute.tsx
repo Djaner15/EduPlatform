@@ -9,8 +9,16 @@ type ProtectedRouteProps = {
 }
 
 export function ProtectedRoute({ children, allowedRole, allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, isReady, user } = useAuth()
   const location = useLocation()
+
+  if (!isReady) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center px-6 text-center text-slate-600">
+        Loading workspace...
+      </div>
+    )
+  }
 
   if (!isAuthenticated()) {
     return <Navigate replace state={{ from: location }} to="/login" />

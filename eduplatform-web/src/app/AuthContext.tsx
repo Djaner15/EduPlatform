@@ -28,6 +28,7 @@ type LoginPayload = {
 type AuthContextValue = {
   user: AuthUser | null
   token: string | null
+  isReady: boolean
   login: (payload: LoginPayload) => void
   logout: () => void
   isAuthenticated: () => boolean
@@ -42,30 +43,35 @@ type AuthProviderProps = {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
     const storedAuth = readStoredAuth()
     setToken(storedAuth?.token ?? null)
     setUser(storedAuth?.user ?? null)
+    setIsReady(true)
   }, [])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       token,
+      isReady,
       login: ({ token: nextToken, user: nextUser, rememberMe = false }) => {
         persistAuth({ token: nextToken, user: nextUser, rememberMe })
         setToken(nextToken)
         setUser(nextUser)
+        setIsReady(true)
       },
       logout: () => {
         clearStoredAuth()
         setToken(null)
         setUser(null)
+        setIsReady(true)
       },
       isAuthenticated: () => Boolean(token),
     }),
-    [token, user],
+    [isReady, token, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

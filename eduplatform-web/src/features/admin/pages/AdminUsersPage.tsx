@@ -1,5 +1,4 @@
-import axios from 'axios'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -20,8 +19,9 @@ import ToggleOnOutlinedIcon from '@mui/icons-material/ToggleOnOutlined'
 import ToggleOffOutlinedIcon from '@mui/icons-material/ToggleOffOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import CloseIcon from '@mui/icons-material/Close'
+import { useTranslation } from '../../../app/AppSettingsContext'
 import { useNotification } from '../../../app/NotificationContext'
-import { gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { formatClassDisplay, formatGradeDisplay, formatGradeLabel, formatStoredClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
@@ -29,8 +29,11 @@ import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
 import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal'
+import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
-import apiClient, { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
+import { UserAvatar, getUserAvatarSrc, getUserInitials } from '../../../shared/components/UserAvatar'
+import apiClient from '../../../shared/api/axiosInstance'
+import { readApiError } from '../../../shared/apiErrors'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
 import { BulkUploadModal } from '../components/BulkUploadModal'
@@ -193,32 +196,8 @@ const validateStrongPassword = (password: string) => {
 
 const classKey = (grade: number, section: string) => `${grade}-${section}`
 
-const toRomanGrade = (grade: number) => {
-  switch (grade) {
-    case 8:
-      return 'VIII'
-    case 9:
-      return 'IX'
-    case 10:
-      return 'X'
-    case 11:
-      return 'XI'
-    case 12:
-      return 'XII'
-    default:
-      return String(grade)
-  }
-}
-
-const getInitials = (fullName?: string | null, username?: string | null) => {
-  const source = (fullName?.trim() || username?.trim() || 'U').split(/\s+/).filter(Boolean)
-  return source
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
-const getResolvedUserImageSrc = (path?: string | null) => (path ? resolveApiAssetUrl(path) : undefined)
+const getResolvedUserImageSrc = (fullName?: string | null, username?: string | null, path?: string | null) =>
+  getUserAvatarSrc(fullName, username, path, 88)
 
 const formatDateTime = (value?: string | null) => {
   if (!value) {
@@ -240,7 +219,9 @@ const formatDateTime = (value?: string | null) => {
 }
 
 export function AdminUsersPage() {
+  const { t } = useTranslation()
   const { showNotification } = useNotification()
+  const profileImageInputRef = useRef<HTMLInputElement | null>(null)
   const [allUsers, setAllUsers] = useState<UserItem[]>([])
   const [management, setManagement] = useState<ManagementResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -288,7 +269,7 @@ export function AdminUsersPage() {
   const isTeacherRole = form.roleId === 2
   const isUserActionMenuOpen = Boolean(userActionAnchorEl)
   const editingUser = editingId ? allUsersById.get(editingId) ?? null : null
-  const currentProfileImageSrc = getResolvedUserImageSrc(editingUser?.profileImageUrl)
+  const currentProfileImageSrc = getResolvedUserImageSrc(editingUser?.fullName, editingUser?.username, editingUser?.profileImageUrl)
   const selectedProfileImagePreview = useMemo(
     () => (selectedProfileImage ? URL.createObjectURL(selectedProfileImage) : null),
     [selectedProfileImage],
@@ -301,28 +282,6 @@ export function AdminUsersPage() {
       }
     }
   }, [selectedProfileImagePreview])
-
-  const readApiError = (error: unknown, fallback: string) => {
-    if (axios.isAxiosError(error)) {
-      const payload = error.response?.data
-
-      if (typeof payload === 'string') {
-        return payload
-      }
-
-      if (payload && typeof payload === 'object') {
-        if ('error' in payload && typeof payload.error === 'string') {
-          return payload.error
-        }
-
-        if ('message' in payload && typeof payload.message === 'string') {
-          return payload.message
-        }
-      }
-    }
-
-    return fallback
-  }
 
   const loadUsers = async () => {
     setIsLoading(true)
@@ -441,6 +400,17 @@ export function AdminUsersPage() {
     try {
       if (editingId) {
         await apiClient.put(`/users/${editingId}`, payload)
+        if (selectedProfileImage) {
+          const formData = new FormData()
+          formData.append('image', selectedProfileImage)
+
+          setIsProfileImageBusy(true)
+          await apiClient.post(`/users/${editingId}/profile-image`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+        }
         showNotification('User updated successfully.', 'success')
       } else {
         await apiClient.post('/users', payload)
@@ -451,6 +421,8 @@ export function AdminUsersPage() {
       await loadUsers()
     } catch (error) {
       showNotification(readApiError(error, 'Failed to save user.'), 'error')
+    } finally {
+      setIsProfileImageBusy(false)
     }
   }
 
@@ -511,32 +483,6 @@ export function AdminUsersPage() {
     setIsUserFormOpen(true)
   }
 
-  const handleProfileImageUpload = async () => {
-    if (!editingId || !selectedProfileImage) {
-      showNotification('Please choose an image first.', 'error')
-      return
-    }
-
-    const formData = new FormData()
-    formData.append('image', selectedProfileImage)
-
-    try {
-      setIsProfileImageBusy(true)
-      await apiClient.post(`/users/${editingId}/profile-image`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-      setSelectedProfileImage(null)
-      await loadUsers()
-      showNotification('Profile picture updated successfully.', 'success')
-    } catch (error) {
-      showNotification(readApiError(error, 'Failed to update profile picture.'), 'error')
-    } finally {
-      setIsProfileImageBusy(false)
-    }
-  }
-
   const handleProfileImageDelete = async () => {
     if (!editingId) {
       return
@@ -592,7 +538,7 @@ export function AdminUsersPage() {
 
               return {
                 section,
-                classDisplay: `${grade}${section}`,
+                classDisplay: formatClassDisplay(grade, section),
                 classTeacher: sectionGroup?.classTeacher ?? null,
                 students: (sectionGroup?.students ?? []).filter((student) => {
                   const studentRecord = allUsersById.get(student.id)
@@ -972,17 +918,17 @@ export function AdminUsersPage() {
       />
 
       <PageHeader
-        description="Manage students by class, assign class teachers, and coordinate teacher workload across the school."
-        eyebrow="Users"
-        title="User Management"
+        description={t('adminPages.users.description')}
+        eyebrow={t('adminPages.users.eyebrow')}
+        title={t('adminPages.users.title')}
       />
 
       <section>
         <article className="glass-panel min-w-0 p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <h2 className="text-xl font-semibold text-slate-900">School structure</h2>
-              <p className="mt-1 text-sm text-slate-500">Browse students by grade and section, or switch to teacher workload.</p>
+              <h2 className="text-xl font-semibold text-slate-900">{t('adminPages.users.schoolStructure')}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t('adminPages.users.schoolStructureDescription')}</p>
             </div>
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <div className="inline-flex rounded-2xl border border-sky-200 bg-sky-50/70 p-1">
@@ -991,7 +937,7 @@ export function AdminUsersPage() {
                 type="button"
                 onClick={() => setActiveView('students')}
               >
-                Classes
+                {t('adminPages.users.classesTab')}
                 <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                   {studentResultCount}
                 </span>
@@ -1001,7 +947,7 @@ export function AdminUsersPage() {
                 type="button"
                 onClick={() => setActiveView('teachers')}
               >
-                Teachers
+                {t('adminPages.users.teachersTab')}
                 <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                   {teacherResultCount}
                 </span>
@@ -1011,30 +957,23 @@ export function AdminUsersPage() {
                 type="button"
                 onClick={() => setActiveView('admins')}
               >
-                Admins
+                {t('adminPages.users.adminsTab')}
                 <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
                   {adminResultCount}
                 </span>
               </button>
             </div>
               <button
-                className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
+                className="admin-add-button"
                 type="button"
                 onClick={handleOpenCreateUser}
               >
-                + Add User
-              </button>
-              <button
-                className="rounded-2xl border border-sky-200 bg-white/85 px-4 py-2.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
-                type="button"
-                onClick={() => setIsBulkUploadOpen(true)}
-              >
-                Bulk upload
+                {t('adminPages.users.addUser')}
               </button>
               <button
                 className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!hasExportableRows}
-                title="Export current list to CSV"
+                title={t('adminPages.users.exportTitle')}
                 type="button"
                 onClick={handleExportCSV}
               >
@@ -1043,7 +982,7 @@ export function AdminUsersPage() {
                   <path d="m7 10 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M5 21h14" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Export CSV
+                {t('adminPages.users.exportCsv')}
               </button>
             </div>
           </div>
@@ -1059,7 +998,7 @@ export function AdminUsersPage() {
               alignItems={{ xs: 'stretch', sm: 'center' }}
             >
               <AdminSearchField
-                placeholder="Search users..."
+                placeholder={t('adminPages.users.searchPlaceholder')}
                 flex="1 1 0%"
                 maxWidth="none"
                 fullWidth={false}
@@ -1075,23 +1014,23 @@ export function AdminUsersPage() {
               {activeView === 'students' || activeView === 'teachers' ? (
                 <>
                   <AdminSelectField
-                    label="Grade"
+                    label={t('common.grade')}
                     value={gradeFilter === 'all' ? 'all' : String(gradeFilter)}
                     fullWidth={false}
                     width={130}
                     options={[
-                      { value: 'all', label: 'All Grades' },
-                      ...gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) })),
+                      { value: 'all', label: t('common.allGrades') },
+                      ...gradeOptions.map((grade) => ({ value: String(grade), label: formatGradeLabel(grade) })),
                     ]}
                     onChange={(value) => setGradeFilter(value === 'all' ? 'all' : Number(value))}
                   />
                   <AdminSelectField
-                    label="Section"
+                    label={t('common.section')}
                     value={sectionFilter}
                     fullWidth={false}
                     width={130}
                     options={[
-                      { value: 'all', label: 'All Sections' },
+                      { value: 'all', label: t('adminPages.common.allSections') },
                       ...sectionOptions.map((section) => ({ value: section, label: section })),
                     ]}
                     onChange={(value) => setSectionFilter(value)}
@@ -1100,14 +1039,14 @@ export function AdminUsersPage() {
               ) : null}
 
               <AdminSelectField
-                label="Status"
+                label={t('common.status')}
                 value={statusFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'all', label: t('common.allStatuses') },
+                  { value: 'active', label: t('common.active') },
+                  { value: 'inactive', label: t('common.inactive') },
                 ]}
                 onChange={(value) => setStatusFilter(value as typeof statusFilter)}
               />
@@ -1129,8 +1068,8 @@ export function AdminUsersPage() {
             </Stack>
           </Stack>
 
-          {isLoading ? <div className="mt-6 text-slate-600">Loading management data...</div> : null}
-          {!isLoading && errorMessage ? <div className="mt-6 text-rose-700">{errorMessage}</div> : null}
+          {isLoading ? <div className="mt-6 text-slate-600">{t('adminPages.users.loading')}</div> : null}
+          {!isLoading && errorMessage ? <ErrorNotice className="mt-6" compact message={errorMessage} /> : null}
 
           {!isLoading && !errorMessage && activeView === 'students' ? (
             <div className="mt-6 space-y-4">
@@ -1145,8 +1084,8 @@ export function AdminUsersPage() {
                         onClick={() => toggleGrade(gradeGroup.grade)}
                       >
                         <div>
-                          <h3 className="text-xl font-semibold text-slate-900">{toRomanGrade(gradeGroup.grade)} Class</h3>
-                          <p className="text-sm text-slate-500">{gradeGroup.sections.reduce((sum, section) => sum + section.students.length, 0)} students</p>
+                          <h3 className="text-xl font-semibold text-slate-900">{t('adminPages.users.classLabel', { grade: formatGradeDisplay(gradeGroup.grade) })}</h3>
+                          <p className="text-sm text-slate-500">{t('adminPages.users.studentsCount', { count: gradeGroup.sections.reduce((sum, section) => sum + section.students.length, 0) })}</p>
                         </div>
                         <span className="text-slate-500">{isGradeExpanded ? '−' : '+'}</span>
                       </button>
@@ -1180,9 +1119,9 @@ export function AdminUsersPage() {
                                 <div className="border-t border-slate-200 bg-white/80 px-4 py-4">
                                   <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
                                     <div className="min-w-0">
-                                      <p className="text-sm font-semibold text-slate-700">Class Teacher</p>
+                                      <p className="text-sm font-semibold text-slate-700">{t('adminPages.users.classTeacher')}</p>
                                       <p className="mt-1 text-sm text-slate-500">
-                                        {getTeacherDisplayName(sectionGroup.classTeacher) || 'Not assigned yet'}
+                                        {getTeacherDisplayName(sectionGroup.classTeacher) || t('adminPages.users.notAssignedYet')}
                                       </p>
                                     </div>
 
@@ -1190,10 +1129,10 @@ export function AdminUsersPage() {
                                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                         <div className="flex-1">
                                           <AdminSelectField
-                                            label="Class Teacher"
+                                            label={t('adminPages.users.classTeacher')}
                                             value={classTeacherDrafts[sectionId] ?? ''}
                                             options={[
-                                              { value: '', label: 'Assign a teacher...' },
+                                              { value: '', label: t('adminPages.users.assignTeacher') },
                                               ...(management?.teachers ?? []).map((teacher) => ({
                                                 value: String(teacher.id),
                                                 label: getTeacherDisplayName(teacher),
@@ -1213,7 +1152,7 @@ export function AdminUsersPage() {
                                           type="button"
                                           onClick={() => handleClassTeacherSave(gradeGroup.grade, sectionGroup.section)}
                                         >
-                                          Save
+                                          {t('adminPages.users.save')}
                                         </button>
                                       </div>
                                     </div>
@@ -1249,7 +1188,7 @@ export function AdminUsersPage() {
                                         <tr className="text-left text-slate-500">
                                           <th className="px-4 py-3 font-semibold">
                                             <AdminSortHeader
-                                              label="Name"
+                                              label={t('adminPages.users.tableName')}
                                               column="name"
                                               activeColumn={sortColumn}
                                               direction={sortDirection}
@@ -1258,24 +1197,24 @@ export function AdminUsersPage() {
                                           </th>
                                           <th className="px-4 py-3 font-semibold">
                                             <AdminSortHeader
-                                              label="Email"
+                                              label={t('adminPages.users.tableEmail')}
                                               column="email"
                                               activeColumn={sortColumn}
                                               direction={sortDirection}
                                               onToggle={handleSortChange}
                                             />
                                           </th>
-                                          <th className="px-4 py-3 font-semibold">Role</th>
+                                          <th className="px-4 py-3 font-semibold">{t('adminPages.users.tableRole')}</th>
                                           <th className="px-4 py-3 font-semibold">
                                             <AdminSortHeader
-                                              label="Date Created"
+                                              label={t('adminPages.common.dateCreated')}
                                               column="dateCreated"
                                               activeColumn={sortColumn}
                                               direction={sortDirection}
                                               onToggle={handleSortChange}
                                             />
                                           </th>
-                                          <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                                          <th className="px-4 py-3 text-right font-semibold">{t('adminPages.common.actions')}</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-100">
@@ -1283,7 +1222,14 @@ export function AdminUsersPage() {
                                           <tr className="transition hover:bg-sky-50/35" key={student.id}>
                                             <td className="px-4 py-3">
                                               <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-3">
+                                                  <UserAvatar
+                                                    fullName={student.fullName}
+                                                    imageUrl={student.profileImageUrl}
+                                                    size={32}
+                                                    username={student.username}
+                                                  />
+                                                  <p className="font-medium text-slate-900">{student.fullName}</p>
                                                   <span
                                                     className={`inline-flex h-2.5 w-2.5 rounded-full ${
                                                       student.isApproved
@@ -1291,9 +1237,8 @@ export function AdminUsersPage() {
                                                         : 'bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.14)]'
                                                     }`}
                                                   />
-                                                  <p className="font-medium text-slate-900">{student.fullName}</p>
                                                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                                    {student.isApproved ? 'Active' : 'Inactive'}
+                                                    {student.isApproved ? t('common.active') : t('common.inactive')}
                                                   </span>
                                                 </div>
                                                 <p className="text-xs text-slate-500">@{student.username}</p>
@@ -1384,8 +1329,8 @@ export function AdminUsersPage() {
             <div className="mt-6 space-y-6">
               <div className="overflow-visible rounded-3xl border border-slate-200 bg-white/80 p-4">
                 <div className="flex flex-col gap-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Teacher Profiles</h3>
-                  <p className="text-sm text-slate-500">Review teaching assignments, subjects, and class coverage in one table.</p>
+                  <h3 className="text-lg font-semibold text-slate-900">{t('adminPages.users.teacherProfiles')}</h3>
+                  <p className="text-sm text-slate-500">{t('adminPages.users.teacherProfilesDescription')}</p>
                 </div>
                 <div className="mt-4 overflow-x-auto">
                 <table className="w-full min-w-full table-auto divide-y divide-slate-200 text-sm">
@@ -1402,7 +1347,7 @@ export function AdminUsersPage() {
                     <tr className="text-left text-slate-500">
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Name"
+                          label={t('adminPages.users.tableName')}
                           column="name"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -1411,26 +1356,26 @@ export function AdminUsersPage() {
                       </th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Email"
+                          label={t('adminPages.users.tableEmail')}
                           column="email"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="px-3 py-3 font-semibold">Role</th>
-                      <th className="px-3 py-3 font-semibold">Subjects</th>
-                      <th className="px-3 py-3 font-semibold">Assigned classes</th>
+                      <th className="px-3 py-3 font-semibold">{t('adminPages.users.tableRole')}</th>
+                      <th className="px-3 py-3 font-semibold">{t('adminPages.users.subjects')}</th>
+                      <th className="px-3 py-3 font-semibold">{t('adminPages.users.assignedClasses')}</th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Date Created"
+                          label={t('adminPages.common.dateCreated')}
                           column="dateCreated"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="px-3 py-3 text-right font-semibold">Actions</th>
+                      <th className="px-3 py-3 text-right font-semibold">{t('adminPages.common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1439,7 +1384,14 @@ export function AdminUsersPage() {
                         <tr className="transition hover:bg-sky-50/35" key={teacher.id}>
                           <td className="px-3 py-3">
                             <div className="space-y-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
+                                <UserAvatar
+                                  fullName={teacher.fullName}
+                                  imageUrl={teacher.profileImageUrl}
+                                  size={32}
+                                  username={teacher.username}
+                                />
+                                <p className="font-medium text-slate-900">{teacher.fullName}</p>
                                 <span
                                   className={`inline-flex h-2.5 w-2.5 rounded-full ${
                                     teacher.isApproved
@@ -1447,7 +1399,6 @@ export function AdminUsersPage() {
                                       : 'bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.14)]'
                                   }`}
                                 />
-                                <p className="font-medium text-slate-900">{teacher.fullName}</p>
                                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                                   {teacher.isApproved ? 'Active' : 'Inactive'}
                                 </span>
@@ -1469,7 +1420,7 @@ export function AdminUsersPage() {
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-slate-500">No subjects assigned</span>
+                                <span className="text-slate-500">{t('adminPages.users.noSubjectsAssigned')}</span>
                               )}
                             </div>
                           </td>
@@ -1481,11 +1432,11 @@ export function AdminUsersPage() {
                                     className="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-[#2468a0]"
                                     key={assignedClass.classDisplay}
                                   >
-                                    {assignedClass.classDisplay}
+                                    {formatStoredClassDisplay(assignedClass.classDisplay, assignedClass.grade, assignedClass.section)}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-slate-500">No classes assigned</span>
+                                <span className="text-slate-500">{t('adminPages.users.noClassesAssigned')}</span>
                               )}
                             </div>
                           </td>
@@ -1539,7 +1490,7 @@ export function AdminUsersPage() {
                   }}
                 />
                 {!sortedTeachers.length ? (
-                  <div className="px-3 py-4 text-sm text-slate-500">No teachers match the current search and filters.</div>
+                  <div className="px-3 py-4 text-sm text-slate-500">{t('adminPages.users.noTeachers')}</div>
                 ) : null}
               </div>
             </div>
@@ -1548,7 +1499,7 @@ export function AdminUsersPage() {
           {!isLoading && !errorMessage && activeView === 'admins' ? (
             <div className="mt-6 space-y-6">
               <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white/80 p-4">
-                <h3 className="text-lg font-semibold text-slate-900">Administrators</h3>
+                <h3 className="text-lg font-semibold text-slate-900">{t('adminPages.users.administrators')}</h3>
                 <table className="mt-4 w-full min-w-full table-auto divide-y divide-slate-200 text-sm">
                   <colgroup>
                     <col className="w-[34%]" />
@@ -1560,7 +1511,7 @@ export function AdminUsersPage() {
                     <tr className="text-left text-slate-500">
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Name"
+                          label={t('adminPages.users.tableName')}
                           column="name"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -1569,17 +1520,17 @@ export function AdminUsersPage() {
                       </th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Email"
+                          label={t('adminPages.users.tableEmail')}
                           column="email"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="px-3 py-3 font-semibold">Role</th>
+                      <th className="px-3 py-3 font-semibold">{t('adminPages.users.tableRole')}</th>
                       <th className="px-3 py-3 font-semibold">
                         <AdminSortHeader
-                          label="Date Created"
+                          label={t('adminPages.common.dateCreated')}
                           column="dateCreated"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -1592,9 +1543,17 @@ export function AdminUsersPage() {
                     {paginatedAdmins.map((admin) => (
                       <tr key={admin.id}>
                         <td className="px-3 py-3">
-                          <div>
-                            <p className="font-medium text-slate-900">{admin.fullName}</p>
-                            <p className="text-xs text-slate-500">@{admin.username}</p>
+                          <div className="flex items-center gap-3">
+                            <UserAvatar
+                              fullName={admin.fullName}
+                              imageUrl={admin.profileImageUrl}
+                              size={32}
+                              username={admin.username}
+                            />
+                            <div>
+                              <p className="font-medium text-slate-900">{admin.fullName}</p>
+                              <p className="text-xs text-slate-500">@{admin.username}</p>
+                            </div>
                           </div>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap text-slate-600">{admin.email}</td>
@@ -1615,7 +1574,7 @@ export function AdminUsersPage() {
                   }}
                 />
                 {!sortedAdmins.length ? (
-                  <div className="px-3 py-4 text-sm text-slate-500">No administrators match the current search.</div>
+                  <div className="px-3 py-4 text-sm text-slate-500">{t('adminPages.users.noAdmins')}</div>
                 ) : null}
               </div>
             </div>
@@ -1626,7 +1585,7 @@ export function AdminUsersPage() {
       {isUserFormOpen ? (
         <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={resetForm}>
           <div className="admin-management-modal-card max-w-6xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex flex-col gap-4 border-b border-slate-200/80 px-8 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-10">
+            <div className="admin-management-modal-header flex flex-col gap-4 px-8 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-10">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">User Management</p>
                 <h2 className="mt-2 text-3xl font-bold text-slate-900">
@@ -1641,7 +1600,7 @@ export function AdminUsersPage() {
               <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                 {!editingId ? (
                   <button
-                    className="rounded-2xl border border-sky-200 bg-white/85 px-4 py-3 text-sm font-semibold text-sky-900 transition hover:border-sky-300 hover:bg-sky-50"
+                    className="modal-outline-button px-4 py-3 text-sm"
                     type="button"
                     onClick={() => setIsBulkUploadOpen(true)}
                   >
@@ -1650,7 +1609,7 @@ export function AdminUsersPage() {
                 ) : null}
                 <button
                   aria-label="Close user form"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                  className="modal-close-button inline-flex h-11 w-11 rounded-full"
                   type="button"
                   onClick={resetForm}
                 >
@@ -1658,38 +1617,56 @@ export function AdminUsersPage() {
                 </button>
               </div>
             </div>
-            <div className="max-h-[calc(92vh-96px)] overflow-y-auto px-8 py-8 lg:px-10 lg:py-9">
-              <div className="grid gap-6">
+            <div className="admin-management-modal-body px-8 py-8 lg:px-10 lg:py-9">
+              <div className="admin-management-modal-form-endpad grid gap-6">
                 {editingId ? (
                   <div className="rounded-2xl border border-sky-200 bg-sky-50/55 p-4">
                     <p className="text-sm font-semibold text-slate-700">Profile Picture</p>
                     <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
-                      <Avatar
-                        src={selectedProfileImagePreview ?? currentProfileImageSrc}
-                        sx={{ width: 88, height: 88, bgcolor: '#dbeafe', color: '#0f172a', fontSize: '1.5rem', fontWeight: 700 }}
+                      <button
+                        className="group relative inline-flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full border border-sky-200 bg-white shadow-[0_12px_24px_rgba(36,104,160,0.12)] transition hover:border-sky-300 hover:shadow-[0_16px_30px_rgba(36,104,160,0.16)]"
+                        type="button"
+                        onClick={() => profileImageInputRef.current?.click()}
                       >
-                        {getInitials(form.fullName, form.username)}
-                      </Avatar>
+                        <Avatar
+                          src={selectedProfileImagePreview ?? currentProfileImageSrc}
+                          sx={{ width: 88, height: 88, bgcolor: '#dbeafe', color: '#0f172a', fontSize: '1.5rem', fontWeight: 700 }}
+                        >
+                          {getUserInitials(form.fullName, form.username)}
+                        </Avatar>
+                        <span className="absolute inset-x-0 bottom-0 bg-slate-900/65 px-2 py-1 text-[11px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+                          Change
+                        </span>
+                      </button>
 
                       <div className="flex-1 space-y-3">
                         <input
+                          ref={profileImageInputRef}
                           accept=".png,.jpg,.jpeg,.webp"
-                          className="block w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:font-semibold file:text-sky-900"
+                          className="sr-only"
                           type="file"
                           onChange={(event) => setSelectedProfileImage(event.target.files?.[0] ?? null)}
                         />
 
+                        <p className="text-sm text-slate-500">
+                          Click the photo or use the button below to choose a new image.
+                        </p>
+
                         <div className="flex flex-wrap gap-3">
                           <button
                             className="button-primary px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={!selectedProfileImage || isProfileImageBusy}
+                            disabled={isProfileImageBusy}
                             type="button"
-                            onClick={handleProfileImageUpload}
+                            onClick={() => profileImageInputRef.current?.click()}
                           >
-                            {isProfileImageBusy ? 'Saving...' : 'Upload New'}
+                            {isProfileImageBusy
+                              ? 'Saving...'
+                              : selectedProfileImage
+                                ? 'Photo Selected'
+                                : 'Change Photo'}
                           </button>
                           <button
-                            className="rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="modal-outline-button px-4 py-3 text-sm text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                             disabled={(!editingUser?.profileImageUrl && !selectedProfileImagePreview) || isProfileImageBusy}
                             type="button"
                             onClick={handleProfileImageDelete}
@@ -1697,6 +1674,10 @@ export function AdminUsersPage() {
                             Delete Current
                           </button>
                         </div>
+
+                        {selectedProfileImage ? (
+                          <p className="text-sm font-medium text-sky-900">{selectedProfileImage.name}</p>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1709,7 +1690,7 @@ export function AdminUsersPage() {
                   </div>
 
                   <div className="mt-5 grid gap-4">
-                    <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <input
                         className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
                         placeholder="Full Name"
@@ -1724,7 +1705,7 @@ export function AdminUsersPage() {
                       />
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <input
                         className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-base text-sky-950 placeholder:text-sky-600/70"
                         placeholder="Email"
@@ -1770,7 +1751,7 @@ export function AdminUsersPage() {
                           <AdminSelectField
                             label="Grade"
                             value={String(form.grade)}
-                            options={gradeOptions.map((grade) => ({ value: String(grade), label: String(grade) }))}
+                            options={gradeOptions.map((grade) => ({ value: String(grade), label: formatGradeDisplay(grade) }))}
                             onChange={(value) => setForm((current) => ({ ...current, grade: Number(value) }))}
                           />
 
@@ -1807,7 +1788,9 @@ export function AdminUsersPage() {
                                 type="checkbox"
                                 onChange={() => toggleSubject(subject.id)}
                               />
-                              <span className="leading-5">{subject.label}</span>
+                              <span className="leading-5">
+                                {`${subject.name} · ${formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}`}
+                              </span>
                             </label>
                           )
                         })}
@@ -1833,7 +1816,7 @@ export function AdminUsersPage() {
                                 type="checkbox"
                                 onChange={() => toggleAssignedClass(assignedClass)}
                               />
-                              <span className="truncate">{assignedClass.classDisplay}</span>
+                              <span className="truncate">{formatStoredClassDisplay(assignedClass.classDisplay, assignedClass.grade, assignedClass.section)}</span>
                             </label>
                           )
                         })}
@@ -1842,16 +1825,15 @@ export function AdminUsersPage() {
                     </div>
                   </div>
                 ) : null}
-
-                <div className="flex gap-3">
-                  <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={handleSubmit}>
-                    {editingId ? 'Save Changes' : 'Create user'}
-                  </button>
-                  <button className="rounded-2xl border border-slate-200 px-5 py-3.5 font-semibold text-slate-700" type="button" onClick={resetForm}>
-                    Cancel
-                  </button>
-                </div>
               </div>
+            </div>
+            <div className="admin-management-modal-footer px-8 lg:px-10">
+              <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={handleSubmit}>
+                {editingId ? 'Save Changes' : 'Create user'}
+              </button>
+              <button className="modal-outline-button px-5 py-3.5" type="button" onClick={resetForm}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -1978,19 +1960,14 @@ export function AdminUsersPage() {
         sx={{ zIndex: 1700 }}
         slotProps={{
           backdrop: {
-            sx: {
-              backgroundColor: 'rgba(15, 23, 42, 0.4)',
-              backdropFilter: 'blur(8px)',
-            },
+            className: 'glass-dialog-backdrop',
           },
           paper: {
+            className: 'glass-dialog-paper',
             sx: {
               width: '100%',
               maxWidth: '450px',
               borderRadius: '28px',
-              border: '1px solid rgba(191,219,254,0.7)',
-              boxShadow: '0 28px 56px rgba(15,23,42,0.2)',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,249,255,0.95))',
             },
           },
         }}
@@ -1999,7 +1976,7 @@ export function AdminUsersPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
               <Avatar
-                src={getResolvedUserImageSrc(profileUser?.profileImageUrl)}
+                src={getResolvedUserImageSrc(profileUser?.fullName, profileUser?.username, profileUser?.profileImageUrl)}
                 sx={{
                   width: 88,
                   height: 88,
@@ -2019,14 +1996,15 @@ export function AdminUsersPage() {
                   },
                 }}
               >
-                {getInitials(profileUser?.fullName, profileUser?.username)}
+                {getUserInitials(profileUser?.fullName, profileUser?.username)}
               </Avatar>
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">{profileUser?.role ?? 'User'} Profile</p>
-                <h3 className="mt-1 truncate text-[2rem] font-bold leading-tight text-slate-900">{profileUser?.fullName}</h3>
+                <h3 className="glass-dialog-title-heading mt-1 truncate text-[2rem] font-bold leading-tight">{profileUser?.fullName}</h3>
+                <div className="glass-dialog-title-line" />
               </div>
             </div>
-            <IconButton size="small" onClick={() => setProfileUser(null)}>
+            <IconButton className="modal-close-button" size="small" onClick={() => setProfileUser(null)}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </div>
@@ -2074,7 +2052,7 @@ export function AdminUsersPage() {
                     {profileUser.assignedClasses?.length ? (
                       profileUser.assignedClasses.map((assignedClass) => (
                         <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]" key={assignedClass.classDisplay}>
-                          {assignedClass.classDisplay}
+                          {formatStoredClassDisplay(assignedClass.classDisplay, assignedClass.grade, assignedClass.section)}
                         </span>
                       ))
                     ) : (
@@ -2089,7 +2067,7 @@ export function AdminUsersPage() {
                 <div className="mt-3">
                   {profileUser?.classDisplay ? (
                     <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                      {profileUser.classDisplay}
+                      {formatStoredClassDisplay(profileUser.classDisplay)}
                     </span>
                   ) : (
                     <span className="text-sm text-slate-500">No class assigned</span>
@@ -2114,17 +2092,12 @@ export function AdminUsersPage() {
         sx={{ zIndex: 1700 }}
         slotProps={{
           backdrop: {
-            sx: {
-              backgroundColor: 'rgba(15, 23, 42, 0.4)',
-              backdropFilter: 'blur(8px)',
-            },
+            className: 'glass-dialog-backdrop',
           },
           paper: {
+            className: 'glass-dialog-paper',
             sx: {
               borderRadius: '28px',
-              border: '1px solid rgba(191,219,254,0.7)',
-              boxShadow: '0 28px 56px rgba(15,23,42,0.2)',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,249,255,0.95))',
             },
           },
         }}
@@ -2133,10 +2106,12 @@ export function AdminUsersPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">{passwordResetUser?.role ?? 'User'} Access</p>
-              <h3 className="mt-1 text-2xl font-semibold text-slate-900">Change Password</h3>
+              <h3 className="glass-dialog-title-heading mt-1 text-2xl font-semibold">Change Password</h3>
+              <div className="glass-dialog-title-line" />
               <p className="mt-1 text-sm text-slate-500">Set a new password for {passwordResetUser?.fullName}.</p>
             </div>
             <IconButton
+              className="modal-close-button"
               size="small"
               onClick={() => {
                 if (!isResettingPassword) {
@@ -2186,7 +2161,7 @@ export function AdminUsersPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, pt: 0, gap: 1.5 }}>
           <button
-            className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50"
+            className="modal-outline-button px-4 py-2.5 text-sm"
             disabled={isResettingPassword}
             type="button"
             onClick={() => setPasswordResetUser(null)}

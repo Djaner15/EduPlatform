@@ -5,9 +5,10 @@ import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import Stack from '@mui/material/Stack'
 import { FileQuestion, ImagePlus, ListPlus, Loader2, PlusCircle, Sparkles, Trash2, Type } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
 import { useNotification } from '../../../app/NotificationContext'
-import { formatClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
+import { formatClassDisplay, formatGradeDisplay, formatGradeLabel, formatStoredClassDisplay, gradeOptions, sectionOptions } from '../../../shared/classOptions'
 import { AdminDateField } from '../../../shared/components/AdminDateField'
 import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
@@ -16,6 +17,7 @@ import { AdminSelectField } from '../../../shared/components/AdminSelectField'
 import { AdminSortHeader } from '../../../shared/components/AdminSortHeader'
 import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal'
 import { PageHeader } from '../../../shared/components/PageHeader'
+import { UserAvatar } from '../../../shared/components/UserAvatar'
 import apiClient, { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
@@ -113,6 +115,7 @@ const createBlankQuestion = (): QuestionDraft => ({
 })
 
 export function AdminTestsPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { showNotification } = useNotification()
   const [lessons, setLessons] = useState<Lesson[]>([])
@@ -427,11 +430,11 @@ export function AdminTestsPage() {
       <PageHeader
         description={
           isTeacher
-            ? 'Build richer assessments with multiple question types, unlimited answers, and AI-assisted draft generation.'
-            : 'Review all tests across the platform and moderate or edit any assessment when needed.'
+            ? t('adminPages.tests.descriptionTeacher')
+            : t('adminPages.tests.descriptionAdmin')
         }
-        eyebrow="Tests"
-        title="Test Management"
+        eyebrow={t('adminPages.tests.eyebrow')}
+        title={t('adminPages.tests.title')}
       />
 
       <section
@@ -514,7 +517,7 @@ export function AdminTestsPage() {
                   <AdminSelectField
                     label="Grade"
                     value={String(grade)}
-                    options={gradeOptions.map((entry) => ({ value: String(entry), label: String(entry) }))}
+                    options={gradeOptions.map((entry) => ({ value: String(entry), label: formatGradeDisplay(entry) }))}
                     onChange={(value) => {
                       setGrade(Number(value))
                       setLessonId(0)
@@ -799,7 +802,7 @@ export function AdminTestsPage() {
               alignItems={{ xs: 'stretch', sm: 'center' }}
             >
               <AdminSearchField
-                placeholder="Search by title, teacher, or grade..."
+                placeholder={t('adminPages.tests.searchPlaceholder')}
                 flex="1 1 0%"
                 maxWidth="none"
                 fullWidth={false}
@@ -813,46 +816,46 @@ export function AdminTestsPage() {
 
             <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
               <AdminSelectField
-                label="Grade"
+                label={t('common.grade')}
                 value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Grades' },
-                  ...gradeOptions.map((entry) => ({ value: String(entry), label: `Grade ${entry}` })),
+                  { value: 'all', label: t('common.allGrades') },
+                  ...gradeOptions.map((entry) => ({ value: String(entry), label: formatGradeLabel(entry) })),
                 ]}
                 onChange={(value) => setSelectedGradeFilter(value === 'all' ? 'all' : Number(value))}
               />
               <AdminSelectField
-                label="Section"
+                label={t('common.section')}
                 value={selectedSectionFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Sections' },
+                  { value: 'all', label: t('adminPages.common.allSections') },
                   ...sectionOptions.map((entry) => ({ value: entry, label: entry })),
                 ]}
                 onChange={(value) => setSelectedSectionFilter(value)}
               />
               <AdminSelectField
-                label="Status"
+                label={t('common.status')}
                 value={selectedStatusFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'all', label: t('common.allStatuses') },
+                  { value: 'active', label: t('common.active') },
+                  { value: 'inactive', label: t('common.inactive') },
                 ]}
                 onChange={(value) => setSelectedStatusFilter(value as typeof selectedStatusFilter)}
               />
               <AdminSelectField
-                label="Subject"
+                label={t('common.subject')}
                 value={selectedSubjectFilter}
                 fullWidth={false}
                 width={130}
                 options={[
-                  { value: 'all', label: 'All Subjects' },
+                  { value: 'all', label: t('common.allSubjects') },
                   ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
                 ]}
                 onChange={(value) => setSelectedSubjectFilter(value)}
@@ -882,7 +885,7 @@ export function AdminTestsPage() {
                     <tr>
                       <th>
                         <AdminSortHeader
-                          label="Title"
+                          label={t('adminPages.tests.tableTitle')}
                           column="name"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -891,7 +894,7 @@ export function AdminTestsPage() {
                       </th>
                       <th>
                         <AdminSortHeader
-                          label="Grade"
+                          label={t('common.grade')}
                           column="grade"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -900,7 +903,7 @@ export function AdminTestsPage() {
                       </th>
                       <th>
                         <AdminSortHeader
-                          label="Created by"
+                          label={t('adminPages.common.createdBy')}
                           column="createdBy"
                           activeColumn={sortColumn}
                           direction={sortDirection}
@@ -909,14 +912,14 @@ export function AdminTestsPage() {
                       </th>
                       <th>
                         <AdminSortHeader
-                          label="Date Created"
+                          label={t('adminPages.common.dateCreated')}
                           column="createdAt"
                           activeColumn={sortColumn}
                           direction={sortDirection}
                           onToggle={handleSortChange}
                         />
                       </th>
-                      <th className="text-right">Actions</th>
+                      <th className="text-right">{t('adminPages.common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -928,7 +931,7 @@ export function AdminTestsPage() {
                               <p className="font-semibold text-slate-900">{test.title}</p>
                               {isAdmin ? (
                                 <span className="inline-flex rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-[#2468a0]">
-                                  Teacher: {test.createdByFullName ?? test.createdByUsername ?? 'Unknown'}
+                                  {t('adminPages.tests.teacherPill', { name: test.createdByFullName ?? test.createdByUsername ?? t('adminPages.common.unknownTeacher') })}
                                 </span>
                               ) : null}
                             </div>
@@ -936,22 +939,31 @@ export function AdminTestsPage() {
                               {test.subjectName} · {test.lessonTitle}
                             </p>
                             <p className="text-sm text-slate-500">
-                              {test.questions.length} questions
+                              {t('adminPages.tests.questionsCount', { count: test.questions.length })}
                             </p>
                           </div>
                         </td>
                         <td>
                           <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                            {test.classDisplay || formatClassDisplay(test.grade, test.section)}
+                            {formatStoredClassDisplay(test.classDisplay, test.grade, test.section)}
                           </span>
                         </td>
-                        <td>{`Created by ${test.createdByFullName ?? test.createdByUsername ?? 'Teacher'}`}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <UserAvatar
+                              fullName={test.createdByFullName}
+                              size={24}
+                              username={test.createdByUsername}
+                            />
+                            <span>{`${t('adminPages.common.createdBy')} ${test.createdByFullName ?? test.createdByUsername ?? t('adminPages.common.unknownTeacher')}`}</span>
+                          </div>
+                        </td>
                         <td>{formatDateTime(test.createdAt)}</td>
                         <td>
                           <div className="flex justify-end gap-2">
                             <button
                               className="admin-management-icon-button"
-                              title="View test"
+                              title={t('adminPages.common.view')}
                               type="button"
                               onClick={() => setViewingTest(test)}
                             >
@@ -959,7 +971,7 @@ export function AdminTestsPage() {
                             </button>
                             <button
                               className="admin-management-icon-button"
-                              title="Edit test"
+                              title={t('adminPages.common.edit')}
                               type="button"
                               onClick={() => {
                                 setAiDraftLoaded(false)
@@ -992,7 +1004,7 @@ export function AdminTestsPage() {
                             </button>
                             <button
                             className="admin-management-icon-button admin-management-icon-button-danger"
-                            title="Delete test"
+                            title={t('adminPages.common.delete')}
                             type="button"
                             onClick={() => setTestPendingDelete(test)}
                           >
@@ -1018,9 +1030,9 @@ export function AdminTestsPage() {
             </div>
           ) : (
             <div className="admin-management-empty mt-6">
-              <h3 className="text-lg font-semibold text-slate-900">No tests found</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{t('adminPages.tests.emptyTitle')}</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Try adjusting the search or filters, or create a test first.
+                {t('adminPages.tests.emptyDescription')}
               </p>
             </div>
           )}
@@ -1047,7 +1059,7 @@ export function AdminTestsPage() {
             <div className="max-h-[calc(92vh-96px)] space-y-6 overflow-y-auto px-6 py-6">
               <div className="flex flex-wrap gap-3">
                 <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                  {viewingTest.classDisplay || formatClassDisplay(viewingTest.grade, viewingTest.section)}
+                  {formatStoredClassDisplay(viewingTest.classDisplay, viewingTest.grade, viewingTest.section)}
                 </span>
                 <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                   {`Created by ${viewingTest.createdByFullName ?? viewingTest.createdByUsername ?? 'Teacher'}`}

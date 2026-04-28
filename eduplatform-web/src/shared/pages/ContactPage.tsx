@@ -2,7 +2,9 @@ import { ArrowLeft, Mail, Send } from 'lucide-react'
 import axios from 'axios'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from '../../app/AppSettingsContext'
 import apiClient from '../api/axiosInstance'
+import { BrandLogo } from '../components/BrandLogo'
 
 type ContactFormState = {
   name: string
@@ -18,6 +20,7 @@ const initialFormState: ContactFormState = {
 
 export function ContactPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [form, setForm] = useState<ContactFormState>(initialFormState)
   const [errors, setErrors] = useState<Partial<ContactFormState>>({})
   const [successMessage, setSuccessMessage] = useState('')
@@ -33,19 +36,19 @@ export function ContactPage() {
     const nextErrors: Partial<ContactFormState> = {}
 
     if (!trimmedName) {
-      nextErrors.name = 'Please enter your name.'
+      nextErrors.name = t('contactPage.validation.nameRequired')
     }
 
     if (!trimmedEmail) {
-      nextErrors.email = 'Please enter your email address.'
+      nextErrors.email = t('contactPage.validation.emailRequired')
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = 'Please enter a valid email address.'
+      nextErrors.email = t('contactPage.validation.emailInvalid')
     }
 
     if (!trimmedMessage) {
-      nextErrors.message = 'Please enter your message.'
+      nextErrors.message = t('contactPage.validation.messageRequired')
     } else if (trimmedMessage.length < 10) {
-      nextErrors.message = 'Your message should be at least 10 characters long.'
+      nextErrors.message = t('contactPage.validation.messageTooShort')
     }
 
     setErrors(nextErrors)
@@ -68,7 +71,7 @@ export function ContactPage() {
       })
 
       setSuccessMessage(
-        data.message ?? 'Your message has been sent successfully. We will review it shortly.',
+        data.message ?? t('contactPage.successMessage'),
       )
       setForm(initialFormState)
     }
@@ -88,12 +91,12 @@ export function ContactPage() {
         }
         else
         {
-          setSubmitError('Failed to send your message. Please try again.')
+          setSubmitError(t('contactPage.submitError'))
         }
       }
       else
       {
-        setSubmitError('Failed to send your message. Please try again.')
+        setSubmitError(t('contactPage.submitError'))
       }
     }
     finally
@@ -106,36 +109,47 @@ export function ContactPage() {
     <main className="px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl rounded-[32px] border border-blue-100/90 bg-white/85 p-8 shadow-[0_28px_70px_rgba(37,99,235,0.12)] backdrop-blur-md sm:p-10">
         <div className="mb-10 max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-400">
-            EduPlatform
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl">
-            Contact
-          </h1>
-          <p className="mt-4 text-base leading-8 text-slate-600">
-            Reach out if you need help with approvals, account access, or anything related to the
-            platform. We are here to support students, teachers, and administrators.
-          </p>
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="shrink-0 self-start translate-y-1 [&_.brand-logo-mark]:h-[6.75rem] [&_.brand-logo-mark]:w-[6.75rem] [&_.brand-logo-mark]:rounded-[28px] sm:[&_.brand-logo-mark]:h-[7.5rem] sm:[&_.brand-logo-mark]:w-[7.5rem] sm:[&_.brand-logo-mark]:rounded-[32px]">
+              <BrandLogo
+                showCopy={false}
+                size="header"
+                title="EduPlatform"
+                variant="photo"
+              />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-400">
+                {t('appName')}
+              </p>
+              <h1 className="mt-2 font-display text-3xl font-bold text-slate-900 sm:text-4xl">
+                {t('contactPage.title')}
+              </h1>
+              <p className="mt-4 text-base leading-8 text-slate-600">
+                {t('contactPage.description')}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="rounded-[28px] border border-blue-100/80 bg-gradient-to-br from-white to-blue-50/70 p-6 shadow-[0_18px_40px_rgba(36,104,160,0.1)] sm:p-7">
             <div className="mb-6">
-              <h2 className="font-display text-2xl font-bold text-slate-900">Send us a message</h2>
+              <h2 className="font-display text-2xl font-bold text-slate-900">{t('contactPage.form.title')}</h2>
               <p className="mt-2 text-sm leading-7 text-slate-600">
-                Fill out the form below and we will get back to you as soon as possible.
+                {t('contactPage.form.description')}
               </p>
             </div>
 
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700" htmlFor="contact-name">
-                  Name
+                  {t('contactPage.form.nameLabel')}
                 </label>
                 <input
                   className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
                   id="contact-name"
-                  placeholder="Your full name"
+                  placeholder={t('contactPage.form.namePlaceholder')}
                   value={form.name}
                   onChange={(event) => {
                     setForm((current) => ({ ...current, name: event.target.value }))
@@ -147,7 +161,7 @@ export function ContactPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700" htmlFor="contact-email">
-                  Email
+                  {t('contactPage.form.emailLabel')}
                 </label>
                 <input
                   className="w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
@@ -165,12 +179,12 @@ export function ContactPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700" htmlFor="contact-message">
-                  Message
+                  {t('contactPage.form.messageLabel')}
                 </label>
                 <textarea
                   className="min-h-40 w-full rounded-2xl border border-blue-100 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100"
                   id="contact-message"
-                  placeholder="Tell us how we can help you."
+                  placeholder={t('contactPage.form.messagePlaceholder')}
                   value={form.message}
                   onChange={(event) => {
                     setForm((current) => ({ ...current, message: event.target.value }))
@@ -183,9 +197,9 @@ export function ContactPage() {
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button className="button-primary inline-flex items-center gap-2" disabled={isSubmitting} type="submit">
                   <Send className="h-4 w-4" />
-                  {isSubmitting ? 'Sending...' : 'Send Message'}
+                  {isSubmitting ? t('contactPage.form.sending') : t('contactPage.form.submit')}
                 </button>
-                <p className="text-sm text-slate-500">We usually respond within 24 hours.</p>
+                <p className="text-sm text-slate-500">{t('contactPage.form.responseTime')}</p>
               </div>
 
               {submitError ? (
@@ -204,12 +218,11 @@ export function ContactPage() {
 
           <aside className="rounded-[28px] border border-blue-100/80 bg-gradient-to-br from-[#123d5b] via-[#2468a0] to-[#0f8b8d] p-6 text-white shadow-[0_22px_48px_rgba(36,104,160,0.22)] sm:p-7">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
-              Contact information
+              {t('contactPage.info.eyebrow')}
             </p>
-            <h2 className="mt-3 font-display text-2xl font-bold">Support email</h2>
+            <h2 className="mt-3 font-display text-2xl font-bold">{t('contactPage.info.title')}</h2>
             <p className="mt-3 text-sm leading-7 text-white/80">
-              For account approvals, login problems, or general help with the platform, contact the
-              EduPlatform support inbox directly.
+              {t('contactPage.info.description')}
             </p>
 
             <a
@@ -224,8 +237,7 @@ export function ContactPage() {
 
             <div className="mt-6 rounded-2xl border border-white/12 bg-white/8 p-4">
               <p className="text-sm leading-7 text-white/80">
-                You can use the form for a quick message or open your email client directly using
-                the address above.
+                {t('contactPage.info.helper')}
               </p>
             </div>
           </aside>
@@ -238,7 +250,7 @@ export function ContactPage() {
             type="button"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('common.back')}
           </button>
         </div>
       </div>

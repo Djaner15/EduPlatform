@@ -9,5 +9,6 @@ namespace EduPlatform.API.Models
         public Test Test { get; set; } = null!;
         public int Score { get; set; }
         public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<TestResultAnswer> SubmittedAnswers { get; set; } = new List<TestResultAnswer>();
     }
 }

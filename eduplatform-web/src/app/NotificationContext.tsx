@@ -8,6 +8,7 @@ import {
   type ReactNode,
   type SyntheticEvent,
 } from 'react'
+import { playUiSuccessSound } from '../shared/uiAudio'
 
 type NotificationSeverity = 'success' | 'error'
 
@@ -35,6 +36,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   })
 
   const showNotification = useCallback((message: string, severity: NotificationSeverity) => {
+    if (severity === 'success') {
+      playUiSuccessSound()
+    }
+
     setNotification({
       open: true,
       message,

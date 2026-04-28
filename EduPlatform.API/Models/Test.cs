@@ -11,8 +11,10 @@ namespace EduPlatform.API.Models
         public Lesson Lesson { get; set; } = null!;
         public int Grade { get; set; }
         public string Section { get; set; } = null!;
-        public ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
-        public ICollection<Question> Questions { get; set; } = new List<Question>();
+        public ICollection<TestResult> TestResults { get; set; } 
+        = new List<TestResult>();
+        public ICollection<Question> Questions { get; set; } 
+        = new List<Question>();
     }   
 
 }
