@@ -1,5 +1,6 @@
+import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
 import { formatGradeLabel, formatStoredClassDisplay, gradeOptions } from '../../../shared/classOptions'
@@ -8,6 +9,7 @@ import { AppTablePagination } from '../../../shared/components/AppTablePaginatio
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { ButtonLink } from '../../../shared/components/Button'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient from '../../../shared/api/axiosInstance'
@@ -30,9 +32,20 @@ type TestSummary = {
   questions: Array<unknown>
 }
 
+const readNumberParam = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export function TestsPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const lessonIdParam = readNumberParam(searchParams.get('lessonId'))
   const [tests, setTests] = useState<TestSummary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
@@ -78,7 +91,7 @@ export function TestsPage() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [t])
 
   const subjectOptions = useMemo(
     () => Array.from(new Set(tests.map((test) => test.subjectName))).sort((left, right) => left.localeCompare(right)),
@@ -103,6 +116,7 @@ export function TestsPage() {
       const matchesSearch =
         !normalizedSearch ||
         test.title.toLowerCase().includes(normalizedSearch) ||
+        test.lessonTitle.toLowerCase().includes(normalizedSearch) ||
         test.subjectName.toLowerCase().includes(normalizedSearch) ||
         teacherName.includes(normalizedSearch) ||
         String(test.grade).includes(normalizedSearch)
@@ -112,11 +126,12 @@ export function TestsPage() {
         selectedStatusFilter === 'all' ||
         (selectedStatusFilter === 'active' ? test.createdByIsApproved : !test.createdByIsApproved)
       const matchesSubject = selectedSubjectFilter === 'all' || test.subjectName === selectedSubjectFilter
+      const matchesLesson = lessonIdParam === null || test.lessonId === lessonIdParam
       const matchesDate = isWithinDateRange(test.createdAt, startDateFilter, endDateFilter)
 
-      return matchesSearch && matchesGrade && matchesStatus && matchesSubject && matchesDate
+      return matchesSearch && matchesGrade && matchesStatus && matchesSubject && matchesLesson && matchesDate
     })
-  }, [endDateFilter, searchTerm, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, tests])
+  }, [endDateFilter, lessonIdParam, searchTerm, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter, tests])
 
   useEffect(() => {
     const maxPage = Math.max(0, Math.ceil(filteredTests.length / rowsPerPage) - 1)
@@ -129,12 +144,14 @@ export function TestsPage() {
   )
 
   const resetFilters = () => {
+    setSearchParams({})
     setSearchTerm('')
     setSelectedGradeFilter(user?.grade ?? 'all')
     setSelectedStatusFilter('all')
     setSelectedSubjectFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
+    setPage(0)
   }
 
   return (
@@ -146,17 +163,30 @@ export function TestsPage() {
       />
 
       <section className="glass-panel p-6">
-        <div className="admin-management-control-bar">
-          <AdminSearchField
-            placeholder={t('studentPages.tests.searchPlaceholder')}
-            flex="1 1 200px"
-            maxWidth="min(100%, 200px)"
-            fullWidth={false}
-            value={searchTerm}
-            onChange={setSearchTerm}
-          />
+        <Stack
+          className="rounded-3xl border border-slate-200/80 bg-white/75 p-4 shadow-[0_14px_32px_rgba(36,104,160,0.08)]"
+          spacing={2}
+        >
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            useFlexGap
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+          >
+            <AdminSearchField
+              placeholder={t('studentPages.tests.searchPlaceholder')}
+              flex="1 1 0%"
+              maxWidth="none"
+              fullWidth={false}
+              value={searchTerm}
+              onChange={setSearchTerm}
+            />
+            <Stack direction="row" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
+              <AdminResetFiltersButton onClick={resetFilters} />
+            </Stack>
+          </Stack>
 
-          <div className="admin-management-filter-group">
+          <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap" alignItems="center">
             <AdminSelectField
               label={t('common.grade')}
               value={selectedGradeFilter === 'all' ? 'all' : String(selectedGradeFilter)}
@@ -206,9 +236,8 @@ export function TestsPage() {
               width={150}
               onChange={setEndDateFilter}
             />
-            <AdminResetFiltersButton onClick={resetFilters} />
-          </div>
-        </div>
+          </Stack>
+        </Stack>
 
         {isLoading ? <div className="mt-6 text-slate-600">{t('studentPages.tests.loading')}</div> : null}
         {!isLoading && errorMessage ? (
@@ -227,12 +256,9 @@ export function TestsPage() {
                       {test.subjectName} · {formatStoredClassDisplay(test.classDisplay, test.grade, test.section)} · {t('studentPages.tests.questionsCount', { count: test.questions.length })}
                     </p>
                   </div>
-                  <Link
-                    className="button-primary inline-flex px-4 py-3 text-sm"
-                    to={`/student/tests/${test.id}`}
-                  >
+                  <ButtonLink as={Link} size="sm" to={`/student/tests/${test.id}`}>
                     {t('common.start')}
-                  </Link>
+                  </ButtonLink>
                 </article>
               ))}
             </div>

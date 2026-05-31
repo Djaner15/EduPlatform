@@ -19,6 +19,8 @@ public interface ITestService
     Task<List<TestResultDto>> GetAllResultsAsync();
     Task<List<TestResultDto>> GetResultsForUserAsync(int userId);
     Task<TestResultDetailsDto?> GetResultDetailsForUserAsync(int resultId, int userId);
+    Task<List<TestResultDto>> GetResultsForTestAsync(int testId, int currentUserId, string currentRole);
+    Task<TestResultDetailsDto?> GetResultDetailsForReviewAsync(int resultId, int currentUserId, string currentRole);
     Task<StudentDashboardStatsDto> GetDashboardStatsForUserAsync(int userId);
     Task<TeacherOverviewStatsDto> GetTeacherOverviewStatsAsync(int teacherId);
     Task<PublicPlatformOverviewDto> GetPlatformOverviewAsync();

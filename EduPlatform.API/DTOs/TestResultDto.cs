@@ -17,6 +17,9 @@ public class TestResultDto
     public int ResultId { get; set; }
     public int TestId { get; set; }
     public int UserId { get; set; }
+    public string? StudentUsername { get; set; }
+    public string? StudentFullName { get; set; }
+    public string? StudentEmail { get; set; }
     public string TestTitle { get; set; } = null!;
     public string SubjectName { get; set; } = null!;
     public int ScorePercentage { get; set; }
@@ -39,6 +42,10 @@ public class TestResultDetailsDto
 {
     public int ResultId { get; set; }
     public int TestId { get; set; }
+    public int UserId { get; set; }
+    public string? StudentUsername { get; set; }
+    public string? StudentFullName { get; set; }
+    public string? StudentEmail { get; set; }
     public string TestTitle { get; set; } = null!;
     public string SubjectName { get; set; } = null!;
     public int ScorePercentage { get; set; }

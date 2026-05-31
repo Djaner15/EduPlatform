@@ -65,6 +65,8 @@ export function SettingsPage() {
     setTheme,
     cursorMode,
     setCursorMode,
+    cursorBubblesEnabled,
+    setCursorBubblesEnabled,
     glassLevel,
     setGlassLevel,
     brandTone,
@@ -376,6 +378,29 @@ export function SettingsPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="settings-personalization-row">
+                    <div className="settings-personalization-meta">
+                      <div className="settings-card-icon">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t('cursorBubbles')}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t('cursorBubblesDescription')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      aria-pressed={cursorBubblesEnabled}
+                      className="settings-switch"
+                      data-on={cursorBubblesEnabled}
+                      type="button"
+                      onClick={() => setCursorBubblesEnabled(!cursorBubblesEnabled)}
+                    >
+                      <span>{cursorBubblesEnabled ? t('common.enabled') : t('common.disabled')}</span>
+                    </button>
                   </div>
 
                   <div className="settings-personalization-row">

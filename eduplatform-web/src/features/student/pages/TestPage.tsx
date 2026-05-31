@@ -1,11 +1,12 @@
 import axios from 'axios'
-import { Loader2, Sparkles } from 'lucide-react'
+import { CheckCircle2, FileDown, Loader2, Sparkles, Target } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from '../../../app/AppSettingsContext'
 import { useNotification } from '../../../app/NotificationContext'
 import apiClient from '../../../shared/api/axiosInstance'
 import { readApiError } from '../../../shared/apiErrors'
+import { Button } from '../../../shared/components/Button'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import { QuestionCard } from '../components/QuestionCard'
@@ -54,9 +55,44 @@ type QuestionExplanation = {
 
 type SubmissionMode = 'manual' | 'auto-cheat'
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+const getScoreTone = (score: number) => {
+  if (score >= 80) {
+    return {
+      labelKey: 'studentPages.testSession.scoreExcellent',
+      ring: 'from-emerald-300 via-teal-300 to-cyan-300',
+      text: 'text-emerald-700',
+      chip: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    }
+  }
+
+  if (score >= 50) {
+    return {
+      labelKey: 'studentPages.testSession.scoreGood',
+      ring: 'from-amber-300 via-orange-200 to-cyan-200',
+      text: 'text-amber-700',
+      chip: 'border-amber-200 bg-amber-50 text-amber-700',
+    }
+  }
+
+  return {
+    labelKey: 'studentPages.testSession.scoreNeedsWork',
+    ring: 'from-rose-300 via-pink-200 to-amber-200',
+    text: 'text-rose-700',
+    chip: 'border-rose-200 bg-rose-50 text-rose-700',
+  }
+}
+
 export function TestPage() {
   const { id } = useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { showNotification } = useNotification()
   const [test, setTest] = useState<TestDto | null>(null)
   const [answers, setAnswers] = useState<Record<number, SubmittedAnswer>>({})
@@ -258,6 +294,7 @@ export function TestPage() {
         questionId: question.id,
         selectedAnswerId: answers[question.id]?.answerId ?? null,
         textAnswer: answers[question.id]?.textAnswer ?? null,
+        language: i18n.language,
       })
 
       setExplanations((current) => ({ ...current, [question.id]: data.explanation }))
@@ -274,6 +311,211 @@ export function TestPage() {
     } finally {
       setLoadingExplanationIds((current) => current.filter((entry) => entry !== question.id))
     }
+  }
+
+  const exportResultAsPdf = () => {
+    if (!test || !result || typeof window === 'undefined') {
+      return
+    }
+
+    const scoreTone = getScoreTone(result.scorePercentage)
+    const completedAt = result.completedAt
+      ? new Intl.DateTimeFormat(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(new Date(result.completedAt))
+      : ''
+
+    const questionRows = test.questions
+      .map((question, index) => {
+        const submittedAnswer = answers[question.id]
+        const selectedAnswer = question.answers.find((answer) => answer.id === submittedAnswer?.answerId)
+        const correctAnswer =
+          question.type === 'text'
+            ? question.correctTextAnswer
+            : question.answers.find((answer) => answer.isCorrect)?.text
+        const studentAnswer = question.type === 'text' ? submittedAnswer?.textAnswer : selectedAnswer?.text
+        const isCorrect =
+          question.type === 'text'
+            ? Boolean(
+                question.correctTextAnswer &&
+                  submittedAnswer?.textAnswer &&
+                  question.correctTextAnswer.trim().toLowerCase() === submittedAnswer.textAnswer.trim().toLowerCase(),
+              )
+            : Boolean(selectedAnswer?.isCorrect)
+
+        return `
+          <section class="question">
+            <p class="eyebrow">${escapeHtml(t('studentPages.testSession.questionPdfLabel', { number: index + 1 }))}</p>
+            <h2>${escapeHtml(question.text)}</h2>
+            <div class="answer ${isCorrect ? 'correct' : 'wrong'}">
+              <strong>${escapeHtml(t('studentPages.testSession.yourAnswer'))}</strong>
+              <span>${escapeHtml(studentAnswer?.trim() || t('studentPages.testSession.noAnswerSubmitted'))}</span>
+            </div>
+            <div class="answer correct">
+              <strong>${escapeHtml(t('studentPages.testSession.correctAnswer'))}</strong>
+              <span>${escapeHtml(correctAnswer?.trim() || t('studentPages.testSession.notAvailable'))}</span>
+            </div>
+          </section>
+        `
+      })
+      .join('')
+
+    const printWindow = window.open('', '_blank', 'width=980,height=720')
+    if (!printWindow) {
+      showNotification(t('studentPages.testSession.exportPopupBlocked'), 'error')
+      return
+    }
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${escapeHtml(test.title)} - ${escapeHtml(t('studentPages.testSession.pdfReportTitle'))}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 32px;
+              background: #eefafa;
+              color: #0f172a;
+              font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            }
+            .report {
+              max-width: 920px;
+              margin: 0 auto;
+              border-radius: 28px;
+              background: #ffffff;
+              padding: 34px;
+              box-shadow: 0 24px 70px rgba(36, 104, 160, 0.14);
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              gap: 24px;
+              border-bottom: 1px solid #dbeafe;
+              padding-bottom: 24px;
+            }
+            .eyebrow {
+              margin: 0 0 8px;
+              color: #2468a0;
+              font-size: 12px;
+              font-weight: 800;
+              letter-spacing: 0.22em;
+              text-transform: uppercase;
+            }
+            h1 {
+              margin: 0;
+              font-size: 34px;
+              line-height: 1.1;
+            }
+            h2 {
+              margin: 8px 0 18px;
+              font-size: 20px;
+              line-height: 1.35;
+            }
+            .meta {
+              margin-top: 12px;
+              color: #475569;
+              font-size: 14px;
+              line-height: 1.7;
+            }
+            .score {
+              min-width: 170px;
+              border-radius: 24px;
+              background: linear-gradient(135deg, #f8fdff, #ecfeff);
+              border: 1px solid #bae6fd;
+              padding: 20px;
+              text-align: center;
+            }
+            .score strong {
+              display: block;
+              font-size: 46px;
+              line-height: 1;
+              color: ${result.scorePercentage >= 80 ? '#047857' : result.scorePercentage >= 50 ? '#b45309' : '#be123c'};
+            }
+            .score span {
+              display: inline-block;
+              margin-top: 10px;
+              border-radius: 999px;
+              background: #f1f5f9;
+              padding: 7px 12px;
+              color: #334155;
+              font-size: 12px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.12em;
+            }
+            .question {
+              margin-top: 22px;
+              break-inside: avoid;
+              border: 1px solid #dbeafe;
+              border-radius: 24px;
+              background: #f8fdff;
+              padding: 22px;
+            }
+            .answer {
+              display: grid;
+              gap: 6px;
+              margin-top: 12px;
+              border-radius: 18px;
+              padding: 14px 16px;
+              font-size: 14px;
+              line-height: 1.55;
+            }
+            .answer strong {
+              font-size: 12px;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+            }
+            .correct {
+              border: 1px solid #86efac;
+              background: #ecfdf5;
+              color: #047857;
+            }
+            .wrong {
+              border: 1px solid #fda4af;
+              background: #fff1f2;
+              color: #be123c;
+            }
+            @media print {
+              body { background: #ffffff; padding: 0; }
+              .report { box-shadow: none; border-radius: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <main class="report">
+            <header class="header">
+              <div>
+                <p class="eyebrow">${escapeHtml(t('appName'))}</p>
+                <h1>${escapeHtml(test.title)}</h1>
+                <div class="meta">
+                  ${escapeHtml(test.subjectName)} · ${escapeHtml(test.lessonTitle)}
+                  ${completedAt ? `<br />${escapeHtml(t('studentPages.testSession.completedAt', { date: completedAt }))}` : ''}
+                </div>
+              </div>
+              <aside class="score">
+                <strong>${result.scorePercentage}%</strong>
+                <span>${escapeHtml(t(scoreTone.labelKey))}</span>
+              </aside>
+            </header>
+            ${questionRows}
+          </main>
+          <script>
+            window.addEventListener('load', () => {
+              window.focus();
+              window.print();
+            });
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
   }
 
   if (isLoading) {
@@ -309,15 +551,49 @@ export function TestPage() {
       ) : null}
 
       {result ? (
-        <section className="glass-panel flex items-center justify-between gap-6 p-6">
-          <div>
-            <p className="text-sm text-slate-500">{t('studentPages.testSession.finalResult')}</p>
-            <h2 className="mt-2 font-display text-4xl font-bold text-slate-900">
-              {result.scorePercentage}%
-            </h2>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-4 text-sm text-slate-600">
-            {t('studentPages.testSession.resultsReflect')}
+        <section className="glass-panel overflow-hidden p-6">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className={`relative grid h-32 w-32 shrink-0 place-items-center rounded-full bg-gradient-to-br ${getScoreTone(result.scorePercentage).ring} p-1 shadow-[0_22px_46px_rgba(36,104,160,0.16)]`}>
+                <div className="grid h-full w-full place-items-center rounded-full bg-white/94 text-center">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {t('studentPages.testSession.score')}
+                    </p>
+                    <p className={`mt-1 font-display text-4xl font-bold ${getScoreTone(result.scorePercentage).text}`}>
+                      {result.scorePercentage}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#2468a0]">{t('studentPages.testSession.finalResult')}</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                  {t(getScoreTone(result.scorePercentage).labelKey)}
+                </h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${getScoreTone(result.scorePercentage).chip}`}>
+                    <Target className="h-3.5 w-3.5" />
+                    {t('studentPages.testSession.scoreBadge', { score: result.scorePercentage })}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-[#2468a0]">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {t('studentPages.testSession.answersReviewed')}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 xl:items-end">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-5 py-4 text-sm text-slate-600">
+                {t('studentPages.testSession.resultsReflect')}
+              </div>
+              {!autoSubmittedForCheating ? (
+                <Button className="self-start xl:self-end" size="sm" variant="secondary" onClick={exportResultAsPdf}>
+                  <FileDown className="h-4 w-4" />
+                  {t('studentPages.testSession.exportPdf')}
+                </Button>
+              ) : null}
+            </div>
           </div>
         </section>
       ) : null}

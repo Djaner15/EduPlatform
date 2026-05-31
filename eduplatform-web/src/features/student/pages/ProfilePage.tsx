@@ -1,4 +1,4 @@
-import { ArrowRight, ClipboardCheck, Loader2, Sparkles, TrendingUp, X } from 'lucide-react'
+import { ArrowRight, BookOpenCheck, ClipboardCheck, Loader2, Sparkles, Trophy, TrendingUp, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../app/AuthContext'
@@ -7,6 +7,7 @@ import apiClient from '../../../shared/api/axiosInstance'
 import { readApiError } from '../../../shared/apiErrors'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
+import { AppTablePagination } from '../../../shared/components/AppTablePagination'
 import { formatClassDisplay, formatStoredClassDisplay } from '../../../shared/classOptions'
 
 type TestResultDto = {
@@ -80,6 +81,8 @@ export function ProfilePage() {
   const [selectedResult, setSelectedResult] = useState<TestResultDetailsDto | null>(null)
   const [isDetailsLoading, setIsDetailsLoading] = useState(false)
   const [detailsError, setDetailsError] = useState<string | null>(null)
+  const [historyPage, setHistoryPage] = useState(0)
+  const [historyRowsPerPage, setHistoryRowsPerPage] = useState(5)
 
   useEffect(() => {
     let isMounted = true
@@ -133,6 +136,28 @@ export function ProfilePage() {
   }, [results])
 
   const averageTone = getScoreTone(averageScore)
+  const sortedResults = useMemo(
+    () => [...results].sort((left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()),
+    [results],
+  )
+  const paginatedResults = useMemo(
+    () => sortedResults.slice(historyPage * historyRowsPerPage, historyPage * historyRowsPerPage + historyRowsPerPage),
+    [historyPage, historyRowsPerPage, sortedResults],
+  )
+  const bestScore = useMemo(
+    () => results.reduce((best, entry) => Math.max(best, entry.scorePercentage), 0),
+    [results],
+  )
+  const latestScore = sortedResults[0]?.scorePercentage ?? 0
+  const practicedSubjectCount = useMemo(
+    () => new Set(results.map((entry) => entry.subjectName).filter(Boolean)).size,
+    [results],
+  )
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(sortedResults.length / historyRowsPerPage) - 1)
+    setHistoryPage((current) => Math.min(current, maxPage))
+  }, [historyRowsPerPage, sortedResults.length])
 
   const classDisplay =
     formatStoredClassDisplay(user?.classDisplay, user?.grade ?? null, user?.section ?? null) ||
@@ -143,6 +168,36 @@ export function ProfilePage() {
 
   const resultCardClass =
     'group flex w-full flex-col gap-3 rounded-[28px] border border-sky-100/90 bg-white/84 px-5 py-5 text-left shadow-[0_16px_34px_rgba(36,104,160,0.10)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-cyan-200/90 hover:bg-cyan-50/52 hover:shadow-[0_22px_44px_rgba(36,104,160,0.14)]'
+  const profileStats = [
+    {
+      label: t('studentPages.profile.bestScore'),
+      value: results.length ? `${bestScore}%` : '—',
+      icon: Trophy,
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+    },
+    {
+      label: t('studentPages.profile.latestScore'),
+      value: results.length ? `${latestScore}%` : '—',
+      icon: TrendingUp,
+      color: 'text-cyan-700',
+      bg: 'bg-cyan-50',
+    },
+    {
+      label: t('studentPages.profile.practiceSubjects'),
+      value: practicedSubjectCount,
+      icon: BookOpenCheck,
+      color: 'text-emerald-700',
+      bg: 'bg-emerald-50',
+    },
+    {
+      label: t('studentPages.profile.completedTestsShort'),
+      value: results.length,
+      icon: ClipboardCheck,
+      color: 'text-[#2468a0]',
+      bg: 'bg-sky-50',
+    },
+  ]
 
   const openResultDetails = async (entry: TestResultDto) => {
     setSelectedResultId(entry.resultId)
@@ -175,8 +230,8 @@ export function ProfilePage() {
         title={t('studentPages.profile.title')}
       />
 
-      <section className="grid gap-4 xl:grid-cols-[0.82fr_1.18fr]">
-        <article className="rounded-2xl border border-white/70 bg-white/74 p-6 shadow-[0_24px_56px_rgba(36,104,160,0.12)] backdrop-blur-xl">
+      <section className="grid items-start gap-4 xl:grid-cols-[0.82fr_1.18fr]">
+        <article className="self-start rounded-2xl border border-white/70 bg-white/74 p-6 shadow-[0_24px_56px_rgba(36,104,160,0.12)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-slate-500">{t('studentPages.profile.username')}</p>
@@ -229,6 +284,26 @@ export function ProfilePage() {
               {t('studentPages.profile.progressDescription')}
             </p>
           </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {profileStats.map((stat) => {
+              const Icon = stat.icon
+
+              return (
+                <div className="rounded-3xl border border-sky-100/90 bg-white/78 p-4 shadow-[0_14px_30px_rgba(36,104,160,0.08)] backdrop-blur-xl" key={stat.label}>
+                  <div className="flex items-center gap-3">
+                    <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${stat.bg} ${stat.color}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{stat.label}</p>
+                      <p className="mt-1 text-xl font-bold text-slate-900">{stat.value}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </article>
 
         <article className="rounded-2xl border border-white/70 bg-white/74 p-6 shadow-[0_24px_56px_rgba(36,104,160,0.12)] backdrop-blur-xl">
@@ -273,7 +348,7 @@ export function ProfilePage() {
 
           {!isLoading && !errorMessage && results.length ? (
             <div className="mt-5 space-y-3">
-              {results.map((entry) => {
+              {paginatedResults.map((entry) => {
                 const tone = getScoreTone(entry.scorePercentage)
                 const isOpen = selectedResultId === entry.resultId
 
@@ -306,6 +381,19 @@ export function ProfilePage() {
                   </button>
                 )
               })}
+              <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/75 shadow-[0_14px_32px_rgba(36,104,160,0.08)]">
+                <AppTablePagination
+                  count={sortedResults.length}
+                  page={historyPage}
+                  rowsPerPage={historyRowsPerPage}
+                  rowsPerPageOptions={[5, 10, 25]}
+                  onPageChange={setHistoryPage}
+                  onRowsPerPageChange={(nextRowsPerPage) => {
+                    setHistoryRowsPerPage(nextRowsPerPage)
+                    setHistoryPage(0)
+                  }}
+                />
+              </div>
             </div>
           ) : null}
         </article>
@@ -313,8 +401,8 @@ export function ProfilePage() {
 
       {selectedResultId !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/75 shadow-[0_32px_120px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/88">
-            <div className="flex items-start justify-between gap-4 border-b border-white/50 px-6 py-5 dark:border-white/10">
+          <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-sky-100 bg-white/95 shadow-[0_32px_120px_rgba(15,23,42,0.24)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/88">
+            <div className="flex items-start justify-between gap-4 border-b border-sky-100 px-6 py-5 dark:border-white/10">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0] dark:text-cyan-300">
                   {t('studentPages.profile.resultDetailsEyebrow')}
@@ -352,7 +440,7 @@ export function ProfilePage() {
 
               {!isDetailsLoading && !detailsError && selectedResult ? (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 rounded-[28px] border border-white/60 bg-white/70 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-col gap-3 rounded-[28px] border border-sky-100 bg-white/90 p-5 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/50 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-sm text-slate-500 dark:text-slate-400">{t('studentPages.profile.finalScore')}</p>
                       <h3 className={`mt-2 text-4xl font-semibold ${getScoreTone(selectedResult.scorePercentage).text}`}>
@@ -372,7 +460,7 @@ export function ProfilePage() {
 
                   {selectedResult.questions.map((question, index) => (
                     <article
-                      className="rounded-[28px] border border-white/60 bg-white/70 p-5 shadow-[0_14px_32px_rgba(36,104,160,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/50"
+                      className="rounded-[28px] border border-sky-100 bg-white/90 p-5 shadow-[0_14px_32px_rgba(36,104,160,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/50"
                       key={`${question.questionId}-${question.orderIndex}`}
                     >
                       <div className="flex items-start justify-between gap-4">

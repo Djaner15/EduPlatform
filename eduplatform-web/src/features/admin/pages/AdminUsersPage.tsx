@@ -37,6 +37,7 @@ import { readApiError } from '../../../shared/apiErrors'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
 import { BulkUploadModal } from '../components/BulkUploadModal'
+import { useBodyScrollLock } from '../../../shared/hooks/useBodyScrollLock'
 
 type AssignedClass = {
   grade: number
@@ -270,6 +271,8 @@ export function AdminUsersPage() {
   const isUserActionMenuOpen = Boolean(userActionAnchorEl)
   const editingUser = editingId ? allUsersById.get(editingId) ?? null : null
   const currentProfileImageSrc = getResolvedUserImageSrc(editingUser?.fullName, editingUser?.username, editingUser?.profileImageUrl)
+
+  useBodyScrollLock(isUserFormOpen)
   const selectedProfileImagePreview = useMemo(
     () => (selectedProfileImage ? URL.createObjectURL(selectedProfileImage) : null),
     [selectedProfileImage],
@@ -766,6 +769,9 @@ export function AdminUsersPage() {
     setEndDateFilter('')
     setSortColumn('name')
     setSortDirection('asc')
+    setStudentPages({})
+    setTeacherPage(0)
+    setAdminPage(0)
   }
 
   const getStudentPage = (sectionId: string) => studentPages[sectionId] ?? 0

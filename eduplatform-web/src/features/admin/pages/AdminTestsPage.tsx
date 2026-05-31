@@ -3,7 +3,7 @@ import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import EditOutlined from '@mui/icons-material/EditOutlined'
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import Stack from '@mui/material/Stack'
-import { FileQuestion, ImagePlus, ListPlus, Loader2, PlusCircle, Sparkles, Trash2, Type } from 'lucide-react'
+import { BarChart3, CheckCircle2, FileQuestion, ImagePlus, ListPlus, Loader2, PlusCircle, Sparkles, Trash2, Type, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
@@ -21,6 +21,8 @@ import { UserAvatar } from '../../../shared/components/UserAvatar'
 import apiClient, { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
+import { useBodyScrollLock } from '../../../shared/hooks/useBodyScrollLock'
+import { readApiError } from '../../../shared/apiErrors'
 
 type Lesson = {
   id: number
@@ -57,17 +59,46 @@ type TestItem = {
   questions: TestQuestion[]
 }
 
-const formatDateTime = (value?: string | null) => {
+type TestResult = {
+  resultId: number
+  testId: number
+  userId: number
+  studentUsername?: string | null
+  studentFullName?: string | null
+  studentEmail?: string | null
+  testTitle: string
+  subjectName: string
+  scorePercentage: number
+  completedAt: string
+}
+
+type TestResultQuestionReview = {
+  questionId: number
+  orderIndex: number
+  questionText: string
+  questionType: string
+  studentAnswerText?: string | null
+  correctAnswerText: string
+  isCorrect: boolean
+  explanation?: string | null
+}
+
+type TestResultDetails = TestResult & {
+  hasStoredReview: boolean
+  questions: TestResultQuestionReview[]
+}
+
+const formatDateTime = (value: string | null | undefined, language: string, fallback: string) => {
   if (!value) {
-    return 'Unknown date'
+    return fallback
   }
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return 'Unknown date'
+    return fallback
   }
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(language === 'bg' ? 'bg-BG' : 'en-GB', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',
@@ -75,6 +106,33 @@ const formatDateTime = (value?: string | null) => {
     minute: '2-digit',
   }).format(date)
 }
+
+const getScoreTone = (score: number) => {
+  if (score >= 70) {
+    return {
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      text: 'text-emerald-700',
+      card: 'border-emerald-200 bg-emerald-50/80',
+    }
+  }
+
+  if (score >= 40) {
+    return {
+      badge: 'bg-amber-50 text-amber-700 border-amber-200',
+      text: 'text-amber-700',
+      card: 'border-amber-200 bg-amber-50/80',
+    }
+  }
+
+  return {
+    badge: 'bg-rose-50 text-rose-700 border-rose-200',
+    text: 'text-rose-700',
+    card: 'border-rose-200 bg-rose-50/80',
+  }
+}
+
+const getStudentDisplayName = (result: Pick<TestResult, 'studentFullName' | 'studentUsername'>) =>
+  result.studentFullName?.trim() || result.studentUsername?.trim() || ''
 
 type AnswerDraft = {
   text: string
@@ -100,14 +158,18 @@ type AiGeneratedTest = {
   }>
 }
 
+const createBlankMultipleChoiceAnswers = (): AnswerDraft[] => [
+  { text: '', isCorrect: true },
+  { text: '', isCorrect: false },
+  { text: '', isCorrect: false },
+  { text: '', isCorrect: false },
+]
+
 const createBlankQuestion = (): QuestionDraft => ({
   clientKey: crypto.randomUUID(),
   text: '',
   type: 'multiple-choice',
-  answers: [
-    { text: '', isCorrect: true },
-    { text: '', isCorrect: false },
-  ],
+  answers: createBlankMultipleChoiceAnswers(),
   correctTextAnswer: '',
   imageFile: null,
   imagePreview: '',
@@ -115,7 +177,7 @@ const createBlankQuestion = (): QuestionDraft => ({
 })
 
 export function AdminTestsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const { showNotification } = useNotification()
   const [lessons, setLessons] = useState<Lesson[]>([])
@@ -132,6 +194,14 @@ export function AdminTestsPage() {
   const [isGeneratingAiTest, setIsGeneratingAiTest] = useState(false)
   const [aiDraftLoaded, setAiDraftLoaded] = useState(false)
   const [viewingTest, setViewingTest] = useState<TestItem | null>(null)
+  const [resultsModalTest, setResultsModalTest] = useState<TestItem | null>(null)
+  const [testResults, setTestResults] = useState<TestResult[]>([])
+  const [resultsError, setResultsError] = useState('')
+  const [isResultsLoading, setIsResultsLoading] = useState(false)
+  const [selectedResultId, setSelectedResultId] = useState<number | null>(null)
+  const [selectedResult, setSelectedResult] = useState<TestResultDetails | null>(null)
+  const [detailsError, setDetailsError] = useState('')
+  const [isDetailsLoading, setIsDetailsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>('all')
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('all')
@@ -145,6 +215,8 @@ export function AdminTestsPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [testPendingDelete, setTestPendingDelete] = useState<TestItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  useBodyScrollLock(Boolean(viewingTest) || Boolean(resultsModalTest))
 
   const loadData = async () => {
     const [lessonsResponse, testsResponse] = await Promise.all([
@@ -186,15 +258,15 @@ export function AdminTestsPage() {
             ? []
             : question.type === 'true-false'
               ? [
-                  { text: 'True', isCorrect: question.answers[0]?.isCorrect ?? true },
-                  { text: 'False', isCorrect: question.answers[1]?.isCorrect ?? false },
+                  { text: t('adminPages.tests.trueAnswer'), isCorrect: question.answers[0]?.isCorrect ?? true },
+                  { text: t('adminPages.tests.falseAnswer'), isCorrect: question.answers[1]?.isCorrect ?? false },
                 ]
               : question.answers.map((answer) => ({
                   text: answer.text.trim(),
                   isCorrect: answer.isCorrect,
                 })),
       })),
-    [questions],
+    [questions, t],
   )
 
   const filteredLessons = useMemo(
@@ -297,6 +369,7 @@ export function AdminTestsPage() {
     setEndDateFilter('')
     setSortColumn('name')
     setSortDirection('asc')
+    setPage(0)
   }
 
   useEffect(() => {
@@ -331,10 +404,10 @@ export function AdminTestsPage() {
 
       if (editingId) {
         await apiClient.put(`/tests/${editingId}`, formData)
-        showNotification('Test updated.', 'success')
+        showNotification(t('adminPages.tests.notifications.updated'), 'success')
       } else {
         await apiClient.post('/tests', formData)
-        showNotification('Test created.', 'success')
+        showNotification(t('adminPages.tests.notifications.created'), 'success')
       }
 
       resetTestForm()
@@ -343,7 +416,7 @@ export function AdminTestsPage() {
       showNotification(
         axios.isAxiosError(error) && typeof error.response?.data?.error === 'string'
           ? error.response.data.error
-          : 'Failed to save test.',
+          : t('adminPages.tests.notifications.saveFailed'),
         'error',
       )
     }
@@ -356,14 +429,63 @@ export function AdminTestsPage() {
       if (viewingTest?.id === id) {
         setViewingTest(null)
       }
+      if (resultsModalTest?.id === id) {
+        closeResultsModal()
+      }
       setTestPendingDelete(null)
-      showNotification('Test deleted.', 'success')
+      showNotification(t('adminPages.tests.notifications.deleted'), 'success')
       await loadData()
     } catch {
-      showNotification('Failed to delete test.', 'error')
+      showNotification(t('adminPages.tests.notifications.deleteFailed'), 'error')
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const openResultsModal = async (test: TestItem) => {
+    setResultsModalTest(test)
+    setTestResults([])
+    setResultsError('')
+    setSelectedResultId(null)
+    setSelectedResult(null)
+    setDetailsError('')
+    setIsResultsLoading(true)
+
+    try {
+      const { data } = await apiClient.get<TestResult[]>(`/tests/${test.id}/results`)
+      setTestResults(data)
+    } catch (error) {
+      setResultsError(readApiError(error, t('adminPages.tests.resultsLoadFailed')))
+    } finally {
+      setIsResultsLoading(false)
+    }
+  }
+
+  const openResultDetails = async (result: TestResult) => {
+    setSelectedResultId(result.resultId)
+    setSelectedResult(null)
+    setDetailsError('')
+    setIsDetailsLoading(true)
+
+    try {
+      const { data } = await apiClient.get<TestResultDetails>(`/tests/results/${result.resultId}`)
+      setSelectedResult(data)
+    } catch (error) {
+      setDetailsError(readApiError(error, t('adminPages.tests.detailsLoadFailed')))
+    } finally {
+      setIsDetailsLoading(false)
+    }
+  }
+
+  const closeResultsModal = () => {
+    setResultsModalTest(null)
+    setTestResults([])
+    setResultsError('')
+    setIsResultsLoading(false)
+    setSelectedResultId(null)
+    setSelectedResult(null)
+    setDetailsError('')
+    setIsDetailsLoading(false)
   }
 
   const updateQuestion = (clientKey: string, updater: (question: QuestionDraft) => QuestionDraft) => {
@@ -393,7 +515,7 @@ export function AdminTestsPage() {
 
   const generateTestWithAi = async () => {
     if (!aiTopic.trim()) {
-      showNotification('Enter a topic before generating a test.', 'error')
+      showNotification(t('adminPages.tests.notifications.topicRequired'), 'error')
       return
     }
 
@@ -404,17 +526,18 @@ export function AdminTestsPage() {
         topic: aiTopic.trim(),
         difficulty: aiDifficulty,
         questionCount: aiQuestionCount,
+        language: i18n.language,
       })
 
       applyAiDraft(data)
-      showNotification('AI test draft generated. Review and edit it before saving.', 'success')
+      showNotification(t('adminPages.tests.notifications.aiGenerated'), 'success')
     } catch (error) {
       showNotification(
         axios.isAxiosError(error) && typeof error.response?.data?.message === 'string'
           ? error.response.data.message
           : axios.isAxiosError(error) && typeof error.response?.data?.error === 'string'
             ? error.response.data.error
-            : 'Failed to generate the AI test draft.',
+            : t('adminPages.tests.notifications.aiFailed'),
         'error',
       )
     } finally {
@@ -439,9 +562,9 @@ export function AdminTestsPage() {
 
       <section
         className={
-          isTeacher || editingId
-            ? 'grid gap-6 xl:grid-cols-[0.55fr_0.45fr]'
-            : 'w-full'
+          isTeacher
+            ? 'grid gap-6 min-[1900px]:grid-cols-[minmax(28rem,0.78fr)_minmax(65rem,1.22fr)]'
+            : 'space-y-6'
         }
       >
         <div className="space-y-6">
@@ -451,71 +574,74 @@ export function AdminTestsPage() {
                 <div>
                   <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.26em] text-[#2468a0]">
                     <Sparkles className="h-4 w-4" />
-                    Generate Test With AI
+                    {t('adminPages.tests.aiEyebrow')}
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">Create a draft in seconds</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">{t('adminPages.tests.aiTitle')}</h2>
                   <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                    Give the AI a topic, level, and question count. It will prepare a multiple-choice draft that you can edit before saving.
+                    {t('adminPages.tests.aiDescription')}
                   </p>
                 </div>
                 {aiDraftLoaded ? (
                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                    AI draft loaded into the editor below.
+                    {t('adminPages.tests.aiDraftLoaded')}
                   </div>
                 ) : null}
               </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.45fr_0.35fr_auto]">
+              <div className="mt-5 grid min-w-0 gap-4">
                 <input
-                  className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                  placeholder="Topic, for example Quadratic Equations or World War II"
+                  className="min-h-14 min-w-0 rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4 text-sky-950 placeholder:text-sky-600/70"
+                  placeholder={t('adminPages.tests.aiTopicPlaceholder')}
                   value={aiTopic}
                   onChange={(event) => setAiTopic(event.target.value)}
                 />
-                <AdminSelectField
-                  label="Difficulty"
-                  value={aiDifficulty}
-                  options={[
-                    { value: 'easy', label: 'Easy' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'hard', label: 'Hard' },
-                  ]}
-                  onChange={(value) => setAiDifficulty(value as 'easy' | 'medium' | 'hard')}
-                />
-                <input
-                  className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
-                  max={12}
-                  min={1}
-                  type="number"
-                  value={aiQuestionCount}
-                  onChange={(event) => setAiQuestionCount(Math.max(1, Math.min(12, Number(event.target.value) || 1)))}
-                />
-                <button
-                  className="button-primary inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isGeneratingAiTest}
-                  type="button"
-                  onClick={() => void generateTestWithAi()}
-                >
-                  {isGeneratingAiTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {isGeneratingAiTest ? 'Generating...' : 'Generate Test'}
-                </button>
+                <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(7rem,0.45fr)] xl:grid-cols-[minmax(11rem,0.75fr)_minmax(7rem,0.35fr)_minmax(13rem,auto)]">
+                  <AdminSelectField
+                    label={t('adminPages.tests.difficulty')}
+                    minWidth={0}
+                    value={aiDifficulty}
+                    options={[
+                      { value: 'easy', label: t('adminPages.tests.difficultyEasy') },
+                      { value: 'medium', label: t('adminPages.tests.difficultyMedium') },
+                      { value: 'hard', label: t('adminPages.tests.difficultyHard') },
+                    ]}
+                    onChange={(value) => setAiDifficulty(value as 'easy' | 'medium' | 'hard')}
+                  />
+                  <input
+                    className="min-w-0 rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950"
+                    max={12}
+                    min={1}
+                    type="number"
+                    value={aiQuestionCount}
+                    onChange={(event) => setAiQuestionCount(Math.max(1, Math.min(12, Number(event.target.value) || 1)))}
+                  />
+                  <button
+                    className="button-primary inline-flex w-full items-center justify-center gap-2 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2 xl:col-span-1"
+                    disabled={isGeneratingAiTest}
+                    type="button"
+                    onClick={() => void generateTestWithAi()}
+                  >
+                    {isGeneratingAiTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {isGeneratingAiTest ? t('adminPages.tests.generating') : t('adminPages.tests.generateTest')}
+                  </button>
+                </div>
               </div>
             </article>
           ) : null}
 
           {isTeacher || editingId ? (
             <article className="glass-panel p-6">
-              <h2 className="text-xl font-semibold text-slate-900">{editingId ? 'Edit test' : 'New test'}</h2>
+              <h2 className="text-xl font-semibold text-slate-900">{editingId ? t('adminPages.tests.editTitle') : t('adminPages.tests.newTitle')}</h2>
               <div className="mt-5 grid gap-4">
                 <input
                   className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                  placeholder="Test title"
+                  placeholder={t('adminPages.tests.titlePlaceholder')}
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                 />
                 <div className="grid gap-4 md:grid-cols-2">
                   <AdminSelectField
-                    label="Grade"
+                    label={t('common.grade')}
                     value={String(grade)}
                     options={gradeOptions.map((entry) => ({ value: String(entry), label: formatGradeDisplay(entry) }))}
                     onChange={(value) => {
@@ -524,7 +650,7 @@ export function AdminTestsPage() {
                     }}
                   />
                   <AdminSelectField
-                    label="Section"
+                    label={t('common.section')}
                     value={section}
                     options={sectionOptions.map((entry) => ({ value: entry, label: entry }))}
                     onChange={(value) => {
@@ -534,7 +660,7 @@ export function AdminTestsPage() {
                   />
                 </div>
                 <AdminSelectField
-                  label="Lesson"
+                  label={t('lessons')}
                   value={filteredLessons.some((lesson) => lesson.id === lessonId) ? String(lessonId) : '0'}
                   options={
                     filteredLessons.length
@@ -542,13 +668,13 @@ export function AdminTestsPage() {
                           value: String(lesson.id),
                           label: `${lesson.subjectName} · ${lesson.title}`,
                         }))
-                      : [{ value: '0', label: 'No lessons available' }]
+                      : [{ value: '0', label: t('adminPages.tests.noLessonsAvailable') }]
                   }
                   onChange={(value) => setLessonId(Number(value))}
                 />
                 {!filteredLessons.length ? (
                   <p className="text-sm text-amber-700">
-                    No lessons exist for class {formatClassDisplay(grade, section)} yet. Create the lesson first.
+                    {t('adminPages.tests.noLessonsForClass', { classDisplay: formatClassDisplay(grade, section) })}
                   </p>
                 ) : null}
               </div>
@@ -565,10 +691,10 @@ export function AdminTestsPage() {
                     <div className="mb-4 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-400">
-                          Question {index + 1}
+                          {t('adminPages.tests.questionLabel', { number: index + 1 })}
                         </p>
                         <h3 className="mt-2 font-display text-2xl font-bold text-slate-900">
-                          Interactive question card
+                          {t('adminPages.tests.questionCardTitle')}
                         </h3>
                       </div>
                       <button
@@ -587,11 +713,11 @@ export function AdminTestsPage() {
                       <label className="space-y-2">
                         <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                           <FileQuestion className="h-4 w-4 text-[#2468a0]" />
-                          Question text
+                          {t('adminPages.tests.questionText')}
                         </span>
                         <textarea
                           className="min-h-28 w-full rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                          placeholder="Write the question"
+                          placeholder={t('adminPages.tests.questionPlaceholder')}
                           value={question.text}
                           onChange={(event) =>
                             updateQuestion(question.clientKey, (current) => ({
@@ -606,15 +732,15 @@ export function AdminTestsPage() {
                         <div className="space-y-2">
                           <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                             <Type className="h-4 w-4 text-[#2468a0]" />
-                            Question type
+                            {t('adminPages.tests.questionType')}
                           </span>
                           <AdminSelectField
-                            label="Question type"
+                            label={t('adminPages.tests.questionType')}
                             value={question.type}
                             options={[
-                              { value: 'multiple-choice', label: 'Multiple choice' },
-                              { value: 'text', label: 'Text answer' },
-                              { value: 'true-false', label: 'True / False' },
+                              { value: 'multiple-choice', label: t('adminPages.tests.multipleChoice') },
+                              { value: 'text', label: t('adminPages.tests.textAnswer') },
+                              { value: 'true-false', label: t('adminPages.tests.trueFalse') },
                             ]}
                             onChange={(value) =>
                               updateQuestion(question.clientKey, (current) => ({
@@ -623,17 +749,19 @@ export function AdminTestsPage() {
                                 answers:
                                   value === 'true-false'
                                     ? [
-                                        { text: 'True', isCorrect: true },
-                                        { text: 'False', isCorrect: false },
+                                        { text: t('adminPages.tests.trueAnswer'), isCorrect: true },
+                                        { text: t('adminPages.tests.falseAnswer'), isCorrect: false },
                                       ]
                                     : value === 'text'
                                       ? []
-                                      : current.answers.length
-                                        ? current.answers
-                                        : [
-                                            { text: '', isCorrect: true },
-                                            { text: '', isCorrect: false },
-                                          ],
+                                      : current.type === 'multiple-choice'
+                                        ? current.answers.length >= 4
+                                          ? current.answers
+                                          : [
+                                              ...current.answers,
+                                              ...createBlankMultipleChoiceAnswers().slice(current.answers.length),
+                                            ]
+                                        : createBlankMultipleChoiceAnswers(),
                               }))
                             }
                           />
@@ -642,7 +770,7 @@ export function AdminTestsPage() {
                         <label className="space-y-2">
                           <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                             <ImagePlus className="h-4 w-4 text-[#2468a0]" />
-                            Question image
+                            {t('adminPages.tests.questionImage')}
                           </span>
                           <input
                             accept="image/*"
@@ -662,7 +790,7 @@ export function AdminTestsPage() {
 
                       {previewImage ? (
                         <img
-                          alt={`Question ${index + 1}`}
+                          alt={t('adminPages.tests.questionImageAlt', { number: index + 1 })}
                           className="max-h-72 w-full rounded-3xl object-cover"
                           src={previewImage.startsWith('blob:') ? previewImage : resolveApiAssetUrl(previewImage)}
                         />
@@ -670,10 +798,10 @@ export function AdminTestsPage() {
 
                       {question.type === 'text' ? (
                         <label className="space-y-2">
-                          <span className="text-sm font-semibold text-slate-700">Correct text answer</span>
+                          <span className="text-sm font-semibold text-slate-700">{t('adminPages.tests.correctTextAnswer')}</span>
                           <input
                             className="rounded-2xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
-                            placeholder="Enter the expected answer"
+                            placeholder={t('adminPages.tests.correctTextPlaceholder')}
                             value={question.correctTextAnswer}
                             onChange={(event) =>
                               updateQuestion(question.clientKey, (current) => ({
@@ -688,7 +816,7 @@ export function AdminTestsPage() {
                           <div className="flex items-center justify-between">
                             <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                               <ListPlus className="h-4 w-4 text-[#0f8b8d]" />
-                              Answers
+                              {t('adminPages.tests.answers')}
                             </p>
                             {question.type === 'multiple-choice' ? (
                               <button
@@ -701,7 +829,7 @@ export function AdminTestsPage() {
                                   }))
                                 }
                               >
-                                Add answer
+                                {t('adminPages.tests.addAnswer')}
                               </button>
                             ) : null}
                           </div>
@@ -712,7 +840,7 @@ export function AdminTestsPage() {
                                 <input
                                   className="flex-1 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sky-950 placeholder:text-sky-600/70"
                                   disabled={question.type === 'true-false'}
-                                  placeholder={`Answer ${answerIndex + 1}`}
+                                  placeholder={t('adminPages.tests.answerPlaceholder', { number: answerIndex + 1 })}
                                   value={answer.text}
                                   onChange={(event) =>
                                     updateQuestion(question.clientKey, (current) => ({
@@ -740,7 +868,7 @@ export function AdminTestsPage() {
                                       }))
                                     }
                                   />
-                                  Correct
+                                  {t('adminPages.tests.correct')}
                                 </label>
                                 {question.type === 'multiple-choice' && question.answers.length > 2 ? (
                                   <button
@@ -753,7 +881,7 @@ export function AdminTestsPage() {
                                       }))
                                     }
                                   >
-                                    Remove
+                                    {t('remove')}
                                   </button>
                                 ) : null}
                               </div>
@@ -776,14 +904,14 @@ export function AdminTestsPage() {
                 onClick={() => setQuestions((current) => [...current, createBlankQuestion()])}
               >
                 <PlusCircle className="h-4 w-4" />
-                Add question
+                {t('adminPages.tests.addQuestion')}
               </button>
               <button className="button-primary" type="button" onClick={() => void saveTest()}>
-                {editingId ? 'Save test changes' : 'Create test'}
+                {editingId ? t('adminPages.tests.saveChanges') : t('adminPages.tests.createTest')}
               </button>
               {editingId ? (
                 <button className="rounded-2xl border border-slate-200 px-4 py-3" type="button" onClick={resetTestForm}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               ) : null}
             </div>
@@ -861,14 +989,14 @@ export function AdminTestsPage() {
                 onChange={(value) => setSelectedSubjectFilter(value)}
               />
               <AdminDateField
-                ariaLabel="Start date"
+                ariaLabel={t('adminPages.common.startDate')}
                 value={startDateFilter}
                 fullWidth={false}
                 width={150}
                 onChange={setStartDateFilter}
               />
               <AdminDateField
-                ariaLabel="End date"
+                ariaLabel={t('adminPages.common.endDate')}
                 value={endDateFilter}
                 fullWidth={false}
                 width={150}
@@ -878,9 +1006,9 @@ export function AdminTestsPage() {
           </Stack>
 
           {filteredTests.length ? (
-            <div className="admin-management-table-shell mt-6">
+            <div className="admin-management-table-shell admin-tests-table-shell mt-6">
               <div className="overflow-x-auto">
-                <table className="admin-management-table">
+                <table className="admin-management-table admin-tests-table">
                   <thead>
                     <tr>
                       <th>
@@ -958,7 +1086,7 @@ export function AdminTestsPage() {
                             <span>{`${t('adminPages.common.createdBy')} ${test.createdByFullName ?? test.createdByUsername ?? t('adminPages.common.unknownTeacher')}`}</span>
                           </div>
                         </td>
-                        <td>{formatDateTime(test.createdAt)}</td>
+                        <td>{formatDateTime(test.createdAt, i18n.language, t('adminPages.common.unknownDate'))}</td>
                         <td>
                           <div className="flex justify-end gap-2">
                             <button
@@ -968,6 +1096,14 @@ export function AdminTestsPage() {
                               onClick={() => setViewingTest(test)}
                             >
                               <VisibilityOutlined sx={{ fontSize: 20 }} />
+                            </button>
+                            <button
+                              className="admin-management-icon-button"
+                              title={t('adminPages.tests.viewResults')}
+                              type="button"
+                              onClick={() => void openResultsModal(test)}
+                            >
+                              <BarChart3 className="h-5 w-5" />
                             </button>
                             <button
                               className="admin-management-icon-button"
@@ -1044,11 +1180,11 @@ export function AdminTestsPage() {
           <div className="admin-management-modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Test View</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">{t('adminPages.tests.viewEyebrow')}</p>
                 <h2 className="mt-2 text-2xl font-semibold text-slate-900">{viewingTest.title}</h2>
               </div>
               <button
-                aria-label="Close test view"
+                aria-label={t('adminPages.tests.closeView')}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
                 type="button"
                 onClick={() => setViewingTest(null)}
@@ -1062,10 +1198,10 @@ export function AdminTestsPage() {
                   {formatStoredClassDisplay(viewingTest.classDisplay, viewingTest.grade, viewingTest.section)}
                 </span>
                 <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {`Created by ${viewingTest.createdByFullName ?? viewingTest.createdByUsername ?? 'Teacher'}`}
+                  {t('adminPages.common.createdByName', { name: viewingTest.createdByFullName ?? viewingTest.createdByUsername ?? t('adminPages.common.unknownTeacher') })}
                 </span>
                 <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                  {formatDateTime(viewingTest.createdAt)}
+                  {formatDateTime(viewingTest.createdAt, i18n.language, t('adminPages.common.unknownDate'))}
                 </span>
                 <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                   {viewingTest.subjectName} · {viewingTest.lessonTitle}
@@ -1076,7 +1212,7 @@ export function AdminTestsPage() {
                 {viewingTest.questions.map((question, index) => (
                   <div className="rounded-3xl border border-blue-100/80 bg-white/90 p-5 shadow-[0_14px_28px_rgba(36,104,160,0.06)]" key={question.id}>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">
-                      Question {index + 1}
+                      {t('adminPages.tests.questionLabel', { number: index + 1 })}
                     </p>
                     <p className="mt-2 font-semibold text-slate-900">{question.text}</p>
                     <p className="mt-2 text-sm text-slate-500">{question.type}</p>
@@ -1098,7 +1234,7 @@ export function AdminTestsPage() {
                     ) : null}
                     {question.correctTextAnswer ? (
                       <p className="mt-4 text-sm text-slate-700">
-                        Correct answer: <span className="font-semibold">{question.correctTextAnswer}</span>
+                        {t('adminPages.tests.correctAnswerLabel')} <span className="font-semibold">{question.correctTextAnswer}</span>
                       </p>
                     ) : null}
                   </div>
@@ -1109,10 +1245,210 @@ export function AdminTestsPage() {
         </div>
       ) : null}
 
+      {resultsModalTest ? (
+        <div className="admin-management-modal" role="dialog" aria-modal="true" onClick={closeResultsModal}>
+          <div className="admin-management-modal-card max-w-6xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex flex-col gap-4 border-b border-slate-200/80 px-6 py-5 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">
+                  {t('adminPages.tests.resultsEyebrow')}
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">{resultsModalTest.title}</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {resultsModalTest.subjectName} · {resultsModalTest.lessonTitle} · {formatStoredClassDisplay(resultsModalTest.classDisplay, resultsModalTest.grade, resultsModalTest.section)}
+                </p>
+              </div>
+              <button
+                aria-label={t('adminPages.tests.closeResults')}
+                className="inline-flex h-11 w-11 items-center justify-center self-start rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                type="button"
+                onClick={closeResultsModal}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="max-h-[calc(92vh-96px)] overflow-y-auto px-6 py-6">
+              <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
+                <section className="rounded-[28px] border border-sky-100 bg-white/86 p-4 shadow-[0_18px_38px_rgba(36,104,160,0.08)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">{t('adminPages.tests.resultsTitle')}</h3>
+                      <p className="mt-1 text-sm text-slate-500">{t('adminPages.tests.resultsDescription')}</p>
+                    </div>
+                    <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-sm font-semibold text-[#2468a0]">
+                      {t('adminPages.tests.submissionsCount', { count: testResults.length })}
+                    </span>
+                  </div>
+
+                  {isResultsLoading ? (
+                    <div className="mt-5 flex items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm font-semibold text-[#2468a0]">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('adminPages.tests.loadingResults')}
+                    </div>
+                  ) : null}
+
+                  {!isResultsLoading && resultsError ? (
+                    <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                      {resultsError}
+                    </div>
+                  ) : null}
+
+                  {!isResultsLoading && !resultsError && !testResults.length ? (
+                    <div className="mt-5 rounded-[24px] border border-dashed border-sky-200 bg-cyan-50/50 p-6 text-center">
+                      <h4 className="text-lg font-semibold text-slate-900">{t('adminPages.tests.noResultsTitle')}</h4>
+                      <p className="mt-2 text-sm leading-6 text-slate-500">{t('adminPages.tests.noResultsDescription')}</p>
+                    </div>
+                  ) : null}
+
+                  {!isResultsLoading && !resultsError && testResults.length ? (
+                    <div className="mt-5 space-y-3">
+                      {testResults.map((result) => {
+                        const tone = getScoreTone(result.scorePercentage)
+                        const isSelected = selectedResultId === result.resultId
+
+                        return (
+                          <button
+                            className={`w-full rounded-[24px] border bg-white px-4 py-4 text-left shadow-[0_12px_28px_rgba(36,104,160,0.08)] transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-[0_18px_34px_rgba(36,104,160,0.12)] ${
+                              isSelected ? 'border-cyan-300 ring-2 ring-cyan-200/80' : 'border-sky-100'
+                            }`}
+                            key={result.resultId}
+                            type="button"
+                            onClick={() => void openResultDetails(result)}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-slate-900">
+                                  {getStudentDisplayName(result) || t('adminPages.tests.student')}
+                                </p>
+                                <p className="mt-1 truncate text-sm text-slate-500">
+                                  {result.studentUsername ? `@${result.studentUsername}` : t('adminPages.tests.student')}
+                                  {result.studentEmail ? ` · ${result.studentEmail}` : ''}
+                                </p>
+                                <p className="mt-2 text-xs font-medium text-slate-400">
+                                  {formatDateTime(result.completedAt, i18n.language, t('adminPages.common.unknownDate'))}
+                                </p>
+                              </div>
+                              <span className={`shrink-0 rounded-full border px-3 py-1 text-sm font-semibold ${tone.badge}`}>
+                                {result.scorePercentage}%
+                              </span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="rounded-[28px] border border-sky-100 bg-white/86 p-4 shadow-[0_18px_38px_rgba(36,104,160,0.08)]">
+                  {!selectedResultId ? (
+                    <div className="flex min-h-72 flex-col items-center justify-center rounded-[24px] border border-dashed border-sky-200 bg-sky-50/45 p-8 text-center">
+                      <BarChart3 className="h-10 w-10 text-[#2468a0]" />
+                      <h3 className="mt-4 text-xl font-semibold text-slate-900">{t('adminPages.tests.pickSubmissionTitle')}</h3>
+                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{t('adminPages.tests.pickSubmissionDescription')}</p>
+                    </div>
+                  ) : null}
+
+                  {selectedResultId && isDetailsLoading ? (
+                    <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm font-semibold text-[#2468a0]">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('adminPages.tests.loadingDetails')}
+                    </div>
+                  ) : null}
+
+                  {selectedResultId && !isDetailsLoading && detailsError ? (
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                      {detailsError}
+                    </div>
+                  ) : null}
+
+                  {selectedResultId && !isDetailsLoading && !detailsError && selectedResult ? (
+                    <div className="space-y-4">
+                      <div className="rounded-[24px] border border-sky-100 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">
+                          {t('adminPages.tests.submissionReview')}
+                        </p>
+                        <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                          <div>
+                            <h3 className="text-2xl font-semibold text-slate-900">
+                              {getStudentDisplayName(selectedResult) || t('adminPages.tests.student')}
+                            </h3>
+                            <p className="mt-1 text-sm text-slate-500">
+                              {selectedResult.studentEmail || selectedResult.studentUsername || t('adminPages.tests.student')}
+                            </p>
+                          </div>
+                          <div className="text-left md:text-right">
+                            <p className="text-sm text-slate-500">{t('adminPages.tests.finalScore')}</p>
+                            <p className={`mt-1 text-4xl font-bold ${getScoreTone(selectedResult.scorePercentage).text}`}>
+                              {selectedResult.scorePercentage}%
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {!selectedResult.hasStoredReview ? (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                          {t('adminPages.tests.legacyResultMessage')}
+                        </div>
+                      ) : null}
+
+                      {selectedResult.questions.map((question, index) => {
+                        const tone = question.isCorrect
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                          : 'border-rose-200 bg-rose-50 text-rose-800'
+
+                        return (
+                          <article className="rounded-[24px] border border-sky-100 bg-white p-5 shadow-[0_12px_26px_rgba(36,104,160,0.06)]" key={`${question.questionId}-${question.orderIndex}`}>
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">
+                                  {t('adminPages.tests.questionLabel', { number: index + 1 })}
+                                </p>
+                                <h4 className="mt-2 text-lg font-semibold text-slate-900">{question.questionText}</h4>
+                              </div>
+                              <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>
+                                {question.isCorrect ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                                {question.isCorrect ? t('adminPages.tests.correct') : t('adminPages.tests.incorrect')}
+                              </span>
+                            </div>
+
+                            <div className="mt-4 grid gap-3 md:grid-cols-2">
+                              <div className={`rounded-2xl border px-4 py-3 text-sm ${tone}`}>
+                                <p className="font-semibold">{t('adminPages.tests.studentAnswer')}</p>
+                                <p className="mt-2 whitespace-pre-line leading-6">
+                                  {question.studentAnswerText?.trim() || t('adminPages.tests.noAnswerSubmitted')}
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                                <p className="font-semibold">{t('adminPages.tests.correctAnswer')}</p>
+                                <p className="mt-2 whitespace-pre-line leading-6">
+                                  {question.correctAnswerText || t('adminPages.tests.notAvailable')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {question.explanation ? (
+                              <div className="mt-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                                <p className="font-semibold text-[#2468a0]">{t('adminPages.tests.explanation')}</p>
+                                <p className="mt-2">{question.explanation}</p>
+                              </div>
+                            ) : null}
+                          </article>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <DeleteConfirmationModal
         open={Boolean(testPendingDelete)}
-        title="Delete test?"
-        description={`This will permanently remove ${testPendingDelete?.title ?? 'this test'}. This action cannot be undone.`}
+        title={t('adminPages.tests.deleteTitle')}
+        description={t('adminPages.tests.deleteDescription', { title: testPendingDelete?.title ?? t('adminPages.tests.thisTest') })}
         isDeleting={isDeleting}
         onCancel={() => {
           if (!isDeleting) {

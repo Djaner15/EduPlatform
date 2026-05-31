@@ -44,16 +44,20 @@ public class GroqService : IAiService
             throw new InvalidOperationException("Question count must be between 1 and 12.");
         }
 
+        var outputLanguage = ResolveOutputLanguage(dto.Language);
+
         var generatedJson = await SendJsonRequestAsync(
             systemPrompt:
                 "You generate school assessment drafts for a learning platform. " +
                 "Return only valid JSON and no markdown. " +
                 "Create educational, factually grounded multiple-choice questions. " +
-                "Each question must have exactly four answer options and exactly one correct answer.",
+                "Each question must have exactly four answer options and exactly one correct answer. " +
+                $"Write the test title, all question text, and all answer options in {outputLanguage}.",
             userPrompt:
                 $"Topic: {dto.Topic.Trim()}\n" +
                 $"Difficulty: {normalizedDifficulty}\n" +
-                $"Number of questions: {dto.QuestionCount}\n\n" +
+                $"Number of questions: {dto.QuestionCount}\n" +
+                $"Output language: {outputLanguage}\n\n" +
                 "Return JSON in this exact shape:\n" +
                 "{\"title\":\"string\",\"questions\":[{\"text\":\"string\",\"answers\":[{\"text\":\"string\",\"isCorrect\":true},{\"text\":\"string\",\"isCorrect\":false},{\"text\":\"string\",\"isCorrect\":false},{\"text\":\"string\",\"isCorrect\":false}]}]}",
             cancellationToken: cancellationToken);
@@ -116,12 +120,14 @@ public class GroqService : IAiService
         var optionsText = question.Answers.Any()
             ? string.Join("\n", question.Answers.Select((answer, index) => $"{index + 1}. {answer.Text}"))
             : "No fixed answer options";
+        var outputLanguage = ResolveOutputLanguage(dto.Language);
 
         var explanationJson = await SendJsonRequestAsync(
             systemPrompt:
                 "You explain assessment answers for students. " +
                 "Be encouraging, concise, and educational. " +
-                "Return only valid JSON and no markdown.",
+                "Return only valid JSON and no markdown. " +
+                $"Write the explanation in {outputLanguage}.",
             userPrompt:
                 $"Subject: {question.Test.Lesson.Subject.Name}\n" +
                 $"Test title: {question.Test.Title}\n" +
@@ -129,8 +135,9 @@ public class GroqService : IAiService
                 $"Question: {question.Text}\n" +
                 $"Answer options:\n{optionsText}\n" +
                 $"Student answer: {selectedAnswerText ?? "No answer submitted"}\n" +
-                $"Correct answer: {correctAnswerText ?? "Not available"}\n\n" +
-                "Write a short explanation for the student in clear English. If the answer is wrong, explain why the correct answer works and why the selected answer does not.\n\n" +
+                $"Correct answer: {correctAnswerText ?? "Not available"}\n" +
+                $"Output language: {outputLanguage}\n\n" +
+                $"Write a short explanation for the student in clear {outputLanguage}. If the answer is wrong, explain why the correct answer works and why the selected answer does not.\n\n" +
                 "Return JSON in this exact shape:\n" +
                 "{\"explanation\":\"string\"}",
             cancellationToken: cancellationToken);
@@ -145,6 +152,13 @@ public class GroqService : IAiService
 
         explanation.Explanation = explanation.Explanation.Trim();
         return explanation;
+    }
+
+    private static string ResolveOutputLanguage(string? language)
+    {
+        return language?.Trim().Equals("bg", StringComparison.OrdinalIgnoreCase) == true
+            ? "Bulgarian"
+            : "English";
     }
 
     private async Task<string> SendJsonRequestAsync(

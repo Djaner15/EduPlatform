@@ -1,6 +1,6 @@
 import Stack from '@mui/material/Stack'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from '../../../app/AppSettingsContext'
 import { useAuth } from '../../../app/AuthContext'
 import { formatGradeLabel, formatStoredClassDisplay, gradeOptions } from '../../../shared/classOptions'
@@ -9,6 +9,7 @@ import { AppTablePagination } from '../../../shared/components/AppTablePaginatio
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { ButtonLink } from '../../../shared/components/Button'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { PageHeader } from '../../../shared/components/PageHeader'
 import apiClient from '../../../shared/api/axiosInstance'
@@ -31,13 +32,26 @@ type Lesson = {
 
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
+const readNumberParam = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export function LessonsPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const subjectParam = searchParams.get('subject')
+  const gradeParam = readNumberParam(searchParams.get('grade'))
+  const sectionParam = searchParams.get('section')
   const [filter, setFilter] = useState('')
-  const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(user?.grade ?? 'all')
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<'all' | number>(gradeParam ?? user?.grade ?? 'all')
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all')
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState(subjectParam ?? 'all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
   const [page, setPage] = useState(0)
@@ -47,8 +61,12 @@ export function LessonsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    setSelectedGradeFilter(user?.grade ?? 'all')
-  }, [user?.grade])
+    setSelectedGradeFilter(gradeParam ?? user?.grade ?? 'all')
+  }, [gradeParam, user?.grade])
+
+  useEffect(() => {
+    setSelectedSubjectFilter(subjectParam ?? 'all')
+  }, [subjectParam])
 
   useEffect(() => {
     let isMounted = true
@@ -78,7 +96,7 @@ export function LessonsPage() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [t])
 
   const subjectOptions = useMemo(
     () => Array.from(new Set(lessons.map((lesson) => lesson.subjectName))).sort((left, right) => left.localeCompare(right)),
@@ -112,11 +130,15 @@ export function LessonsPage() {
         selectedStatusFilter === 'all' ||
         (selectedStatusFilter === 'active' ? lesson.createdByIsApproved : !lesson.createdByIsApproved)
       const matchesSubject = selectedSubjectFilter === 'all' || lesson.subjectName === selectedSubjectFilter
+      const matchesSection =
+        !sectionParam ||
+        selectedSubjectFilter === 'all' ||
+        lesson.section.toLowerCase() === sectionParam.toLowerCase()
       const matchesDate = isWithinDateRange(lesson.createdAt, startDateFilter, endDateFilter)
 
-      return matchesSearch && matchesGrade && matchesStatus && matchesSubject && matchesDate
+      return matchesSearch && matchesGrade && matchesStatus && matchesSubject && matchesSection && matchesDate
     })
-  }, [endDateFilter, filter, lessons, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter])
+  }, [endDateFilter, filter, lessons, sectionParam, selectedGradeFilter, selectedStatusFilter, selectedSubjectFilter, startDateFilter])
 
   const sortedLessons = useMemo(
     () => [...filteredLessons].sort((left, right) => left.title.localeCompare(right.title)),
@@ -134,12 +156,14 @@ export function LessonsPage() {
   )
 
   const resetFilters = () => {
+    setSearchParams({})
     setFilter('')
     setSelectedGradeFilter(user?.grade ?? 'all')
     setSelectedStatusFilter('all')
     setSelectedSubjectFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
+    setPage(0)
   }
 
   return (
@@ -205,9 +229,15 @@ export function LessonsPage() {
               width={130}
               options={[
                 { value: 'all', label: t('common.allSubjects') },
+                ...(selectedSubjectFilter !== 'all' && !subjectOptions.includes(selectedSubjectFilter)
+                  ? [{ value: selectedSubjectFilter, label: selectedSubjectFilter }]
+                  : []),
                 ...subjectOptions.map((entry) => ({ value: entry, label: entry })),
               ]}
-              onChange={setSelectedSubjectFilter}
+              onChange={(value) => {
+                setSelectedSubjectFilter(value)
+                setSearchParams({})
+              }}
             />
             <AdminDateField
               ariaLabel="Start date"
@@ -245,9 +275,9 @@ export function LessonsPage() {
                       {stripHtml(lesson.content).length > 180 ? '...' : ''}
                     </p>
                   </div>
-                  <Link className="button-primary inline-flex text-sm" to={`/student/lessons/${lesson.id}`}>
+                  <ButtonLink as={Link} size="sm" to={`/student/lessons/${lesson.id}`}>
                     {t('common.open')}
-                  </Link>
+                  </ButtonLink>
                 </article>
               ))}
             </div>

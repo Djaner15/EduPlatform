@@ -3,11 +3,11 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { Eraser, Highlighter, Link2, Table2, Type, Unlink } from 'lucide-react'
-import { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 
-const formats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet', 'link', 'color', 'background']
+const formats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet', 'link', 'color', 'background', 'image']
 const textColorOptions = ['#0f172a', '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed']
 const highlightColorOptions = ['#fef08a', '#fde68a', '#fecaca', '#fed7aa', '#bfdbfe', '#bbf7d0', '#ddd6fe', '#fbcfe8']
 const headingOptions = [
@@ -92,6 +92,7 @@ type RichTextEditorProps = {
 export type RichTextEditorHandle = {
   focus: () => void
   insertImageAtCursor: (src: string, alt?: string) => void
+  removeImageBySrc: (src: string) => void
 }
 
 const escapeHtmlAttribute = (value: string) =>
@@ -133,6 +134,27 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
         editor.clipboard.dangerouslyPasteHTML(range.index, imageMarkup, 'user')
         editor.setSelection(range.index + 2, 0, 'silent')
+      },
+      removeImageBySrc: (src: string) => {
+        const editor = quillRef.current?.getEditor()
+        if (!editor || !src.trim()) {
+          return
+        }
+
+        const contents = editor.getContents()
+        let cursorIndex = 0
+
+        for (const operation of contents.ops ?? []) {
+          const insertedValue = operation.insert
+
+          if (typeof insertedValue === 'object' && insertedValue?.image === src) {
+            editor.deleteText(cursorIndex, 1, 'user')
+            editor.focus()
+            return
+          }
+
+          cursorIndex += typeof insertedValue === 'string' ? insertedValue.length : 1
+        }
       },
     }),
     [],
@@ -280,35 +302,32 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     }
   }, [])
 
-  const modules = useMemo(
-    () => ({
-      toolbar: {
-        container: `#${toolbarId}`,
-        handlers: {
-          bold: () => toggleInlineFormat('bold'),
-          italic: () => toggleInlineFormat('italic'),
-          underline: () => toggleInlineFormat('underline'),
-          insertTable: () => {
-            const editor = quillRef.current?.getEditor()
-            if (!editor) {
-              return
-            }
+  const modules = {
+    toolbar: {
+      container: `#${toolbarId}`,
+      handlers: {
+        bold: () => toggleInlineFormat('bold'),
+        italic: () => toggleInlineFormat('italic'),
+        underline: () => toggleInlineFormat('underline'),
+        insertTable: () => {
+          const editor = quillRef.current?.getEditor()
+          if (!editor) {
+            return
+          }
 
-            const range = editor.getSelection(true)
-            const index = range?.index ?? editor.getLength()
-            const tableMarkup =
-              '<table><tbody><tr><th>Column 1</th><th>Column 2</th></tr><tr><td>Value</td><td>Value</td></tr><tr><td>Value</td><td>Value</td></tr></tbody></table><p><br></p>'
+          const range = editor.getSelection(true)
+          const index = range?.index ?? editor.getLength()
+          const tableMarkup =
+            '<table><tbody><tr><th>Column 1</th><th>Column 2</th></tr><tr><td>Value</td><td>Value</td></tr><tr><td>Value</td><td>Value</td></tr></tbody></table><p><br></p>'
 
-            editor.clipboard.dangerouslyPasteHTML(index, tableMarkup, 'user')
-            editor.setSelection(index + 1, 0)
-            setOpenMenu(null)
-          },
-          link: openLinkMenu,
+          editor.clipboard.dangerouslyPasteHTML(index, tableMarkup, 'user')
+          editor.setSelection(index + 1, 0)
+          setOpenMenu(null)
         },
+        link: openLinkMenu,
       },
-    }),
-    [toolbarId],
-  )
+    },
+  }
 
   return (
     <div className="rich-editor rounded-2xl border border-sky-200 bg-white">

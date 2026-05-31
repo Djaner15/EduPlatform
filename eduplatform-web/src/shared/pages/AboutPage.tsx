@@ -46,7 +46,7 @@ const highlightMeta = [
 const galleryMeta = [
   { image: '/about-hero.jpeg', key: 'learningUx' },
   { image: '/about-gallery-classroom.jpeg', key: 'assessmentIntegrity' },
-  { image: '/about-hero.jpeg', key: 'connectedWorkspace' },
+  { image: '/about-gallery-collaboration.jpeg', key: 'connectedWorkspace' },
 ] as const
 
 const defaultReviewSeeds = [

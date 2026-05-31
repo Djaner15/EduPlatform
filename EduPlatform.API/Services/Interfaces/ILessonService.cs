@@ -23,7 +23,7 @@ public interface ILessonService
     /// <summary>
     /// Creates a new lesson
     /// </summary>
-    Task<LessonDto> CreateAsync(LessonUpsertDto dto, IFormFile? image, IFormFile? attachment, int currentUserId);
+    Task<LessonDto> CreateAsync(LessonUpsertDto dto, IFormFile? image, IFormFile? attachment, int currentUserId, string currentRole);
 
     /// <summary>
     /// Updates an existing lesson

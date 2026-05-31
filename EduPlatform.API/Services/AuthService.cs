@@ -73,6 +73,7 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(dto.Email))
             throw new InvalidOperationException("Email is required");
 
+        var normalizedUsername = dto.Username.Trim();
         var normalizedEmail = EmailAddressPolicy.Normalize(dto.Email);
 
         if (EmailAddressPolicy.IsReservedPlatformEmail(_configuration, normalizedEmail))
@@ -82,13 +83,27 @@ public class AuthService : IAuthService
 
         var studentClass = ClassAssignmentPolicy.EnsureValidClass(dto.Grade, dto.Section);
 
-        // Check username uniqueness
-        if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
-            throw new InvalidOperationException("Username already exists");
+        var existingUsernameOwner = await _context.Users
+            .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername.ToLower());
 
-        // Check email uniqueness
-        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == normalizedEmail))
-            throw new InvalidOperationException("Email already exists");
+        if (existingUsernameOwner != null)
+        {
+            var pendingHint = existingUsernameOwner.IsApproved
+                ? ""
+                : " This account is still waiting for administrator approval.";
+            throw new InvalidOperationException($"Username already exists: {existingUsernameOwner.Username}.{pendingHint}");
+        }
+
+        var existingEmailOwner = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+
+        if (existingEmailOwner != null)
+        {
+            var pendingHint = existingEmailOwner.IsApproved
+                ? ""
+                : " This account is still waiting for administrator approval.";
+            throw new InvalidOperationException($"Email already exists: {existingEmailOwner.Email}.{pendingHint}");
+        }
 
         // Default role is Student (RoleId = 1)
         const int studentRoleId = 1;
@@ -96,7 +111,7 @@ public class AuthService : IAuthService
         var user = new User
         {
             FullName = dto.FullName.Trim(),
-            Username = dto.Username,
+            Username = normalizedUsername,
             Email = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             RoleId = studentRoleId,

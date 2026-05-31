@@ -13,12 +13,14 @@ type AppSettingsContextValue = {
   theme: AppTheme
   language: AppLanguage
   cursorMode: AppCursorMode
+  cursorBubblesEnabled: boolean
   glassLevel: number
   brandTone: AppBrandTone
   uiSoundsEnabled: boolean
   setTheme: (theme: AppTheme) => void
   setLanguage: (language: AppLanguage) => void
   setCursorMode: (cursorMode: AppCursorMode) => void
+  setCursorBubblesEnabled: (enabled: boolean) => void
   setGlassLevel: (glassLevel: number) => void
   setBrandTone: (brandTone: AppBrandTone) => void
   setUiSoundsEnabled: (enabled: boolean) => void
@@ -28,6 +30,7 @@ const THEME_KEY = 'eduplatformTheme'
 const LANGUAGE_KEY = 'eduplatformLanguage'
 const DEFAULT_PERSONALIZATION_SETTINGS = {
   cursorMode: 'dolphin' as AppCursorMode,
+  cursorBubblesEnabled: true,
   glassLevel: 58,
   brandTone: 'teal' as AppBrandTone,
   uiSoundsEnabled: true,
@@ -97,6 +100,7 @@ const readStoredPersonalization = (username?: string | null) => {
 
     const parsed = JSON.parse(raw) as Partial<{
       cursorMode: AppCursorMode
+      cursorBubblesEnabled: boolean
       glassLevel: number
       brandTone: AppBrandTone
       uiSoundsEnabled: boolean
@@ -111,6 +115,10 @@ const readStoredPersonalization = (username?: string | null) => {
         typeof parsed.glassLevel === 'number' && Number.isFinite(parsed.glassLevel) && parsed.glassLevel >= 0 && parsed.glassLevel <= 100
           ? parsed.glassLevel
           : DEFAULT_PERSONALIZATION_SETTINGS.glassLevel,
+      cursorBubblesEnabled:
+        typeof parsed.cursorBubblesEnabled === 'boolean'
+          ? parsed.cursorBubblesEnabled
+          : DEFAULT_PERSONALIZATION_SETTINGS.cursorBubblesEnabled,
       brandTone:
         parsed.brandTone === 'teal' || parsed.brandTone === 'blue' || parsed.brandTone === 'coral'
           ? parsed.brandTone
@@ -134,6 +142,7 @@ export function AppSettingsProvider({ children }: AppSettingsProviderProps) {
   const [theme, setThemeState] = useState<AppTheme>('light')
   const [language, setLanguageState] = useState<AppLanguage>('en')
   const [cursorMode, setCursorModeState] = useState<AppCursorMode>(DEFAULT_PERSONALIZATION_SETTINGS.cursorMode)
+  const [cursorBubblesEnabled, setCursorBubblesEnabledState] = useState(DEFAULT_PERSONALIZATION_SETTINGS.cursorBubblesEnabled)
   const [glassLevel, setGlassLevelState] = useState(DEFAULT_PERSONALIZATION_SETTINGS.glassLevel)
   const [brandTone, setBrandToneState] = useState<AppBrandTone>(DEFAULT_PERSONALIZATION_SETTINGS.brandTone)
   const [uiSoundsEnabled, setUiSoundsEnabledState] = useState(DEFAULT_PERSONALIZATION_SETTINGS.uiSoundsEnabled)
@@ -146,6 +155,7 @@ export function AppSettingsProvider({ children }: AppSettingsProviderProps) {
   useEffect(() => {
     const personalization = readStoredPersonalization(user?.username)
     setCursorModeState(personalization.cursorMode)
+    setCursorBubblesEnabledState(personalization.cursorBubblesEnabled)
     setGlassLevelState(personalization.glassLevel)
     setBrandToneState(personalization.brandTone)
     setUiSoundsEnabledState(personalization.uiSoundsEnabled)
@@ -195,12 +205,13 @@ export function AppSettingsProvider({ children }: AppSettingsProviderProps) {
       storageKey,
       JSON.stringify({
         cursorMode,
+        cursorBubblesEnabled,
         glassLevel,
         brandTone,
         uiSoundsEnabled,
       }),
     )
-  }, [brandTone, cursorMode, glassLevel, uiSoundsEnabled, user?.username])
+  }, [brandTone, cursorBubblesEnabled, cursorMode, glassLevel, uiSoundsEnabled, user?.username])
 
   useEffect(() => {
     const handleLanguageChanged = (nextLanguage: string) => {
@@ -224,17 +235,19 @@ export function AppSettingsProvider({ children }: AppSettingsProviderProps) {
       theme,
       language,
       cursorMode,
+      cursorBubblesEnabled,
       glassLevel,
       brandTone,
       uiSoundsEnabled,
       setTheme: setThemeState,
       setLanguage,
       setCursorMode: setCursorModeState,
+      setCursorBubblesEnabled: setCursorBubblesEnabledState,
       setGlassLevel: setGlassLevelState,
       setBrandTone: setBrandToneState,
       setUiSoundsEnabled: setUiSoundsEnabledState,
     }),
-    [brandTone, cursorMode, glassLevel, language, theme, uiSoundsEnabled],
+    [brandTone, cursorBubblesEnabled, cursorMode, glassLevel, language, theme, uiSoundsEnabled],
   )
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>

@@ -1,14 +1,17 @@
 import RestartAltOutlined from '@mui/icons-material/RestartAltOutlined'
 import IconButton from '@mui/material/IconButton'
+import { useTranslation } from '../../app/AppSettingsContext'
 
 type AdminResetFiltersButtonProps = {
   onClick: () => void
 }
 
 export function AdminResetFiltersButton({ onClick }: AdminResetFiltersButtonProps) {
+  const { t } = useTranslation()
+
   return (
     <IconButton
-      aria-label="Reset filters"
+      aria-label={t('adminPages.common.resetFilters')}
       size="small"
       sx={{
         width: 40,
@@ -26,7 +29,7 @@ export function AdminResetFiltersButton({ onClick }: AdminResetFiltersButtonProp
           borderColor: 'rgba(125, 211, 252, 0.95)',
         },
       }}
-      title="Reset filters"
+      title={t('adminPages.common.resetFilters')}
       onClick={onClick}
     >
       <RestartAltOutlined fontSize="small" />

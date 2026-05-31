@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(html[data-theme='dark'], html[data-theme='dark'] *));
+
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-display: "Montserrat", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
@@ -318,6 +320,44 @@
     @apply px-5 py-4 align-top text-sm text-slate-700;
   }
 
+  .admin-tests-table {
+    min-width: 62rem;
+    table-layout: fixed;
+  }
+
+  .admin-tests-table th:nth-child(1),
+  .admin-tests-table td:nth-child(1) {
+    width: 34%;
+    min-width: 20rem;
+  }
+
+  .admin-tests-table th:nth-child(2),
+  .admin-tests-table td:nth-child(2) {
+    width: 7rem;
+  }
+
+  .admin-tests-table th:nth-child(3),
+  .admin-tests-table td:nth-child(3) {
+    width: 14rem;
+  }
+
+  .admin-tests-table th:nth-child(4),
+  .admin-tests-table td:nth-child(4) {
+    width: 13rem;
+    white-space: nowrap;
+  }
+
+  .admin-tests-table th:nth-child(5),
+  .admin-tests-table td:nth-child(5) {
+    width: 14rem;
+    white-space: nowrap;
+  }
+
+  .admin-tests-table td:first-child p {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
   .admin-management-table tbody tr {
     @apply border-b border-slate-200/70 transition hover:bg-sky-50/40;
   }
@@ -375,7 +415,8 @@
   }
 
   .admin-management-modal {
-    @apply fixed inset-0 z-[1700] flex min-h-screen w-screen items-start justify-center overflow-y-auto px-4 py-6;
+    @apply fixed inset-0 z-[1700] flex min-h-screen w-screen items-center justify-center overflow-hidden px-4 py-6;
+    overscroll-behavior: contain;
     background: rgba(255, 255, 255, 0.22);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -386,7 +427,8 @@
   }
 
   .admin-management-modal-card {
-    @apply my-auto flex w-full max-w-5xl flex-col overflow-visible rounded-3xl backdrop-blur-xl;
+    @apply flex w-full max-w-5xl flex-col overflow-hidden rounded-3xl backdrop-blur-xl;
+    max-height: calc(100vh - 3rem);
     border: 1px solid rgba(64, 224, 208, 0.3);
     background:
       linear-gradient(155deg, rgba(255, 255, 255, 0.84) 0%, rgba(235, 252, 249, 0.78) 55%, rgba(226, 248, 247, 0.72) 100%);
@@ -396,8 +438,8 @@
 
   .lesson-studio-modal-card {
     max-width: 95vw;
-    max-height: none;
-    overflow: visible;
+    max-height: calc(100vh - 3rem);
+    overflow: hidden;
   }
 
   .admin-management-modal-header {
@@ -436,7 +478,8 @@
   }
 
   .admin-management-modal-body {
-    @apply overflow-visible;
+    @apply min-h-0 flex-1 overflow-y-auto overflow-x-hidden;
+    overscroll-behavior: contain;
   }
 
   .admin-management-modal-body-padded {
@@ -444,7 +487,9 @@
   }
 
   .admin-management-modal-footer {
-    @apply flex shrink-0 flex-wrap items-center gap-3 px-6 pb-6 pt-2 lg:px-8;
+    @apply flex shrink-0 flex-wrap items-center gap-3 border-t px-6 pb-6 pt-4 lg:px-8;
+    border-top-color: rgba(64, 224, 208, 0.16);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(236, 254, 251, 0.76));
   }
 
   .admin-management-modal-footer > button:not(.button-primary):not(.button-primary-soft) {
@@ -1308,6 +1353,7 @@ html[data-theme='dark'] .settings-switch[data-on='true'] {
 
 .rich-editor {
   position: relative;
+  min-width: 0;
   overflow: visible;
 }
 
@@ -1564,6 +1610,9 @@ html[data-theme='dark'] .settings-switch[data-on='true'] {
   z-index: 1;
   border: 0;
   min-height: 300px;
+  max-height: 34rem;
+  overflow-y: auto;
+  overflow-x: hidden;
   font-size: 0.98rem;
   color: #0f172a;
 }
@@ -1574,6 +1623,24 @@ html[data-theme='dark'] .settings-switch[data-on='true'] {
   padding: 1rem 1.1rem;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+
+.rich-editor .ql-editor img,
+.lesson-content img {
+  display: block;
+  width: auto;
+  max-width: min(100%, 720px);
+  max-height: 420px;
+  height: auto;
+  margin: 1rem auto;
+  border-radius: 1.25rem;
+  object-fit: contain;
+  box-shadow: 0 18px 38px rgba(36, 104, 160, 0.12);
+}
+
+.rich-editor .ql-editor p:has(> img),
+.lesson-content p:has(> img) {
+  margin: 1rem 0;
 }
 
 .rich-editor .ql-tooltip {
@@ -2041,12 +2108,16 @@ html[data-theme='dark'] .settings-switch[data-on='true'] {
 
 .dolphin-cursor-bubble {
   position: fixed;
-  z-index: 2490;
+  z-index: 9999;
   pointer-events: none;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.65), rgba(var(--primary-rgb), 0.16));
-  box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.18);
+  border: 1px solid rgb(255 255 255 / 0.78);
+  background:
+    radial-gradient(circle at 32% 30%, rgb(255 255 255 / 0.95) 0 22%, transparent 24%),
+    radial-gradient(circle at 50% 55%, rgb(var(--primary-rgb) / 0.48), rgb(var(--primary-rgb) / 0.2));
+  box-shadow:
+    0 0 0 1px rgb(var(--primary-rgb) / 0.12),
+    0 0 16px rgb(var(--primary-rgb) / 0.34);
   transform: translate3d(-50%, -50%, 0);
   animation: dolphinBubbleFade 500ms ease-out forwards;
   will-change: transform, opacity;

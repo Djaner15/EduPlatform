@@ -64,17 +64,13 @@ export function LoginPage() {
       return
     }
 
-    logout()
+    void logout()
     setSearchParams((current) => {
       const next = new URLSearchParams(current)
       next.delete('logout')
       return next
     }, { replace: true })
   }, [logout, searchParams, setSearchParams])
-
-  if (isAuthenticated()) {
-    return <Navigate replace to={user?.role === 'Admin' ? '/admin' : user?.role === 'Teacher' ? '/teacher' : '/student'} />
-  }
 
   const passwordStrength = useMemo(() => {
     const password = registerForm.password
@@ -87,6 +83,10 @@ export function LoginPage() {
 
     return Math.min(score, 4)
   }, [registerForm.password])
+
+  if (isAuthenticated()) {
+    return <Navigate replace to={user?.role === 'Admin' ? '/admin' : user?.role === 'Teacher' ? '/teacher' : '/student'} />
+  }
 
   const readLoginError = (error: unknown) => {
     const message = readApiError(error, t('auth.validation.loginFailed'))
@@ -342,7 +342,6 @@ export function LoginPage() {
                     />
                     <span>{t('auth.rememberMe')}</span>
                   </label>
-                  <span className="text-link">{t('auth.accessPortal')}</span>
                 </div>
 
                 <button className="submit-button" disabled={isSubmitting} type="submit">

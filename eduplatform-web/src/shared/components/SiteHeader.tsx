@@ -45,8 +45,8 @@ export function SiteHeader() {
         : 'border border-sky-200/85 bg-gradient-to-r from-sky-50 to-blue-100 text-[#1d4f78] shadow-[0_8px_18px_rgba(59,130,246,0.14)]'
   const showRoleBadge = user?.username?.trim().toLowerCase() !== user?.role?.trim().toLowerCase()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     showNotification(t('auth.notifications.loggedOut'), 'success')
     navigate('/login', { replace: true })
   }

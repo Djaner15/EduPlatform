@@ -8,6 +8,7 @@ import { AppTablePagination } from '../../../shared/components/AppTablePaginatio
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { Button } from '../../../shared/components/Button'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { InfoCard } from '../../../shared/components/InfoCard'
 import { PageHeader } from '../../../shared/components/PageHeader'
@@ -72,7 +73,7 @@ export function SubjectsPage() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [t])
 
   const localizedSubjects = useMemo(() => filterSubjectsByLanguage(items, language), [items, language])
 
@@ -90,7 +91,7 @@ export function SubjectsPage() {
 
       return matchesSearch && matchesGrade
     })
-  }, [localizedSubjects, searchTerm, selectedGradeFilter, user?.grade])
+  }, [localizedSubjects, searchTerm, selectedGradeFilter])
 
   const availableGradeOptions = useMemo(() => {
     const currentGrade = user?.grade
@@ -120,6 +121,7 @@ export function SubjectsPage() {
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedGradeFilter(user?.grade ?? 'all')
+    setPage(0)
   }
 
   return (
@@ -189,13 +191,19 @@ export function SubjectsPage() {
                 <InfoCard
                   key={subject.id}
                   action={
-                    <button
-                      className="button-primary inline-flex px-4 py-3 text-sm"
-                      onClick={() => navigate('/student/lessons')}
-                      type="button"
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          subject: subject.name,
+                          grade: String(subject.grade),
+                          section: subject.section,
+                        })
+                        navigate(`/student/lessons?${params.toString()}`)
+                      }}
                     >
                       {t('common.viewLessons')}
-                    </button>
+                    </Button>
                   }
                   description={subject.description}
                   footer={formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}

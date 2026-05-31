@@ -5,6 +5,7 @@ import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined'
 import Stack from '@mui/material/Stack'
 import {
   CalendarClock,
+  CheckCircle,
   Eye,
   FileText,
   ImageIcon,
@@ -35,8 +36,14 @@ import { UserAvatar } from '../../../shared/components/UserAvatar'
 import apiClient, { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
+import { useBodyScrollLock } from '../../../shared/hooks/useBodyScrollLock'
 
 const lessonDraftStorageKey = 'eduplatform.lessonDraft'
+
+type InsertedLessonImage = {
+  name: string
+  src: string
+}
 
 type LessonDraft = {
   form: {
@@ -48,6 +55,46 @@ type LessonDraft = {
     youtubeUrl: string
   }
   existingAttachment: { name: string; url: string } | null
+  lastInsertedImage?: InsertedLessonImage | null
+  pendingAttachmentName?: string | null
+}
+
+const createEmptyLessonForm = (): LessonDraft['form'] => ({
+  title: '',
+  content: '',
+  subjectId: 0,
+  grade: 8,
+  section: 'А',
+  youtubeUrl: '',
+})
+
+const hasMeaningfulLessonDraft = (draft: LessonDraft | null) =>
+  Boolean(
+    draft &&
+      (draft.form.title.trim() ||
+        stripHtml(draft.form.content) ||
+        draft.form.youtubeUrl.trim() ||
+        draft.existingAttachment ||
+        draft.pendingAttachmentName),
+  )
+
+const extractLastInsertedImage = (content: string): InsertedLessonImage | null => {
+  const imageTags = [...content.matchAll(/<img\b[^>]*>/gi)].map((match) => match[0])
+  const lastImageTag = imageTags.at(-1)
+
+  if (!lastImageTag) {
+    return null
+  }
+
+  const src = lastImageTag.match(/\bsrc=(["'])(.*?)\1/i)?.[2]
+  if (!src) {
+    return null
+  }
+
+  return {
+    src,
+    name: lastImageTag.match(/\balt=(["'])(.*?)\1/i)?.[2] || 'Inserted image',
+  }
 }
 
 type Subject = {
@@ -80,17 +127,17 @@ type Lesson = {
 
 const stripHtml = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
-const formatDateTime = (value?: string | null) => {
+const formatDateTime = (value: string | null | undefined, language: string, fallback: string) => {
   if (!value) {
-    return 'Unknown date'
+    return fallback
   }
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return 'Unknown date'
+    return fallback
   }
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(language === 'bg' ? 'bg-BG' : 'en-GB', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',
@@ -98,6 +145,9 @@ const formatDateTime = (value?: string | null) => {
     minute: '2-digit',
   }).format(date)
 }
+
+const formatSubjectOptionLabel = (subject: Subject) =>
+  `${subject.name} · ${formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}`
 
 const readStoredDraft = (): LessonDraft | null => {
   if (typeof window === 'undefined') {
@@ -166,33 +216,28 @@ const getYoutubeThumbnailUrl = (value?: string | null) => {
 }
 
 export function AdminLessonsPage() {
-  const storedDraft = readStoredDraft()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const { showNotification } = useNotification()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const editorRef = useRef<RichTextEditorHandle | null>(null)
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [viewingLesson, setViewingLesson] = useState<Lesson | null>(null)
-  const [form, setForm] = useState(
-    storedDraft?.form ?? {
-      title: '',
-      content: '',
-      subjectId: 0,
-      grade: 8,
-      section: 'А',
-      youtubeUrl: '',
-    },
-  )
+  const [savedDraft, setSavedDraft] = useState<LessonDraft | null>(() => readStoredDraft())
+  const [form, setForm] = useState(() => savedDraft?.form ?? createEmptyLessonForm())
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [existingAttachment, setExistingAttachment] = useState<{ name: string; url: string } | null>(
-    storedDraft?.existingAttachment ?? null,
+    savedDraft?.existingAttachment ?? null,
   )
   const [imageUrlInput, setImageUrlInput] = useState('')
-  const [didRestoreDraft] = useState(Boolean(storedDraft))
+  const [lastInsertedImage, setLastInsertedImage] = useState<InsertedLessonImage | null>(
+    () => savedDraft?.lastInsertedImage ?? extractLastInsertedImage(savedDraft?.form.content ?? ''),
+  )
+  const [didRestoreDraft, setDidRestoreDraft] = useState(Boolean(savedDraft))
   const [isPreviewVisible, setIsPreviewVisible] = useState(true)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null)
@@ -214,6 +259,9 @@ export function AdminLessonsPage() {
   const activeSubjectId = Number(searchParams.get('subjectId') ?? 0)
   const canManageLesson = (lesson: Lesson) => user?.role === 'Admin' || lesson.createdByUserId === user?.id
   const isEditing = editingId !== null
+  const isLessonStudioOpen = isCreateModalOpen || isEditing
+
+  useBodyScrollLock(Boolean(viewingLesson) || isLessonStudioOpen)
 
   const loadData = async () => {
     const [subjectsResponse, lessonsResponse] = await Promise.all([
@@ -228,6 +276,16 @@ export function AdminLessonsPage() {
   useEffect(() => {
     void loadData()
   }, [])
+
+  useEffect(() => {
+    if (!isLessonStudioOpen) {
+      return
+    }
+
+    window.setTimeout(() => {
+      titleInputRef.current?.focus()
+    }, 0)
+  }, [isLessonStudioOpen])
 
   useEffect(() => {
     const matchingSubjects = subjects.filter(
@@ -258,7 +316,7 @@ export function AdminLessonsPage() {
       subjects
         .map((subject) => ({
           value: String(subject.id),
-          label: `${subject.name} · ${formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}`,
+          label: formatSubjectOptionLabel(subject),
         }))
         .sort((left, right) => left.label.localeCompare(right.label)),
     [subjects],
@@ -354,15 +412,17 @@ export function AdminLessonsPage() {
   }
 
   const resetFilters = () => {
+    setSearchParams({})
     setSearchTerm('')
-    setSelectedGradeFilter(activeSubject?.grade ?? 'all')
-    setSelectedSectionFilter(activeSubject?.section ?? 'all')
+    setSelectedGradeFilter('all')
+    setSelectedSectionFilter('all')
     setSelectedStatusFilter('all')
-    setSelectedSubjectFilter(activeSubject ? String(activeSubject.id) : 'all')
+    setSelectedSubjectFilter('all')
     setStartDateFilter('')
     setEndDateFilter('')
     setSortColumn('grade')
     setSortDirection('desc')
+    setPage(0)
   }
 
   const contentPlainText = useMemo(() => stripHtml(form.content), [form.content])
@@ -370,38 +430,64 @@ export function AdminLessonsPage() {
   const characterCount = contentPlainText.length
   const youtubeEmbedUrl = useMemo(() => getYoutubeEmbedUrl(form.youtubeUrl), [form.youtubeUrl])
   const youtubeThumbnailUrl = useMemo(() => getYoutubeThumbnailUrl(form.youtubeUrl), [form.youtubeUrl])
+  const selectedFormSubject = useMemo(
+    () => filteredSubjects.find((subject) => subject.id === form.subjectId) ?? null,
+    [filteredSubjects, form.subjectId],
+  )
   const draftStatusText = isDraftSaving
-    ? 'Saving...'
+    ? t('adminPages.lessons.draftSaving')
     : lastDraftSavedAt
-      ? `Draft saved at ${lastDraftSavedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
-      : 'Draft autosave is ready'
+      ? t('adminPages.lessons.draftSavedAt', {
+          time: lastDraftSavedAt.toLocaleTimeString(i18n.language === 'bg' ? 'bg-BG' : 'en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        })
+      : t('adminPages.lessons.draftReady')
   const teacherLessons = useMemo(
     () => lessons.filter((lesson) => lesson.createdByUserId === user?.id),
     [lessons, user?.id],
   )
-  const hasDraftInProgress = useMemo(
+  const currentFormHasDraftContent = useMemo(
     () =>
-      Boolean(storedDraft) ||
       Boolean(form.title.trim()) ||
       Boolean(stripHtml(form.content)) ||
       Boolean(form.youtubeUrl.trim()) ||
-      Boolean(existingAttachment),
-    [existingAttachment, form.content, form.title, form.youtubeUrl, storedDraft],
+      Boolean(existingAttachment) ||
+      attachmentFile !== null ||
+      Boolean(savedDraft?.pendingAttachmentName),
+    [attachmentFile, existingAttachment, form.content, form.title, form.youtubeUrl, savedDraft?.pendingAttachmentName],
   )
+  const hasSavedDraft = hasMeaningfulLessonDraft(savedDraft)
+  const hasDraftInProgress = useMemo(
+    () => hasSavedDraft || currentFormHasDraftContent,
+    [currentFormHasDraftContent, hasSavedDraft],
+  )
+  const draftPreviewTitle = savedDraft?.form.title.trim() || t('adminPages.lessons.untitledDraft')
+  const draftPreviewSubject = subjects.find((subject) => subject.id === savedDraft?.form.subjectId)
+  const draftPreviewSubjectLabel = draftPreviewSubject
+    ? formatSubjectOptionLabel(draftPreviewSubject)
+    : t('adminPages.lessons.draftSubjectFallback')
+  const draftPreviewClass = savedDraft ? formatClassDisplay(savedDraft.form.grade, savedDraft.form.section) : ''
+  const draftPreviewWords = savedDraft ? stripHtml(savedDraft.form.content).split(/\s+/).filter(Boolean).length : 0
+  const pendingAttachmentName = savedDraft?.pendingAttachmentName ?? null
   const teacherStudioStats = useMemo(
     () => [
       {
         label: 'Total lessons',
+        labelKey: 'adminPages.lessons.totalLessons',
         value: teacherLessons.length,
         accent: 'from-cyan-400/20 via-sky-300/14 to-transparent',
       },
       {
         label: 'Drafts',
+        labelKey: 'adminPages.lessons.drafts',
         value: hasDraftInProgress ? 1 : 0,
         accent: 'from-amber-300/22 via-orange-200/12 to-transparent',
       },
       {
         label: 'Published',
+        labelKey: 'adminPages.lessons.published',
         value: teacherLessons.length,
         accent: 'from-emerald-300/22 via-teal-200/12 to-transparent',
       },
@@ -410,36 +496,32 @@ export function AdminLessonsPage() {
   )
   const teacherHeroTitle = activeSubject
     ? t('teacherAddLessonHeroTitle', { subject: activeSubject.name })
-    : 'Create your next masterpiece'
+    : t('adminPages.lessons.teacherHeroTitle')
   const teacherHeroDescription = activeSubject
     ? t('teacherAddLessonHeroDescription', {
         subject: activeSubject.name,
         classDisplay: formatStoredClassDisplay(activeSubject.classDisplay, activeSubject.grade, activeSubject.section),
       })
-    : 'Shape a polished lesson, attach rich resources, and publish a learning experience that feels clear, visual, and confident.'
+    : t('adminPages.lessons.teacherHeroDescription')
   const teacherPrimaryActionLabel = activeSubject
     ? t('addLessonToSubject', { subject: activeSubject.name })
     : t('teacherNewLesson')
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isEditing) {
+    if (typeof window === 'undefined' || isEditing || !isCreateModalOpen) {
       return
     }
 
     const draft: LessonDraft = {
       form,
       existingAttachment,
+      lastInsertedImage: lastInsertedImage ?? extractLastInsertedImage(form.content),
+      pendingAttachmentName: attachmentFile?.name ?? savedDraft?.pendingAttachmentName ?? null,
     }
 
-    const hasMeaningfulDraft =
-      Boolean(form.title.trim()) ||
-      Boolean(stripHtml(form.content)) ||
-      Boolean(form.youtubeUrl.trim()) ||
-      Boolean(existingAttachment) ||
-      attachmentFile !== null
-
-    if (!hasMeaningfulDraft) {
+    if (!currentFormHasDraftContent) {
       window.localStorage.removeItem(lessonDraftStorageKey)
+      setSavedDraft(null)
       setLastDraftSavedAt(null)
       setIsDraftSaving(false)
       return
@@ -449,6 +531,7 @@ export function AdminLessonsPage() {
 
     const timeoutId = window.setTimeout(() => {
       window.localStorage.setItem(lessonDraftStorageKey, JSON.stringify(draft))
+      setSavedDraft(draft)
       setLastDraftSavedAt(new Date())
       setIsDraftSaving(false)
     }, 500)
@@ -456,33 +539,30 @@ export function AdminLessonsPage() {
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [attachmentFile, existingAttachment, form, isEditing])
+  }, [attachmentFile?.name, currentFormHasDraftContent, existingAttachment, form, isCreateModalOpen, isEditing, lastInsertedImage, savedDraft?.pendingAttachmentName])
 
   const resetForm = ({ clearStoredDraft = true }: { clearStoredDraft?: boolean } = {}) => {
     setEditingId(null)
     setIsCreateModalOpen(false)
-    setForm({
-      title: '',
-      content: '',
-      subjectId: 0,
-      grade: 8,
-      section: 'А',
-      youtubeUrl: '',
-    })
+    setForm(createEmptyLessonForm())
     setImageUrlInput('')
+    setLastInsertedImage(null)
     setAttachmentFile(null)
     setExistingAttachment(null)
+    setDidRestoreDraft(false)
     setLastDraftSavedAt(null)
     setIsDraftSaving(false)
 
     if (clearStoredDraft && typeof window !== 'undefined') {
       window.localStorage.removeItem(lessonDraftStorageKey)
+      setSavedDraft(null)
     }
   }
 
   const clearAttachmentSelection = () => {
     setAttachmentFile(null)
     setExistingAttachment(null)
+    setSavedDraft((current) => (current ? { ...current, pendingAttachmentName: null } : current))
   }
 
   const openEditModal = (lesson: Lesson) => {
@@ -499,29 +579,51 @@ export function AdminLessonsPage() {
     setExistingAttachment(
       lesson.attachmentUrl
         ? {
-            name: lesson.attachmentName ?? 'Attachment',
+            name: lesson.attachmentName ?? t('adminPages.lessons.attachmentFallback'),
             url: lesson.attachmentUrl,
           }
         : null,
     )
     setImageUrlInput('')
+    setLastInsertedImage(null)
     setAttachmentFile(null)
+    setDidRestoreDraft(false)
   }
 
   const closeEditModal = () => {
     resetForm({ clearStoredDraft: false })
   }
 
-  const openCreateModal = () => {
-    resetForm({ clearStoredDraft: false })
-    if (activeSubject) {
-      setForm((current) => ({
-        ...current,
-        subjectId: activeSubject.id,
-        grade: activeSubject.grade,
-        section: activeSubject.section,
-      }))
+  const openCreateModal = ({ useDraft = true }: { useDraft?: boolean } = {}) => {
+    setEditingId(null)
+    setImageUrlInput('')
+    setLastInsertedImage(null)
+    setLastDraftSavedAt(null)
+    setIsDraftSaving(false)
+
+    if (useDraft && savedDraft) {
+      setForm(savedDraft.form)
+      setExistingAttachment(savedDraft.existingAttachment)
+      setLastInsertedImage(savedDraft.lastInsertedImage ?? extractLastInsertedImage(savedDraft.form.content))
+      setDidRestoreDraft(true)
+    } else {
+      const nextForm = createEmptyLessonForm()
+      if (activeSubject) {
+        nextForm.subjectId = activeSubject.id
+        nextForm.grade = activeSubject.grade
+        nextForm.section = activeSubject.section
+      }
+      setForm(nextForm)
+      setExistingAttachment(null)
+      setAttachmentFile(null)
+      setDidRestoreDraft(false)
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(lessonDraftStorageKey)
+      }
+      setSavedDraft(null)
     }
+
     setIsCreateModalOpen(true)
   }
 
@@ -535,9 +637,23 @@ export function AdminLessonsPage() {
       return
     }
 
-    editorRef.current?.insertImageAtCursor(src.trim(), alt)
+    const normalizedSrc = src.trim()
+    editorRef.current?.insertImageAtCursor(normalizedSrc, alt)
+    setLastInsertedImage({
+      name: alt ?? t('adminPages.lessons.insertedImageFallback'),
+      src: normalizedSrc,
+    })
     setImageUrlInput('')
-    showNotification('Image inserted into the lesson content.', 'success')
+    showNotification(t('adminPages.lessons.notifications.imageInserted'), 'success')
+  }
+
+  const removeLastInsertedImage = () => {
+    if (!lastInsertedImage) {
+      return
+    }
+
+    editorRef.current?.removeImageBySrc(lastInsertedImage.src)
+    setLastInsertedImage(null)
   }
 
   const applyImageFile = async (file: File | null) => {
@@ -556,6 +672,11 @@ export function AdminLessonsPage() {
 
   const save = async () => {
     try {
+      if (pendingAttachmentName && !attachmentFile && !existingAttachment) {
+        showNotification(t('adminPages.lessons.notifications.reselectPdf'), 'error')
+        return
+      }
+
       const payload = {
         ...form,
         title: form.title.trim(),
@@ -570,11 +691,11 @@ export function AdminLessonsPage() {
 
       if (editingId) {
         await apiClient.put(`/lessons/${editingId}`, formData)
-        showNotification('Lesson updated.', 'success')
+        showNotification(t('adminPages.lessons.notifications.updated'), 'success')
         closeEditModal()
       } else {
         await apiClient.post('/lessons', formData)
-        showNotification('Lesson created.', 'success')
+        showNotification(t('adminPages.lessons.notifications.created'), 'success')
         resetForm()
       }
 
@@ -583,7 +704,7 @@ export function AdminLessonsPage() {
       showNotification(
         axios.isAxiosError(error) && typeof error.response?.data?.error === 'string'
           ? error.response.data.error
-          : 'Failed to save lesson.',
+          : t('adminPages.lessons.notifications.saveFailed'),
         'error',
       )
     }
@@ -597,10 +718,10 @@ export function AdminLessonsPage() {
         setViewingLesson(null)
       }
       setLessonPendingDelete(null)
-      showNotification('Lesson deleted.', 'success')
+      showNotification(t('adminPages.lessons.notifications.deleted'), 'success')
       await loadData()
     } catch {
-      showNotification('Failed to delete lesson.', 'error')
+      showNotification(t('adminPages.lessons.notifications.deleteFailed'), 'error')
     } finally {
       setIsDeleting(false)
     }
@@ -610,7 +731,7 @@ export function AdminLessonsPage() {
     <div className="flex flex-col gap-5">
       {mode === 'create' && didRestoreDraft ? (
         <p className="text-sm text-slate-500">
-          Your unsaved lesson draft was restored automatically. Uploaded files need to be selected again if you leave the page.
+          {t('adminPages.lessons.draftRestored')}
         </p>
       ) : null}
 
@@ -618,8 +739,8 @@ export function AdminLessonsPage() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h3 className="text-xl font-semibold text-slate-900">Lesson Studio</h3>
-              <p className="mt-1 text-sm text-slate-500">Write, preview, and polish the lesson exactly as students will see it.</p>
+              <h3 className="text-xl font-semibold text-slate-900">{t('adminPages.lessons.studioTitle')}</h3>
+              <p className="mt-1 text-sm text-slate-500">{t('adminPages.lessons.studioDescription')}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isDraftSaving ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-[#2468a0]'}`}>
@@ -631,16 +752,17 @@ export function AdminLessonsPage() {
                 onClick={() => setIsPreviewVisible((current) => !current)}
               >
                 {isPreviewVisible ? <LayoutPanelLeft className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
+                {isPreviewVisible ? t('adminPages.lessons.hidePreview') : t('adminPages.lessons.showPreview')}
               </button>
             </div>
           </div>
 
-          <input
-            autoFocus
-            type="text"
+                  <input
+                    ref={titleInputRef}
+                    autoFocus
+                    type="text"
             className="block w-full rounded-2xl border border-sky-200 bg-sky-50/65 px-5 py-4 text-lg font-semibold text-sky-950 placeholder:text-sky-600/70 shadow-[0_0_0_1px_rgba(186,230,253,0.55)] focus:border-sky-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-sky-100"
-            placeholder="Lesson title"
+            placeholder={t('adminPages.lessons.lessonTitlePlaceholder')}
             value={form.title}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
@@ -650,26 +772,26 @@ export function AdminLessonsPage() {
         </div>
       </div>
 
-      <div className={`relative z-0 grid gap-0 overflow-visible rounded-[2rem] border border-slate-200/80 bg-white/92 ${isPreviewVisible ? 'xl:grid-cols-2' : ''}`}>
-        <div className="relative z-0 overflow-visible px-6 py-5 xl:border-r xl:border-slate-200/80">
+      <div className={`relative z-0 grid min-w-0 gap-0 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/92 ${isPreviewVisible ? 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : ''}`}>
+        <div className="relative z-0 min-w-0 overflow-visible px-6 py-5 xl:border-r xl:border-slate-200/80">
           <div className="grid gap-5">
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid min-w-0 gap-4 lg:grid-cols-3">
                 <AdminSelectField
-                  label="Subject"
+                  label={t('common.subject')}
                   value={filteredSubjects.some((subject) => subject.id === form.subjectId) ? String(form.subjectId) : '0'}
                   options={
                     filteredSubjects.length
                       ? filteredSubjects.map((subject) => ({
                           value: String(subject.id),
-                          label: subject.name,
+                          label: formatSubjectOptionLabel(subject),
                         }))
-                      : [{ value: '0', label: 'No subjects available' }]
+                      : [{ value: '0', label: t('adminPages.lessons.noSubjectsAvailable') }]
                   }
                   onChange={(value) => setForm((current) => ({ ...current, subjectId: Number(value) }))}
                 />
 
                 <AdminSelectField
-                  label="Grade"
+                  label={t('common.grade')}
                   value={String(form.grade)}
                   options={gradeOptions.map((grade) => ({ value: String(grade), label: formatGradeDisplay(grade) }))}
                   onChange={(value) =>
@@ -682,7 +804,7 @@ export function AdminLessonsPage() {
                 />
 
                 <AdminSelectField
-                  label="Section"
+                  label={t('common.section')}
                   value={form.section}
                   options={sectionOptions.map((section) => ({ value: section, label: section }))}
                   onChange={(value) =>
@@ -697,23 +819,23 @@ export function AdminLessonsPage() {
 
             {!filteredSubjects.length ? (
               <p className="text-sm text-amber-700">
-                No subjects exist for class {formatClassDisplay(form.grade, form.section)} yet. Create the subject first.
+                {t('adminPages.lessons.noSubjectsForClass', { classDisplay: formatClassDisplay(form.grade, form.section) })}
               </p>
             ) : null}
 
             <RichTextEditor
               ref={editorRef}
-              placeholder="Write a structured lesson with headings, lists, highlighted ideas, and useful links."
+              placeholder={t('adminPages.lessons.contentPlaceholder')}
               value={form.content}
               onChange={(value) => setForm((current) => ({ ...current, content: value }))}
             />
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50/85 px-4 py-3 text-sm text-slate-600">
-              <span>{wordCount} words</span>
-              <span>{characterCount} characters</span>
+              <span>{t('adminPages.lessons.wordCount', { count: wordCount })}</span>
+              <span>{t('adminPages.lessons.characterCount', { count: characterCount })}</span>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+            <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
             <div
               className="rounded-[1.6rem] bg-slate-50/85 p-4 text-sm text-slate-600"
               onDragOver={(event) => event.preventDefault()}
@@ -726,16 +848,16 @@ export function AdminLessonsPage() {
                 <div>
                   <span className="flex items-center gap-2 font-semibold text-slate-900">
                     <ImagePlus className="h-4 w-4 text-[#2468a0]" />
-                    Insert image at cursor
+                    {t('adminPages.lessons.insertImageAtCursor')}
                   </span>
-                  <p className="mt-1 text-xs text-slate-500">Drop a file or paste a URL and it will be inserted exactly where the cursor is in the editor.</p>
+                  <p className="mt-1 text-xs text-slate-500">{t('adminPages.lessons.insertImageHelp')}</p>
                 </div>
               </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
                 <input
                   className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-sky-950 placeholder:text-sky-600/70"
-                  placeholder="Paste image URL and click Insert image"
+                  placeholder={t('adminPages.lessons.imageUrlPlaceholder')}
                   value={imageUrlInput}
                   onChange={(event) => setImageUrlInput(event.target.value)}
                 />
@@ -744,7 +866,7 @@ export function AdminLessonsPage() {
                   type="button"
                   onClick={() => insertImageIntoEditor(imageUrlInput, 'Inserted lesson image')}
                 >
-                  Insert image
+                  {t('adminPages.lessons.insertImage')}
                 </button>
               </div>
 
@@ -754,11 +876,11 @@ export function AdminLessonsPage() {
                     <ImageIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Choose image file</p>
-                    <p className="text-xs text-slate-500">PNG, JPG, WEBP and more</p>
+                    <p className="text-sm font-semibold text-slate-800">{t('adminPages.lessons.chooseImageFile')}</p>
+                    <p className="text-xs text-slate-500">{t('adminPages.lessons.imageFileTypes')}</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">Browse</span>
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">{t('adminPages.lessons.browse')}</span>
                 <input
                   accept="image/*"
                   className="sr-only"
@@ -766,6 +888,23 @@ export function AdminLessonsPage() {
                   onChange={(event) => void applyImageFile(event.target.files?.[0] ?? null)}
                 />
               </label>
+
+              {lastInsertedImage ? (
+                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800">
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 truncate">
+                    {t('adminPages.lessons.imageReadyInEditor', { name: lastInsertedImage.name })}
+                  </span>
+                  <button
+                    aria-label={t('adminPages.lessons.removeInsertedImage')}
+                    className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-white/85 text-emerald-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                    type="button"
+                    onClick={removeLastInsertedImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[1.6rem] bg-slate-50/85 p-4 text-sm text-slate-600">
@@ -773,9 +912,9 @@ export function AdminLessonsPage() {
                 <div>
                   <span className="flex items-center gap-2 font-semibold text-slate-900">
                     <Upload className="h-4 w-4 text-[#2468a0]" />
-                    Resources & Attachments
+                    {t('adminPages.lessons.resourcesEyebrow')}
                   </span>
-                  <p className="mt-1 text-xs text-slate-500">Keep PDFs and YouTube links in a dedicated bottom section instead of mixing them into the lesson text.</p>
+                  <p className="mt-1 text-xs text-slate-500">{t('adminPages.lessons.resourcesHelp')}</p>
                 </div>
                 {attachmentFile || existingAttachment ? (
                   <button
@@ -790,12 +929,12 @@ export function AdminLessonsPage() {
 
               <div className="mt-4 grid gap-3">
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#2468a0]">YouTube video link</p>
-                  <p className="text-xs text-slate-500">Paste the lesson video URL here to show it in the bottom resources section.</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#2468a0]">{t('adminPages.lessons.youtubeLink')}</p>
+                  <p className="text-xs text-slate-500">{t('adminPages.lessons.youtubeHelp')}</p>
                 </div>
                 <input
                   className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-sky-950 placeholder:text-sky-600/70"
-                  placeholder="Paste YouTube link for the resources section"
+                  placeholder={t('adminPages.lessons.youtubePlaceholder')}
                   value={form.youtubeUrl}
                   onChange={(event) => setForm((current) => ({ ...current, youtubeUrl: event.target.value }))}
                 />
@@ -806,23 +945,30 @@ export function AdminLessonsPage() {
                       <FileText className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">Upload PDF handout</p>
-                      <p className="text-xs text-slate-500">Students will open it from the resources section</p>
+                      <p className="text-sm font-semibold text-slate-800">{t('adminPages.lessons.uploadPdf')}</p>
+                      <p className="text-xs text-slate-500">{t('adminPages.lessons.uploadPdfHelp')}</p>
                     </div>
                   </div>
-                  <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">Select PDF</span>
+                  <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">{t('adminPages.lessons.selectPdf')}</span>
                   <input
                     accept=".pdf"
                     className="sr-only"
                     type="file"
-                    onChange={(event) => setAttachmentFile(event.target.files?.[0] ?? null)}
+                    onChange={(event) => {
+                      const nextFile = event.target.files?.[0] ?? null
+                      setAttachmentFile(nextFile)
+                      setSavedDraft((current) => (current ? { ...current, pendingAttachmentName: nextFile?.name ?? null } : current))
+                    }}
                   />
                 </label>
               </div>
 
-              {attachmentFile || existingAttachment ? (
-                <p className="mt-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-600">
-                  {attachmentFile?.name ?? existingAttachment?.name}
+              {attachmentFile || existingAttachment || pendingAttachmentName ? (
+                <p className={`mt-3 rounded-2xl border px-4 py-3 text-sm ${attachmentFile || existingAttachment ? 'border-sky-200 bg-white text-slate-600' : 'border-amber-200 bg-amber-50/85 text-amber-800'}`}>
+                  {attachmentFile?.name ?? existingAttachment?.name ?? pendingAttachmentName}
+                  {!attachmentFile && !existingAttachment && pendingAttachmentName ? (
+                    <span className="mt-1 block text-xs font-semibold">{t('adminPages.lessons.reselectPdfDraft')}</span>
+                  ) : null}
                 </p>
               ) : null}
             </div>
@@ -831,33 +977,35 @@ export function AdminLessonsPage() {
         </div>
 
         {isPreviewVisible ? (
-          <aside className="relative z-0 overflow-visible px-6 py-5">
+          <aside className="relative z-0 min-w-0 overflow-hidden px-6 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Live Preview</h3>
-                <p className="mt-1 text-sm text-slate-500">This is how the lesson will appear to students.</p>
+                <h3 className="text-lg font-semibold text-slate-900">{t('adminPages.lessons.livePreview')}</h3>
+                <p className="mt-1 text-sm text-slate-500">{t('adminPages.lessons.livePreviewDescription')}</p>
               </div>
               <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-[#2468a0]">
-                {formatClassDisplay(form.grade, form.section) || 'Class'}
+                {formatClassDisplay(form.grade, form.section) || t('adminPages.lessons.classFallback')}
               </span>
             </div>
 
             <div className="mt-5 space-y-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">{filteredSubjects.find((subject) => subject.id === form.subjectId)?.name ?? 'Subject preview'}</p>
-                <h2 className="mt-2 break-words text-3xl font-bold text-slate-900">{form.title.trim() || 'Lesson title preview'}</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">
+                  {selectedFormSubject ? formatSubjectOptionLabel(selectedFormSubject) : t('adminPages.lessons.subjectPreview')}
+                </p>
+                <h2 className="mt-2 break-words text-3xl font-bold text-slate-900">{form.title.trim() || t('adminPages.lessons.titlePreview')}</h2>
               </div>
 
               <div
-                className="lesson-content overflow-hidden break-words rounded-[1.6rem] bg-slate-50/85 px-5 py-5"
-                dangerouslySetInnerHTML={{ __html: form.content || '<p>Start writing to see your lesson preview here.</p>' }}
+                className="lesson-content max-h-[36rem] overflow-y-auto overflow-x-hidden break-words rounded-[1.6rem] bg-slate-50/85 px-5 py-5"
+                dangerouslySetInnerHTML={{ __html: form.content || `<p>${t('adminPages.lessons.emptyPreview')}</p>` }}
               />
 
               {youtubeEmbedUrl || attachmentFile || existingAttachment ? (
                 <div className="rounded-[1.6rem] bg-slate-50/85 p-5">
                   <div className="mb-4">
-                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">Resources & Attachments</span>
-                    <h4 className="mt-2 text-lg font-semibold text-slate-900">Bottom lesson resources</h4>
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">{t('adminPages.lessons.resourcesEyebrow')}</span>
+                    <h4 className="mt-2 text-lg font-semibold text-slate-900">{t('adminPages.lessons.bottomResources')}</h4>
                   </div>
 
                   <div className="space-y-4">
@@ -865,11 +1013,11 @@ export function AdminLessonsPage() {
                       <div className="overflow-hidden rounded-3xl border border-sky-200 bg-white shadow-[0_12px_24px_rgba(36,104,160,0.08)]">
                         {youtubeThumbnailUrl ? (
                           <a className="group relative block" href={form.youtubeUrl} rel="noreferrer" target="_blank">
-                            <img alt="YouTube preview thumbnail" className="h-40 w-full object-cover" src={youtubeThumbnailUrl} />
+                            <img alt={t('adminPages.lessons.youtubePreviewAlt')} className="h-40 w-full object-cover" src={youtubeThumbnailUrl} />
                             <span className="absolute inset-0 flex items-center justify-center bg-slate-950/25 transition group-hover:bg-slate-950/35">
                               <span className="inline-flex items-center gap-2 rounded-full bg-white/92 px-4 py-2 text-sm font-semibold text-slate-900">
                                 <PlayCircle className="h-4 w-4 text-[#0f8b8d]" />
-                                Open on YouTube
+                                {t('studentPages.lessonDetails.openOnYoutube')}
                               </span>
                             </span>
                           </a>
@@ -877,14 +1025,14 @@ export function AdminLessonsPage() {
                         <div className="p-4">
                           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
                             <PlayCircle className="h-4 w-4 text-[#0f8b8d]" />
-                            Embedded video
+                            {t('adminPages.lessons.embeddedVideo')}
                           </p>
                           <iframe
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             className="aspect-video w-full rounded-2xl"
                             src={youtubeEmbedUrl ?? undefined}
-                            title="Lesson preview video"
+                            title={t('adminPages.lessons.previewVideoTitle')}
                           />
                         </div>
                       </div>
@@ -897,7 +1045,7 @@ export function AdminLessonsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{attachmentFile?.name ?? existingAttachment?.name}</p>
-                          <p className="text-xs text-slate-500">PDF handout shown at the bottom of the lesson.</p>
+                          <p className="text-xs text-slate-500">{t('adminPages.lessons.pdfBottomHelp')}</p>
                         </div>
                       </div>
                     ) : null}
@@ -935,7 +1083,7 @@ export function AdminLessonsPage() {
                 {formatStoredClassDisplay(activeSubject.classDisplay, activeSubject.grade, activeSubject.section)}
               </p>
             </div>
-            <button className="button-primary inline-flex items-center gap-2 text-sm" type="button" onClick={openCreateModal}>
+            <button className="button-primary inline-flex items-center gap-2 text-sm" type="button" onClick={() => openCreateModal({ useDraft: false })}>
               <Plus className="h-4 w-4" />
               {t('addLessonToSubject', { subject: activeSubject.name })}
             </button>
@@ -948,7 +1096,7 @@ export function AdminLessonsPage() {
           <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr] xl:items-center">
             <div className="space-y-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">Teacher Studio</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">{t('teacherStudio')}</p>
                 <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-slate-900">{teacherHeroTitle}</h2>
                 <p className="mt-3 max-w-2xl text-base leading-8 text-slate-600">
                   {teacherHeroDescription}
@@ -956,12 +1104,12 @@ export function AdminLessonsPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <button className="button-primary inline-flex items-center gap-2 text-base" type="button" onClick={openCreateModal}>
+                <button className="button-primary inline-flex items-center gap-2 text-base" type="button" onClick={() => openCreateModal({ useDraft: hasSavedDraft })}>
                   <Plus className="h-5 w-5" />
-                  {teacherPrimaryActionLabel}
+                  {hasSavedDraft ? t('adminPages.lessons.continueDraft') : teacherPrimaryActionLabel}
                 </button>
                 <div className="rounded-full border border-cyan-200/70 bg-white/55 px-4 py-2 text-sm font-medium text-slate-600">
-                  {hasDraftInProgress ? draftStatusText : 'Your next lesson starts here'}
+                  {hasDraftInProgress ? draftStatusText : t('adminPages.lessons.nextLessonStarts')}
                 </div>
               </div>
             </div>
@@ -969,16 +1117,46 @@ export function AdminLessonsPage() {
             <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
               {teacherStudioStats.map((stat) => (
                 <div
-                  key={stat.label}
+                  key={stat.labelKey}
                   className="relative overflow-hidden rounded-[1.5rem] border border-white/60 bg-white/60 px-5 py-4 shadow-[0_16px_34px_rgba(36,104,160,0.08)] backdrop-blur-lg"
                 >
                   <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${stat.accent}`} />
                   <div className="relative">
-                    <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                    <p className="text-sm font-medium text-slate-500">{t(stat.labelKey)}</p>
                     <p className="mt-2 text-3xl font-bold text-slate-900">{stat.value}</p>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {canCreate && hasSavedDraft ? (
+        <section className="relative overflow-hidden rounded-[2rem] border border-amber-200/80 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.22),transparent_28%),linear-gradient(135deg,rgba(255,251,235,0.92),rgba(236,254,255,0.86))] p-5 shadow-[0_20px_48px_rgba(217,119,6,0.12)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">{t('adminPages.lessons.draftCardEyebrow')}</p>
+              <h2 className="mt-2 truncate text-2xl font-bold text-slate-900">{draftPreviewTitle}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {t('adminPages.lessons.draftCardDescription', {
+                  subject: draftPreviewSubjectLabel,
+                  classDisplay: draftPreviewClass,
+                  words: draftPreviewWords,
+                })}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
+              <button className="button-primary inline-flex items-center gap-2 px-5 py-3 text-sm" type="button" onClick={() => openCreateModal({ useDraft: true })}>
+                <FileText className="h-4 w-4" />
+                {t('adminPages.lessons.continueDraft')}
+              </button>
+              <button className="modal-outline-button px-5 py-3 text-sm" type="button" onClick={() => openCreateModal({ useDraft: false })}>
+                {t('adminPages.lessons.startNewLesson')}
+              </button>
+              <button className="rounded-2xl border border-rose-200 bg-white/75 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50" type="button" onClick={() => resetForm()}>
+                {t('adminPages.lessons.discardDraft')}
+              </button>
             </div>
           </div>
         </section>
@@ -991,7 +1169,7 @@ export function AdminLessonsPage() {
             <p className="mt-1 text-sm text-slate-500">{t('adminPages.lessons.libraryDescription')}</p>
           </div>
           {canCreate && activeSubject ? (
-            <button className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm" type="button" onClick={openCreateModal}>
+            <button className="button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm" type="button" onClick={() => openCreateModal({ useDraft: false })}>
               {t('addLessonToSubject', { subject: activeSubject.name })}
             </button>
           ) : null}
@@ -1067,14 +1245,14 @@ export function AdminLessonsPage() {
               onChange={(value) => setSelectedSubjectFilter(value)}
             />
             <AdminDateField
-              ariaLabel="Start date"
+              ariaLabel={t('adminPages.common.startDate')}
               value={startDateFilter}
               fullWidth={false}
               width={150}
               onChange={setStartDateFilter}
             />
             <AdminDateField
-              ariaLabel="End date"
+              ariaLabel={t('adminPages.common.endDate')}
               value={endDateFilter}
               fullWidth={false}
               width={150}
@@ -1149,7 +1327,7 @@ export function AdminLessonsPage() {
                           <span>{`${t('adminPages.common.createdBy')} ${lesson.createdByFullName ?? lesson.createdByUsername ?? t('adminPages.common.unknownTeacher')}`}</span>
                         </div>
                       </td>
-                      <td>{formatDateTime(lesson.createdAt)}</td>
+                      <td>{formatDateTime(lesson.createdAt, i18n.language, t('adminPages.common.unknownDate'))}</td>
                       <td>
                         <div className="flex justify-end gap-2">
                           <button
@@ -1213,11 +1391,11 @@ export function AdminLessonsPage() {
           <div className="admin-management-modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="admin-management-modal-header flex items-center justify-between px-6 py-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Lesson View</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">{t('adminPages.lessons.viewEyebrow')}</p>
                 <h2 className="mt-2 text-2xl font-semibold text-slate-900">{viewingLesson.title}</h2>
               </div>
               <button
-                aria-label="Close lesson view"
+                aria-label={t('adminPages.lessons.closeView')}
                 className="modal-close-button inline-flex h-11 w-11 rounded-full"
                 type="button"
                 onClick={() => setViewingLesson(null)}
@@ -1233,11 +1411,11 @@ export function AdminLessonsPage() {
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                   <UserRound className="h-3.5 w-3.5" />
-                  {viewingLesson.createdByFullName ?? viewingLesson.createdByUsername ?? 'Teacher'}
+                  {viewingLesson.createdByFullName ?? viewingLesson.createdByUsername ?? t('adminPages.common.unknownTeacher')}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                   <CalendarClock className="h-3.5 w-3.5" />
-                  {formatDateTime(viewingLesson.createdAt)}
+                  {formatDateTime(viewingLesson.createdAt, i18n.language, t('adminPages.common.unknownDate'))}
                 </span>
                 <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                   {viewingLesson.subjectName}
@@ -1252,8 +1430,8 @@ export function AdminLessonsPage() {
               {viewingLesson.youtubeUrl || viewingLesson.attachmentUrl ? (
                 <div className="mt-6 rounded-3xl border border-blue-100/80 bg-blue-50/70 p-5">
                   <div className="mb-4">
-                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">Resources & Attachments</span>
-                    <h4 className="mt-2 text-lg font-semibold text-slate-900">Lesson resources</h4>
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2468a0]">{t('adminPages.lessons.resourcesEyebrow')}</span>
+                    <h4 className="mt-2 text-lg font-semibold text-slate-900">{t('adminPages.lessons.lessonResources')}</h4>
                   </div>
 
                   <div className="space-y-4">
@@ -1269,7 +1447,7 @@ export function AdminLessonsPage() {
                             <span className="absolute inset-0 flex items-center justify-center bg-slate-950/25 transition group-hover:bg-slate-950/35">
                               <span className="inline-flex items-center gap-2 rounded-full bg-white/92 px-4 py-2 text-sm font-semibold text-slate-900">
                                 <PlayCircle className="h-4 w-4 text-[#0f8b8d]" />
-                                Open on YouTube
+                                {t('studentPages.lessonDetails.openOnYoutube')}
                               </span>
                             </span>
                           </a>
@@ -1277,7 +1455,7 @@ export function AdminLessonsPage() {
                         <div className="p-4">
                           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
                             <PlayCircle className="h-4 w-4 text-[#0f8b8d]" />
-                            Embedded video
+                            {t('adminPages.lessons.embeddedVideo')}
                           </p>
                           <iframe
                             className="aspect-video w-full rounded-2xl"
@@ -1301,8 +1479,8 @@ export function AdminLessonsPage() {
                           <FileText className="h-6 w-6" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-slate-900">{viewingLesson.attachmentName ?? 'Open attachment'}</p>
-                          <p className="text-xs text-slate-500">Open the PDF handout in a new tab.</p>
+                          <p className="text-sm font-semibold text-slate-900">{viewingLesson.attachmentName ?? t('studentPages.lessonDetails.openLessonAttachment')}</p>
+                          <p className="text-xs text-slate-500">{t('adminPages.lessons.openPdfHelp')}</p>
                         </div>
                       </a>
                     ) : null}
@@ -1316,8 +1494,8 @@ export function AdminLessonsPage() {
 
       <DeleteConfirmationModal
         open={Boolean(lessonPendingDelete)}
-        title="Delete lesson?"
-        description={`This will permanently remove ${lessonPendingDelete?.title ?? 'this lesson'}. This action cannot be undone.`}
+        title={t('adminPages.lessons.deleteTitle')}
+        description={t('adminPages.lessons.deleteDescription', { title: lessonPendingDelete?.title ?? t('adminPages.lessons.thisLesson') })}
         isDeleting={isDeleting}
         onCancel={() => {
           if (!isDeleting) {
@@ -1336,11 +1514,11 @@ export function AdminLessonsPage() {
           <div className="admin-management-modal-card lesson-studio-modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="admin-management-modal-header flex items-center justify-between px-6 py-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Lesson Edit</p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-900">Edit lesson</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">{t('adminPages.lessons.editEyebrow')}</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">{t('adminPages.lessons.editTitle')}</h2>
               </div>
               <button
-                aria-label="Close lesson editor"
+                aria-label={t('adminPages.lessons.closeEditor')}
                 className="modal-close-button inline-flex h-11 w-11 rounded-full"
                 type="button"
                 onClick={closeEditModal}
@@ -1349,15 +1527,15 @@ export function AdminLessonsPage() {
               </button>
             </div>
 
-            <div className="min-h-0 flex flex-1 flex-col overflow-hidden px-6 py-6">
+            <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
               {renderLessonForm('edit')}
             </div>
             <div className="admin-management-modal-footer">
               <button className="button-primary" type="button" onClick={save}>
-                Save changes
+                {t('adminPages.common.saveChanges')}
               </button>
               <button className="modal-outline-button px-4 py-3" type="button" onClick={closeEditModal}>
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -1369,12 +1547,12 @@ export function AdminLessonsPage() {
           <div className="admin-management-modal-card lesson-studio-modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="admin-management-modal-header flex items-center justify-between px-8 py-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">Lesson Studio</p>
-                <h2 className="mt-2 text-3xl font-bold text-slate-900">Create lesson</h2>
-                <p className="mt-2 text-sm text-slate-500">Draft a polished lesson with rich content, live preview, and media support.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2468a0]">{t('adminPages.lessons.studioTitle')}</p>
+                <h2 className="mt-2 text-3xl font-bold text-slate-900">{t('adminPages.lessons.createTitle')}</h2>
+                <p className="mt-2 text-sm text-slate-500">{t('adminPages.lessons.createDescription')}</p>
               </div>
               <button
-                aria-label="Close lesson studio"
+                aria-label={t('adminPages.lessons.closeStudio')}
                 className="modal-close-button inline-flex h-11 w-11 rounded-full"
                 type="button"
                 onClick={closeCreateModal}
@@ -1382,15 +1560,15 @@ export function AdminLessonsPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="min-h-0 flex flex-1 flex-col overflow-hidden px-8 py-8">
+            <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-8 py-8">
               {renderLessonForm('create')}
             </div>
             <div className="admin-management-modal-footer px-8">
               <button className="button-primary px-5 py-3.5 text-base" type="button" onClick={save}>
-                Create lesson
+                {t('adminPages.lessons.createTitle')}
               </button>
               <button className="modal-outline-button px-5 py-3.5" type="button" onClick={() => resetForm()}>
-                Clear draft
+                {t('adminPages.lessons.clearDraft')}
               </button>
             </div>
           </div>

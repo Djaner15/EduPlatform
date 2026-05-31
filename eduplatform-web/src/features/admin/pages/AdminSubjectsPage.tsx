@@ -23,6 +23,7 @@ import apiClient from '../../../shared/api/axiosInstance'
 import { isWithinDateRange } from '../../../shared/dateFilters'
 import { filterSubjectsByLanguage } from '../../../shared/subjectCatalog'
 import { sortItems, type SortDirection } from '../../../shared/tableSorting'
+import { useBodyScrollLock } from '../../../shared/hooks/useBodyScrollLock'
 
 type Subject = {
   id: number
@@ -89,6 +90,8 @@ export function AdminSubjectsPage() {
   const canCreate = isAdmin
   const canDelete = isAdmin
   const isEditing = editingId !== null
+
+  useBodyScrollLock(Boolean(viewingSubject) || isEditing || isCreateModalOpen)
 
   const loadSubjects = async () => {
     const { data } = await apiClient.get<Subject[]>('/subjects')
@@ -237,6 +240,7 @@ export function AdminSubjectsPage() {
     setEndDateFilter('')
     setSortColumn('name')
     setSortDirection('asc')
+    setPage(0)
   }
 
   const openEditModal = (subject: Subject) => {

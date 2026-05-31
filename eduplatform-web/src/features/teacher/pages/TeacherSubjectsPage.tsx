@@ -8,6 +8,7 @@ import { AppTablePagination } from '../../../shared/components/AppTablePaginatio
 import { AdminResetFiltersButton } from '../../../shared/components/AdminResetFiltersButton'
 import { AdminSearchField } from '../../../shared/components/AdminSearchField'
 import { AdminSelectField } from '../../../shared/components/AdminSelectField'
+import { Button } from '../../../shared/components/Button'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 import { InfoCard } from '../../../shared/components/InfoCard'
 import { PageHeader } from '../../../shared/components/PageHeader'
@@ -118,6 +119,7 @@ export function TeacherSubjectsPage() {
   const resetFilters = () => {
     setSearchTerm('')
     setSelectedGradeFilter('all')
+    setPage(0)
   }
 
   return (
@@ -228,13 +230,9 @@ export function TeacherSubjectsPage() {
                   <InfoCard
                     key={subject.id}
                     action={
-                      <button
-                        className="button-primary inline-flex px-4 py-3 text-sm"
-                        onClick={() => navigate(`/teacher/lessons?subjectId=${subject.id}`)}
-                        type="button"
-                      >
+                      <Button size="sm" onClick={() => navigate(`/teacher/lessons?subjectId=${subject.id}`)}>
                         {t('common.viewLessons')}
-                      </button>
+                      </Button>
                     }
                     description={subject.description}
                     footer={formatStoredClassDisplay(subject.classDisplay, subject.grade, subject.section)}

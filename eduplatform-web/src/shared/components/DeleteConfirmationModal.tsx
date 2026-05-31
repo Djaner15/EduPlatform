@@ -4,6 +4,7 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import { useTranslation } from '../../app/AppSettingsContext'
 
 type DeleteConfirmationModalProps = {
   open: boolean
@@ -16,12 +17,14 @@ type DeleteConfirmationModalProps = {
 
 export function DeleteConfirmationModal({
   open,
-  title = 'Are you sure?',
-  description = 'This action cannot be undone.',
+  title,
+  description,
   isDeleting = false,
   onCancel,
   onConfirm,
 }: DeleteConfirmationModalProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog
       open={open}
@@ -56,14 +59,18 @@ export function DeleteConfirmationModal({
             <WarningAmber sx={{ fontSize: 24 }} />
           </span>
           <div>
-            <p className="glass-dialog-title-heading delete-modal-title text-xl">{title}</p>
+            <p className="glass-dialog-title-heading delete-modal-title text-xl">
+              {title ?? t('deleteConfirmation.title')}
+            </p>
             <div className="delete-modal-title-line" />
           </div>
         </div>
       </DialogTitle>
 
       <DialogContent sx={{ px: 3, pb: 2, pt: 0 }}>
-        <p className="delete-modal-description text-sm leading-6">{description}</p>
+        <p className="delete-modal-description text-sm leading-6">
+          {description ?? t('deleteConfirmation.description')}
+        </p>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3, pt: 0, gap: 1.5 }}>
@@ -73,7 +80,7 @@ export function DeleteConfirmationModal({
           onClick={onCancel}
           disabled={isDeleting}
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           className="delete-modal-confirm-button disabled:cursor-not-allowed disabled:opacity-70"
@@ -81,7 +88,7 @@ export function DeleteConfirmationModal({
           onClick={onConfirm}
           disabled={isDeleting}
         >
-          {isDeleting ? 'Deleting...' : 'Delete'}
+          {isDeleting ? t('deleteConfirmation.deleting') : t('adminPages.common.delete')}
         </button>
       </DialogActions>
     </Dialog>

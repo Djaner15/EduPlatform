@@ -105,7 +105,7 @@ export function LessonDetailsPage() {
     return () => {
       isMounted = false
     }
-  }, [id])
+  }, [id, t])
 
   if (isLoading) {
     return <div className="glass-panel p-6 text-slate-600">{t('studentPages.lessonDetails.loading')}</div>
@@ -129,7 +129,7 @@ export function LessonDetailsPage() {
     <div className="space-y-8">
       <PageHeader
         action={
-          <Link className="button-primary inline-flex text-sm" to="/student/tests">
+          <Link className="button-primary inline-flex text-sm" to={`/student/tests?lessonId=${lesson.id}`}>
             {t('studentPages.lessonDetails.startTest')}
           </Link>
         }

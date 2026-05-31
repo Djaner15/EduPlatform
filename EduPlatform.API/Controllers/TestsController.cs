@@ -73,6 +73,25 @@ public class TestsController : ControllerBase
         return Ok(stats);
     }
 
+    [Authorize(Roles = "Admin,Teacher")]
+    [HttpGet("{id:int}/results")]
+    public async Task<IActionResult> GetResultsForTest(int id)
+    {
+        var results = await _testService.GetResultsForTestAsync(id, GetCurrentUserId(), GetCurrentRole());
+        return Ok(results);
+    }
+
+    [Authorize(Roles = "Admin,Teacher")]
+    [HttpGet("results/{resultId:int}")]
+    public async Task<IActionResult> GetResultDetailsForReview(int resultId)
+    {
+        var result = await _testService.GetResultDetailsForReviewAsync(resultId, GetCurrentUserId(), GetCurrentRole());
+        if (result == null)
+            return NotFound(new { error = "Test result not found" });
+
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {

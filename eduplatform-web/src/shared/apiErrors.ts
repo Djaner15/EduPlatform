@@ -3,10 +3,13 @@ import axios from 'axios'
 const looksTechnical = (message: string) => {
   const trimmed = message.trim()
   const lower = trimmed.toLowerCase()
+  const cjkCharacterCount = Array.from(trimmed).filter((char) => /[\u3400-\u9fff]/u.test(char)).length
+  const cjkRatio = cjkCharacterCount / Math.max(Array.from(trimmed).length, 1)
 
   return (
     !trimmed ||
     trimmed.length > 220 ||
+    cjkRatio > 0.3 ||
     lower.includes('exception') ||
     lower.includes('stack trace') ||
     lower.includes('developerexceptionpage') ||

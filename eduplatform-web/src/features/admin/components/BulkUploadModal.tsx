@@ -6,6 +6,7 @@ import { AlertCircle, Download, FileSpreadsheet, Upload, X } from 'lucide-react'
 import { useNotification } from '../../../app/NotificationContext'
 import apiClient from '../../../shared/api/axiosInstance'
 import { sectionOptions } from '../../../shared/classOptions'
+import { useBodyScrollLock } from '../../../shared/hooks/useBodyScrollLock'
 
 type BulkUploadModalProps = {
   isOpen: boolean
@@ -33,10 +34,26 @@ type PreviewRow = CsvRow & {
 }
 
 const csvHeaders = ['role', 'fullName', 'username', 'email', 'password', 'subjects', 'grade', 'section']
+const csvHeaderAliases = new Map(
+  csvHeaders.flatMap((header) => [
+    [header.toLowerCase(), header],
+    [header.replace(/([A-Z])/g, ' $1').toLowerCase(), header],
+  ]),
+)
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const normalizeCell = (value: unknown) => String(value ?? '').trim()
+
+const normalizeHeaderKey = (header: string) =>
+  header
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+
+const canonicalizeCsvHeader = (header: string) => csvHeaderAliases.get(normalizeHeaderKey(header)) ?? normalizeHeaderKey(header)
 
 const validatePassword = (password: string) => {
   if (password.length < 8) {
@@ -164,6 +181,7 @@ const buildPreviewRows = (rows: CsvRow[]) => {
 }
 
 export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModalProps) {
+  useBodyScrollLock(isOpen)
   const { showNotification } = useNotification()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -200,7 +218,7 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
   const hasValidationErrors = useMemo(() => rows.some((row) => row.errors.length > 0), [rows])
 
   const downloadTemplate = () => {
-    const csvContent = `${csvHeaders.join(',')}\nstudent,Petar Ivanov,primer8a,student@example.com,StrongPass1!,,8,А\nteacher,Maria Petrova,teacher.bio,teacher@example.com,StrongPass1!,"Math, Physics",,\n`
+    const csvContent = `\uFEFF${csvHeaders.join(',')}\nstudent,Petar Ivanov,primer8a,student@example.com,StrongPass1!,,8,А\nteacher,Maria Petrova,teacher.bio,teacher@example.com,StrongPass1!,"Math, Physics",,\n`
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -220,11 +238,20 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
       header: true,
       skipEmptyLines: 'greedy',
       encoding: 'UTF-8',
-      transformHeader: (header) => header.trim().toLowerCase(),
+      transformHeader: canonicalizeCsvHeader,
       complete: (result) => {
         if (result.errors.length > 0) {
           setRows([])
           setParseError('Файлът не можа да бъде прочетен коректно.')
+          return
+        }
+
+        const fields = new Set((result.meta.fields ?? []).map(canonicalizeCsvHeader))
+        const missingHeaders = csvHeaders.filter((header) => !fields.has(header))
+
+        if (missingHeaders.length > 0) {
+          setRows([])
+          setParseError(`Липсват колони: ${missingHeaders.join(', ')}.`)
           return
         }
 
@@ -240,17 +267,6 @@ export function BulkUploadModal({ isOpen, onClose, onImported }: BulkUploadModal
             section: normalizeCell(row.section),
           }))
           .filter((row) => Object.values(row).some((value) => value.length > 0))
-
-        const missingHeaders = csvHeaders.filter((header) => !(header in (result.meta.fields ?? []).reduce<Record<string, true>>((acc, field) => {
-          acc[field] = true
-          return acc
-        }, {})))
-
-        if (missingHeaders.length > 0) {
-          setRows([])
-          setParseError(`Липсват колони: ${missingHeaders.join(', ')}.`)
-          return
-        }
 
         if (!parsedRows.length) {
           setRows([])

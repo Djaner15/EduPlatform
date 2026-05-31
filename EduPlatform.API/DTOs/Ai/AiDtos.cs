@@ -5,6 +5,7 @@ public class AiGenerateTestRequestDto
     public string Topic { get; set; } = string.Empty;
     public string Difficulty { get; set; } = "medium";
     public int QuestionCount { get; set; } = 5;
+    public string Language { get; set; } = "en";
 }
 
 public class AiGeneratedAnswerDto
@@ -31,6 +32,7 @@ public class AiExplainRequestDto
     public int QuestionId { get; set; }
     public int? SelectedAnswerId { get; set; }
     public string? TextAnswer { get; set; }
+    public string Language { get; set; } = "en";
 }
 
 public class AiExplainResponseDto

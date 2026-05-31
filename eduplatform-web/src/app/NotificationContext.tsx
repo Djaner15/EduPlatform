@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Alert, Snackbar } from '@mui/material'
 import {
   createContext,
@@ -73,6 +74,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         autoHideDuration={3500}
         onClose={handleClose}
         open={notification.open}
+        sx={{ zIndex: 2600 }}
       >
         <Alert
           onClose={handleClose}

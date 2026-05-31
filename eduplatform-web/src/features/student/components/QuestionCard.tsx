@@ -1,4 +1,5 @@
 import { resolveApiAssetUrl } from '../../../shared/api/axiosInstance'
+import { useTranslation } from '../../../app/AppSettingsContext'
 
 type QuestionAnswer = {
   id: number
@@ -34,6 +35,8 @@ export function QuestionCard({
   onSelectAnswer,
   onTextAnswer,
 }: QuestionCardProps) {
+  const { t } = useTranslation()
+
   const renderChoiceAnswers = () => (
     <div className="grid gap-3">
       {question.answers.map((answer) => {
@@ -73,8 +76,8 @@ export function QuestionCard({
     <article className="glass-panel p-6">
       <div className="space-y-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-100/60">
-            Question {index + 1}
+          <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#2468a0]">
+            {t('studentPages.profile.questionLabel', { number: index + 1 })}
           </p>
           <h2 className="mt-2 text-lg font-semibold text-slate-900">{question.text}</h2>
         </div>

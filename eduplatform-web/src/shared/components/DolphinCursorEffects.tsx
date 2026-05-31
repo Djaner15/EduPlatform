@@ -14,7 +14,7 @@ const INTERACTIVE_SELECTOR =
   'a, button, [role="button"], input:not([type="hidden"]), textarea, select, summary, label[for]'
 
 export function DolphinCursorEffects() {
-  const { cursorMode } = useAppSettings()
+  const { cursorBubblesEnabled, cursorMode } = useAppSettings()
   const [isEnabled, setIsEnabled] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [isInteractive, setIsInteractive] = useState(false)
@@ -143,7 +143,7 @@ export function DolphinCursorEffects() {
       }
 
       const now = performance.now()
-      if (now - lastBubbleAtRef.current < 48) {
+      if (!cursorBubblesEnabled || now - lastBubbleAtRef.current < 48) {
         return
       }
 
@@ -153,7 +153,7 @@ export function DolphinCursorEffects() {
         id: bubbleIdRef.current++,
         x: event.clientX,
         y: event.clientY,
-        size: 6 + Math.random() * 8,
+        size: 8 + Math.random() * 10,
       }
 
       setBubbles((current) => [...current.slice(-10), bubble])
@@ -207,7 +207,7 @@ export function DolphinCursorEffects() {
       document.removeEventListener('mouseleave', handlePointerLeave)
       window.removeEventListener('blur', handlePointerLeave)
     }
-  }, [])
+  }, [cursorBubblesEnabled])
 
   useEffect(() => {
     if (!isEnabled) {
@@ -218,24 +218,26 @@ export function DolphinCursorEffects() {
     document.body.classList.toggle('custom-cursor-enabled', cursorMode !== 'default')
   }, [cursorMode, isEnabled])
 
-  if (!isEnabled || cursorMode === 'default') {
+  if (!isEnabled || (cursorMode === 'default' && !cursorBubblesEnabled)) {
     return null
   }
 
   return (
     <>
-      <div
-        ref={cursorRef}
-        aria-hidden="true"
-        className={`dolphin-cursor-shell ${isVisible ? 'is-visible' : ''} ${isInteractive ? 'is-interactive' : ''} ${cursorMode === 'pro-circle' ? 'is-pro-circle' : ''}`}
-      >
+      {cursorMode !== 'default' ? (
         <div
-          className="dolphin-cursor-mark"
-          dangerouslySetInnerHTML={{ __html: cursorSvg }}
-        />
-      </div>
+          ref={cursorRef}
+          aria-hidden="true"
+          className={`dolphin-cursor-shell ${isVisible ? 'is-visible' : ''} ${isInteractive ? 'is-interactive' : ''} ${cursorMode === 'pro-circle' ? 'is-pro-circle' : ''}`}
+        >
+          <div
+            className="dolphin-cursor-mark"
+            dangerouslySetInnerHTML={{ __html: cursorSvg }}
+          />
+        </div>
+      ) : null}
 
-      {bubbles.map((bubble) => (
+      {cursorBubblesEnabled ? bubbles.map((bubble) => (
         <span
           key={bubble.id}
           aria-hidden="true"
@@ -247,7 +249,7 @@ export function DolphinCursorEffects() {
             height: bubble.size,
           }}
         />
-      ))}
+      )) : null}
     </>
   )
 }

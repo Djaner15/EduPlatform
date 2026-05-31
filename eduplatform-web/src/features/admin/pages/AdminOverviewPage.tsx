@@ -34,6 +34,8 @@ import apiClient from '../../../shared/api/axiosInstance'
 import { readApiError } from '../../../shared/apiErrors'
 import { ErrorNotice } from '../../../shared/components/ErrorNotice'
 
+type Translate = ReturnType<typeof useTranslation>['t']
+
 type ActivityPointDto = {
   label: string
   date: string
@@ -60,6 +62,8 @@ type StatisticsDto = {
   averageScoreTrend: number
   registeredStudents: number
   pendingTeacherApprovals: number
+  pendingRegistrations: number
+  pendingStudentRegistrations: number
   storageUsedBytes: number
   activity: ActivityPointDto[]
   subjectDistribution: SubjectDistributionDto[]
@@ -84,13 +88,17 @@ const normalizeStatistics = (data: Partial<StatisticsDto> | null | undefined): S
   averageScoreTrend: Number(data?.averageScoreTrend ?? 0),
   registeredStudents: Number(data?.registeredStudents ?? 0),
   pendingTeacherApprovals: Number(data?.pendingTeacherApprovals ?? 0),
+  pendingRegistrations: Number(data?.pendingRegistrations ?? data?.pendingTeacherApprovals ?? 0),
+  pendingStudentRegistrations: Number(data?.pendingStudentRegistrations ?? data?.pendingRegistrations ?? 0),
   storageUsedBytes: Number(data?.storageUsedBytes ?? 0),
   activity: Array.isArray(data?.activity) ? data.activity : [],
   subjectDistribution: Array.isArray(data?.subjectDistribution) ? data.subjectDistribution : [],
   recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity : [],
 })
 
-const createFallbackActivity = () => {
+const resolveLocale = (language: string) => language === 'bg' ? 'bg-BG' : 'en-US'
+
+const createFallbackActivity = (language: string) => {
   const today = new Date()
 
   return Array.from({ length: 7 }, (_, index) => {
@@ -98,9 +106,24 @@ const createFallbackActivity = () => {
     day.setDate(today.getDate() - (6 - index))
 
     return {
-      label: day.toLocaleDateString('en-US', { weekday: 'short' }),
+      label: day.toLocaleDateString(resolveLocale(language), { weekday: 'short' }),
       date: day.toISOString().slice(0, 10),
       actions: 0,
+    }
+  })
+}
+
+const localizeActivityLabels = (activity: ActivityPointDto[], language: string) => {
+  return activity.map((entry) => {
+    const parsedDate = new Date(entry.date)
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return entry
+    }
+
+    return {
+      ...entry,
+      label: parsedDate.toLocaleDateString(resolveLocale(language), { weekday: 'short' }),
     }
   })
 }
@@ -132,11 +155,51 @@ const formatStorage = (bytes: number) => {
   return `${size.toFixed(size >= 100 ? 0 : 1)} ${units[unitIndex]}`
 }
 
-const metricCards = (stats: StatisticsDto) => [
+const translateActivityTitle = (entry: RecentActivityDto, t: Translate, language: string) => {
+  if (language !== 'bg') {
+    return entry.title
+  }
+
+  if (entry.type === 'test_completed') {
+    return t('adminOverviewActivityTestCompleted')
+  }
+
+  if (entry.type === 'lesson_added') {
+    return t('adminOverviewActivityLessonAdded')
+  }
+
+  if (entry.type === 'registration_pending') {
+    return language === 'bg' ? t('adminOverviewActivityRegistrationPending') : entry.title
+  }
+
+  return t('adminOverviewActivityTeacherApproved')
+}
+
+const translateActivityDescription = (entry: RecentActivityDto, t: Translate, language: string) => {
+  if (language !== 'bg') {
+    return entry.description
+  }
+
+  if (entry.type === 'test_completed') {
+    return t('adminOverviewActivityTestCompletedDescription')
+  }
+
+  if (entry.type === 'lesson_added') {
+    return t('adminOverviewActivityLessonAddedDescription')
+  }
+
+  if (entry.type === 'registration_pending') {
+    return language === 'bg' ? t('adminOverviewActivityRegistrationPendingDescription') : entry.description
+  }
+
+  return t('adminOverviewActivityTeacherApprovedDescription')
+}
+
+const metricCards = (stats: StatisticsDto, t: Translate, language: string) => [
   {
     key: 'students',
-    label: 'Registered students',
-    value: stats.registeredStudents.toLocaleString(),
+    label: t('adminOverviewRegisteredStudents'),
+    value: stats.registeredStudents.toLocaleString(resolveLocale(language)),
     icon: Users,
     accent: 'from-cyan-400/30 via-sky-400/18 to-cyan-500/8',
     border: 'border-cyan-300/40',
@@ -144,7 +207,7 @@ const metricCards = (stats: StatisticsDto) => [
   },
   {
     key: 'score',
-    label: 'Average student score',
+    label: t('adminOverviewAverageStudentScore'),
     value: `${stats.averageScore}%`,
     icon: GraduationCap,
     accent: 'from-emerald-400/30 via-teal-400/18 to-emerald-500/8',
@@ -154,7 +217,7 @@ const metricCards = (stats: StatisticsDto) => [
   },
   {
     key: 'storage',
-    label: 'Storage used',
+    label: t('adminOverviewStorageUsed'),
     value: formatStorage(stats.storageUsedBytes),
     icon: HardDrive,
     accent: 'from-violet-400/28 via-indigo-400/16 to-violet-500/8',
@@ -163,8 +226,8 @@ const metricCards = (stats: StatisticsDto) => [
   },
   {
     key: 'pending',
-    label: 'Pending teacher approvals',
-    value: stats.pendingTeacherApprovals.toLocaleString(),
+    label: t('adminOverviewPendingStudentRegistrations'),
+    value: stats.pendingStudentRegistrations.toLocaleString(resolveLocale(language)),
     icon: CheckCheck,
     accent: 'from-amber-400/28 via-orange-400/16 to-amber-500/8',
     border: 'border-amber-300/40',
@@ -172,8 +235,8 @@ const metricCards = (stats: StatisticsDto) => [
   },
   {
     key: 'results',
-    label: 'Completed tests',
-    value: stats.totalResults.toLocaleString(),
+    label: t('adminOverviewCompletedTests'),
+    value: stats.totalResults.toLocaleString(resolveLocale(language)),
     icon: Activity,
     accent: 'from-sky-400/26 via-blue-400/16 to-cyan-500/8',
     border: 'border-sky-300/40',
@@ -182,7 +245,7 @@ const metricCards = (stats: StatisticsDto) => [
 ]
 
 export function AdminOverviewPage() {
-  const { t } = useTranslation()
+  const { language, t } = useTranslation()
   const [stats, setStats] = useState<StatisticsDto | null>(() => {
     if (typeof window === 'undefined') {
       return null
@@ -228,7 +291,7 @@ export function AdminOverviewPage() {
       } catch (error) {
         if (!isMounted) return
         if (hasCachedSnapshot) {
-          setErrorMessage('Showing the most recent saved dashboard statistics while the live data is temporarily unavailable.')
+          setErrorMessage(t('adminOverviewCachedStatistics'))
         } else {
           setErrorMessage(readApiError(error, t('failedAdminStatistics')))
         }
@@ -286,10 +349,10 @@ export function AdminOverviewPage() {
     return () => window.clearTimeout(timer)
   }, [stats?.activity?.length, stats?.recentActivity?.length, stats?.subjectDistribution?.length])
 
-  const cards = useMemo(() => (stats ? metricCards(stats) : []), [stats])
+  const cards = useMemo(() => (stats ? metricCards(stats, t, language) : []), [language, stats, t])
   const activityChartData = useMemo(
-    () => (stats && stats.activity.length > 0 ? stats.activity : createFallbackActivity()),
-    [stats],
+    () => (stats && stats.activity.length > 0 ? localizeActivityLabels(stats.activity, language) : createFallbackActivity(language)),
+    [language, stats],
   )
   const hasActivityData = useMemo(
     () => activityChartData.some((entry) => entry.actions > 0),
@@ -304,11 +367,11 @@ export function AdminOverviewPage() {
   )
   const snapshotChartData = useMemo(
     () => [
-      { label: 'Users', value: stats?.totalUsers ?? 0, fill: '#38bdf8' },
-      { label: 'Tests', value: stats?.totalTests ?? 0, fill: '#2dd4bf' },
-      { label: 'Results', value: stats?.totalResults ?? 0, fill: '#0ea5e9' },
+      { label: t('adminOverviewSnapshotUsers'), value: stats?.totalUsers ?? 0, fill: '#38bdf8' },
+      { label: t('adminOverviewSnapshotTests'), value: stats?.totalTests ?? 0, fill: '#2dd4bf' },
+      { label: t('adminOverviewSnapshotResults'), value: stats?.totalResults ?? 0, fill: '#0ea5e9' },
     ],
-    [stats?.totalResults, stats?.totalTests, stats?.totalUsers],
+    [stats?.totalResults, stats?.totalTests, stats?.totalUsers, t],
   )
   const completionRate = useMemo(
     () => ((stats?.totalResults ?? 0) / Math.max(stats?.totalTests ?? 1, 1)) * 100,
@@ -370,9 +433,13 @@ export function AdminOverviewPage() {
                       </div>
 
                       {typeof card.trend === 'number' ? (
-                        <div className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${trendUp ? 'bg-emerald-400/14 text-emerald-200' : 'bg-rose-400/14 text-rose-200'}`}>
+                        <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold shadow-sm ${
+                          trendUp
+                            ? 'border-emerald-300/70 bg-white/65 text-emerald-800'
+                            : 'border-rose-300/70 bg-white/65 text-rose-700'
+                        }`}>
                           {trendUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                          {`${trendUp ? '+' : ''}${card.trend.toFixed(1)} pts vs last week`}
+                          {t('adminOverviewTrendVsLastWeek', { value: `${trendUp ? '+' : ''}${card.trend.toFixed(1)}` })}
                         </div>
                       ) : null}
                     </div>
@@ -385,12 +452,12 @@ export function AdminOverviewPage() {
               <article className={`rounded-[1.9rem] border border-white/60 bg-white/60 p-6 text-slate-900 shadow-[0_22px_54px_rgba(34,211,238,0.12)] backdrop-blur-xl transition duration-500 ${isAnimatedIn ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}>
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">Platform Activity</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">Actions over the last 14 days</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">{t('adminOverviewPlatformActivity')}</p>
+                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">{t('adminOverviewActionsLastDays')}</h3>
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/55 bg-white/45 px-3 py-1.5 text-xs font-semibold text-slate-600">
                     <Database className="h-3.5 w-3.5" />
-                    Live database data
+                    {t('adminOverviewLiveDatabaseData')}
                   </div>
                 </div>
 
@@ -419,8 +486,8 @@ export function AdminOverviewPage() {
                       />
                       <Tooltip
                         contentStyle={glassTooltipStyle}
-                        formatter={(value) => [`${Number(value ?? 0)} actions`, 'Activity']}
-                        labelFormatter={(label) => `Day: ${label}`}
+                        formatter={(value) => [t('adminOverviewActionsCount', { count: Number(value ?? 0) }), t('adminOverviewActivityTooltipLabel')]}
+                        labelFormatter={(label) => t('adminOverviewDayTooltip', { label })}
                       />
                       <Area
                         type="monotone"
@@ -438,15 +505,15 @@ export function AdminOverviewPage() {
 
                 {!hasActivityData ? (
                   <div className="mt-4 rounded-[1.35rem] border border-dashed border-cyan-200/80 bg-white/40 px-4 py-3 text-sm text-slate-600">
-                    Activity charts will populate as tests are completed, lessons are published, and teachers are approved.
+                    {t('adminOverviewNoActivityChart')}
                   </div>
                 ) : (
                   <div className="mt-4 flex flex-wrap gap-3">
                     <div className="rounded-full border border-cyan-200/80 bg-white/45 px-4 py-2 text-sm font-semibold text-slate-700">
-                      Total tracked actions: {activityChartData.reduce((sum, entry) => sum + entry.actions, 0)}
+                      {t('adminOverviewTotalTrackedActions', { count: activityChartData.reduce((sum, entry) => sum + entry.actions, 0) })}
                     </div>
                     <div className="rounded-full border border-cyan-200/80 bg-white/45 px-4 py-2 text-sm font-semibold text-slate-700">
-                      Peak day: {activityPeak.label}
+                      {t('adminOverviewPeakDay', { day: activityPeak.label })}
                     </div>
                   </div>
                 )}
@@ -454,15 +521,15 @@ export function AdminOverviewPage() {
 
               <article className={`rounded-[1.9rem] border border-white/60 bg-white/60 p-6 text-slate-900 shadow-[0_22px_54px_rgba(45,212,191,0.1)] backdrop-blur-xl transition duration-500 ${isAnimatedIn ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`} style={{ transitionDelay: '80ms' }}>
                 <div className="mb-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-600">Subject Distribution</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">Lessons by subject</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-600">{t('adminOverviewSubjectDistribution')}</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">{t('adminOverviewLessonsBySubject')}</h3>
                 </div>
 
                 <div className="h-[310px]">
                   {hasSubjectDistribution ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Tooltip contentStyle={glassTooltipStyle} formatter={(value) => [`${Number(value ?? 0)} lessons`, 'Volume']} />
+                        <Tooltip contentStyle={glassTooltipStyle} formatter={(value) => [t('adminOverviewLessonsCount', { count: Number(value ?? 0) }), t('adminOverviewVolume')]} />
                         <Legend wrapperStyle={{ color: 'rgba(51,65,85,0.82)', fontSize: 12 }} />
                         <Pie
                           data={stats.subjectDistribution}
@@ -485,9 +552,9 @@ export function AdminOverviewPage() {
                         <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100/80 text-teal-700">
                           <PieChartIcon className="h-6 w-6" />
                         </div>
-                        <p className="mt-4 text-base font-semibold text-slate-900">No subject chart yet</p>
+                        <p className="mt-4 text-base font-semibold text-slate-900">{t('adminOverviewNoSubjectChartYet')}</p>
                         <p className="mt-2 text-sm leading-6 text-slate-600">
-                          The distribution chart will appear once lessons are published under subjects.
+                          {t('adminOverviewNoSubjectChartDescription')}
                         </p>
                       </div>
                     </div>
@@ -520,18 +587,18 @@ export function AdminOverviewPage() {
               <article className={`rounded-[1.9rem] border border-white/60 bg-white/60 p-6 text-slate-900 shadow-[0_22px_54px_rgba(14,165,233,0.1)] backdrop-blur-xl transition duration-500 ${isAnimatedIn ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`} style={{ transitionDelay: '120ms' }}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">Recent Activity</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">Live feed</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">{t('adminOverviewRecentActivity')}</p>
+                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">{t('adminOverviewLiveFeed')}</h3>
                   </div>
                   <div className="rounded-full border border-white/55 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-600">
-                    {recentActivityPage ? `Page ${recentActivityPage.page} of ${recentActivityPage.totalPages}` : 'Live activity'}
+                    {recentActivityPage ? t('adminOverviewPageOf', { page: recentActivityPage.page, totalPages: recentActivityPage.totalPages }) : t('adminOverviewLiveActivity')}
                   </div>
                 </div>
 
                 <div className="mt-5 space-y-3">
                   {isActivityLoading ? (
                     <div className="rounded-[1.35rem] border border-dashed border-sky-200/80 bg-white/40 px-4 py-8 text-center text-sm text-slate-600">
-                      Loading live activity...
+                      {t('adminOverviewLoadingLiveActivity')}
                     </div>
                   ) : hasRecentActivity ? (
                     recentActivityItems.map((entry) => (
@@ -541,16 +608,18 @@ export function AdminOverviewPage() {
                             ? 'bg-emerald-400/14 text-emerald-600'
                             : entry.type === 'lesson_added'
                               ? 'bg-sky-400/14 text-sky-600'
-                              : 'bg-amber-400/14 text-amber-600'
+                              : entry.type === 'registration_pending'
+                                ? 'bg-rose-400/14 text-rose-600'
+                                : 'bg-amber-400/14 text-amber-600'
                         }`}>
                           {entry.type === 'test_completed' ? <Activity className="h-4 w-4" /> : entry.type === 'lesson_added' ? <Database className="h-4 w-4" /> : <CheckCheck className="h-4 w-4" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-slate-900">{entry.title}</p>
-                          <p className="mt-1 text-sm text-slate-600">{entry.description}</p>
+                          <p className="font-semibold text-slate-900">{translateActivityTitle(entry, t, language)}</p>
+                          <p className="mt-1 text-sm text-slate-600">{translateActivityDescription(entry, t, language)}</p>
                         </div>
                         <span className="whitespace-nowrap text-xs font-medium text-slate-500">
-                          {new Date(entry.occurredAt).toLocaleString()}
+                          {new Date(entry.occurredAt).toLocaleString(resolveLocale(language))}
                         </span>
                       </div>
                     ))
@@ -558,27 +627,27 @@ export function AdminOverviewPage() {
                     <div className="mt-5 space-y-4">
                       <div className="grid gap-3 md:grid-cols-3">
                         <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
-                          <p className="text-sm text-slate-500">Lessons in system</p>
+                          <p className="text-sm text-slate-500">{t('adminOverviewLessonsInSystem')}</p>
                           <p className="mt-2 text-3xl font-bold text-slate-900">
                             {stats.subjectDistribution.reduce((sum, entry) => sum + entry.lessonCount, 0)}
                           </p>
                         </div>
                         <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
-                          <p className="text-sm text-slate-500">Peak activity day</p>
+                          <p className="text-sm text-slate-500">{t('adminOverviewPeakActivityDay')}</p>
                           <p className="mt-2 text-3xl font-bold text-slate-900">{activityPeak.label}</p>
                         </div>
                         <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
-                          <p className="text-sm text-slate-500">Top subject</p>
+                          <p className="text-sm text-slate-500">{t('adminOverviewTopSubject')}</p>
                           <p className="mt-2 text-xl font-bold text-slate-900">
-                            {stats.subjectDistribution[0]?.subjectName ?? 'No data yet'}
+                            {stats.subjectDistribution[0]?.subjectName ?? t('adminOverviewNoDataYet')}
                           </p>
                         </div>
                       </div>
 
                       <div className="rounded-[1.35rem] border border-dashed border-sky-200/80 bg-white/40 px-4 py-5">
                         <div className="mb-3 flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-slate-700">Momentum preview</p>
-                          <p className="text-xs text-slate-500">Still waiting for recent event feed</p>
+                          <p className="text-sm font-semibold text-slate-700">{t('adminOverviewMomentumPreview')}</p>
+                          <p className="text-xs text-slate-500">{t('adminOverviewWaitingForFeed')}</p>
                         </div>
                         <div className="h-[180px]">
                           <ResponsiveContainer width="100%" height="100%">
@@ -588,8 +657,8 @@ export function AdminOverviewPage() {
                               <YAxis hide domain={[0, hasActivityData ? 'auto' : 1]} />
                               <Tooltip
                                 contentStyle={glassTooltipStyle}
-                                formatter={(value) => [`${Number(value ?? 0)} actions`, 'Momentum']}
-                                labelFormatter={(label) => `Day: ${label}`}
+                                formatter={(value) => [t('adminOverviewActionsCount', { count: Number(value ?? 0) }), t('adminOverviewMomentum')]}
+                                labelFormatter={(label) => t('adminOverviewDayTooltip', { label })}
                               />
                               <Bar dataKey="actions" radius={[10, 10, 6, 6]} fill="url(#activityStroke)" />
                             </BarChart>
@@ -603,9 +672,11 @@ export function AdminOverviewPage() {
                 {recentActivityPage && recentActivityPage.totalPages > 1 ? (
                   <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/50 pt-4">
                     <p className="text-sm text-slate-500">
-                      Showing {(recentActivityPage.page - 1) * recentActivityPage.pageSize + 1}
-                      -
-                      {Math.min(recentActivityPage.page * recentActivityPage.pageSize, recentActivityPage.totalCount)} of {recentActivityPage.totalCount}
+                      {t('adminOverviewShowingRange', {
+                        start: (recentActivityPage.page - 1) * recentActivityPage.pageSize + 1,
+                        end: Math.min(recentActivityPage.page * recentActivityPage.pageSize, recentActivityPage.totalCount),
+                        total: recentActivityPage.totalCount,
+                      })}
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -615,7 +686,7 @@ export function AdminOverviewPage() {
                         onClick={() => setActivityPage((current) => Math.max(1, current - 1))}
                       >
                         <ArrowLeft className="h-4 w-4" />
-                        Previous
+                        {t('adminOverviewPrevious')}
                       </button>
                       <button
                         className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/60 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-200 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -623,7 +694,7 @@ export function AdminOverviewPage() {
                         type="button"
                         onClick={() => setActivityPage((current) => current + 1)}
                       >
-                        Next
+                        {t('adminOverviewNext')}
                         <ArrowRight className="h-4 w-4" />
                       </button>
                     </div>
@@ -633,14 +704,14 @@ export function AdminOverviewPage() {
 
               <article className={`self-start rounded-[1.9rem] border border-white/60 bg-white/60 p-6 text-slate-900 shadow-[0_22px_54px_rgba(45,212,191,0.08)] backdrop-blur-xl transition duration-500 xl:sticky xl:top-6 ${isAnimatedIn ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`} style={{ transitionDelay: '180ms' }}>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">Platform Snapshot</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">Operational summary</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600">{t('adminOverviewPlatformSnapshot')}</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">{t('adminOverviewOperationalSummary')}</h3>
                 </div>
 
                 <div className="mt-5 rounded-[1.5rem] border border-white/55 bg-white/45 p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-700">System volume</p>
-                    <p className="text-xs text-slate-500">Users, tests, and submissions</p>
+                    <p className="text-sm font-semibold text-slate-700">{t('adminOverviewSystemVolume')}</p>
+                    <p className="text-xs text-slate-500">{t('adminOverviewSystemVolumeDescription')}</p>
                   </div>
                   <div className="h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -650,7 +721,7 @@ export function AdminOverviewPage() {
                         <YAxis tick={{ fill: 'rgba(51,65,85,0.68)', fontSize: 12 }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
                         <Tooltip
                           contentStyle={glassTooltipStyle}
-                          formatter={(value) => [Number(value ?? 0), 'Count']}
+                          formatter={(value) => [Number(value ?? 0), t('adminOverviewCount')]}
                         />
                         <Bar dataKey="value" radius={[12, 12, 4, 4]}>
                           {snapshotChartData.map((entry) => (
@@ -665,7 +736,7 @@ export function AdminOverviewPage() {
                 <div className="mt-4 grid gap-3">
                   <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-slate-700">Submission completion rate</p>
+                      <p className="text-sm font-semibold text-slate-700">{t('adminOverviewSubmissionCompletionRate')}</p>
                       <p className="text-sm font-bold text-slate-900">{completionRate.toFixed(1)}%</p>
                     </div>
                     <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200/80">
@@ -678,16 +749,16 @@ export function AdminOverviewPage() {
 
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
-                      <p className="text-sm text-slate-600">Total users</p>
-                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalUsers.toLocaleString()}</p>
+                      <p className="text-sm text-slate-600">{t('totalUsers')}</p>
+                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalUsers.toLocaleString(resolveLocale(language))}</p>
                     </div>
                     <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
-                      <p className="text-sm text-slate-600">Published tests</p>
-                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalTests.toLocaleString()}</p>
+                      <p className="text-sm text-slate-600">{t('adminOverviewPublishedTests')}</p>
+                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalTests.toLocaleString(resolveLocale(language))}</p>
                     </div>
                     <div className="rounded-[1.35rem] border border-white/55 bg-white/45 px-4 py-4">
-                      <p className="text-sm text-slate-600">Completed submissions</p>
-                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalResults.toLocaleString()}</p>
+                      <p className="text-sm text-slate-600">{t('adminOverviewCompletedSubmissions')}</p>
+                      <p className="mt-2 text-3xl font-bold text-slate-900">{stats.totalResults.toLocaleString(resolveLocale(language))}</p>
                     </div>
                   </div>
                 </div>

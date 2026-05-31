@@ -366,6 +366,9 @@ public class TestService : ITestService
             ResultId = result.Id,
             TestId = testId,
             UserId = userId,
+            StudentUsername = student.Username,
+            StudentFullName = student.FullName,
+            StudentEmail = student.Email,
             TestTitle = test.Title,
             SubjectName = test.Lesson.Subject.Name,
             ScorePercentage = percentage,
@@ -376,12 +379,16 @@ public class TestService : ITestService
     public async Task<List<TestResultDto>> GetAllResultsAsync()
     {
         return await _context.TestResults
+            .Include(tr => tr.User)
             .Include(tr => tr.Test).ThenInclude(t => t.Lesson).ThenInclude(l => l.Subject)
             .Select(tr => new TestResultDto
             {
                 ResultId = tr.Id,
                 TestId = tr.TestId,
                 UserId = tr.UserId,
+                StudentUsername = tr.User.Username,
+                StudentFullName = tr.User.FullName,
+                StudentEmail = tr.User.Email,
                 TestTitle = tr.Test.Title,
                 SubjectName = tr.Test.Lesson.Subject.Name,
                 ScorePercentage = tr.Score,
@@ -394,6 +401,7 @@ public class TestService : ITestService
     {
         return await _context.TestResults
             .Where(tr => tr.UserId == userId)
+            .Include(tr => tr.User)
             .Include(tr => tr.Test).ThenInclude(t => t.Lesson).ThenInclude(l => l.Subject)
             .OrderByDescending(tr => tr.CompletedAt)
             .Select(tr => new TestResultDto
@@ -401,6 +409,9 @@ public class TestService : ITestService
                 ResultId = tr.Id,
                 TestId = tr.TestId,
                 UserId = tr.UserId,
+                StudentUsername = tr.User.Username,
+                StudentFullName = tr.User.FullName,
+                StudentEmail = tr.User.Email,
                 TestTitle = tr.Test.Title,
                 SubjectName = tr.Test.Lesson.Subject.Name,
                 ScorePercentage = tr.Score,
@@ -413,6 +424,7 @@ public class TestService : ITestService
     {
         var result = await _context.TestResults
             .Where(tr => tr.Id == resultId && tr.UserId == userId)
+            .Include(tr => tr.User)
             .Include(tr => tr.Test).ThenInclude(t => t.Lesson).ThenInclude(l => l.Subject)
             .FirstOrDefaultAsync();
 
@@ -421,10 +433,89 @@ public class TestService : ITestService
             return null;
         }
 
+        return await BuildResultDetailsAsync(result);
+    }
+
+    public async Task<List<TestResultDto>> GetResultsForTestAsync(int testId, int currentUserId, string currentRole)
+    {
+        var isAdmin = string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase);
+        var isTeacher = string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAdmin && !isTeacher)
+        {
+            return new List<TestResultDto>();
+        }
+
+        var query = _context.TestResults
+            .Where(tr => tr.TestId == testId)
+            .Include(tr => tr.User)
+            .Include(tr => tr.Test).ThenInclude(t => t.Lesson).ThenInclude(l => l.Subject)
+            .AsQueryable();
+
+        if (isTeacher)
+        {
+            query = query.Where(tr => tr.Test.CreatedByUserId == currentUserId);
+        }
+
+        return await query
+            .OrderByDescending(tr => tr.CompletedAt)
+            .Select(tr => new TestResultDto
+            {
+                ResultId = tr.Id,
+                TestId = tr.TestId,
+                UserId = tr.UserId,
+                StudentUsername = tr.User.Username,
+                StudentFullName = tr.User.FullName,
+                StudentEmail = tr.User.Email,
+                TestTitle = tr.Test.Title,
+                SubjectName = tr.Test.Lesson.Subject.Name,
+                ScorePercentage = tr.Score,
+                CompletedAt = tr.CompletedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task<TestResultDetailsDto?> GetResultDetailsForReviewAsync(int resultId, int currentUserId, string currentRole)
+    {
+        var isAdmin = string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase);
+        var isTeacher = string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAdmin && !isTeacher)
+        {
+            return null;
+        }
+
+        var query = _context.TestResults
+            .Where(tr => tr.Id == resultId)
+            .Include(tr => tr.User)
+            .Include(tr => tr.Test).ThenInclude(t => t.Lesson).ThenInclude(l => l.Subject)
+            .AsQueryable();
+
+        if (isTeacher)
+        {
+            query = query.Where(tr => tr.Test.CreatedByUserId == currentUserId);
+        }
+
+        var result = await query.FirstOrDefaultAsync();
+
+        if (result == null)
+        {
+            return null;
+        }
+
+        return await BuildResultDetailsAsync(result);
+    }
+
+    private async Task<TestResultDetailsDto> BuildResultDetailsAsync(TestResult result)
+    {
         var details = new TestResultDetailsDto
         {
             ResultId = result.Id,
             TestId = result.TestId,
+            UserId = result.UserId,
+            StudentUsername = result.User.Username,
+            StudentFullName = result.User.FullName,
+            StudentEmail = result.User.Email,
             TestTitle = result.Test.Title,
             SubjectName = result.Test.Lesson.Subject.Name,
             ScorePercentage = result.Score,
@@ -514,19 +605,32 @@ public class TestService : ITestService
             .ToListAsync();
 
         var assignedSubjects = assignedSubjectsRaw
-            .Select(subject => new TeacherSubjectSnapshotDto
+            .GroupBy(subject => new
             {
-                SubjectId = subject.SubjectId,
-                SubjectName = subject.SubjectName,
-                ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(subject.Grade, subject.Section) ?? string.Empty,
-                LessonCount = subject.LessonCount,
-                TestCount = subject.TestCount
+                NormalizedName = subject.SubjectName.Trim().ToLower(),
+                subject.Grade,
+                NormalizedSection = (subject.Section ?? string.Empty).Trim().ToLower()
+            })
+            .Select(group =>
+            {
+                var firstSubject = group
+                    .OrderBy(subject => subject.SubjectId)
+                    .First();
+
+                return new TeacherSubjectSnapshotDto
+                {
+                    SubjectId = firstSubject.SubjectId,
+                    SubjectName = firstSubject.SubjectName,
+                    ClassDisplay = ClassAssignmentPolicy.FormatClassDisplay(firstSubject.Grade, firstSubject.Section) ?? string.Empty,
+                    LessonCount = group.Sum(subject => subject.LessonCount),
+                    TestCount = group.Sum(subject => subject.TestCount)
+                };
             })
             .OrderBy(subject => subject.SubjectName)
             .ThenBy(subject => subject.ClassDisplay)
             .ToList();
 
-        var assignedSubjectIds = assignedSubjects
+        var assignedSubjectIds = assignedSubjectsRaw
             .Select(subject => subject.SubjectId)
             .Distinct()
             .ToList();
@@ -594,6 +698,12 @@ public class TestService : ITestService
         var pendingTeacherApprovals = await _context.Users
             .Include(user => user.Role)
             .CountAsync(user => user.Role.Name == "Teacher" && !user.IsApproved);
+
+        var pendingRegistrations = await _context.Users
+            .CountAsync(user => !user.IsApproved);
+
+        var pendingStudentRegistrations = await _context.Users
+            .CountAsync(user => user.Role.Name == "Student" && !user.IsApproved);
 
         double avgScore = totalResults > 0
             ? await _context.TestResults.AverageAsync(tr => tr.Score)
@@ -683,6 +793,8 @@ public class TestService : ITestService
             AverageScoreTrend = Math.Round(averageScoreTrend, 2),
             RegisteredStudents = registeredStudents,
             PendingTeacherApprovals = pendingTeacherApprovals,
+            PendingRegistrations = pendingRegistrations,
+            PendingStudentRegistrations = pendingStudentRegistrations,
             StorageUsedBytes = storageUsedBytes,
             Activity = activity,
             SubjectDistribution = subjectDistribution,
@@ -747,9 +859,25 @@ public class TestService : ITestService
             })
             .ToListAsync();
 
+        var pendingRegistrationActivities = await _context.Users
+            .Include(user => user.Role)
+            .Where(user => user.Role.Name == "Student" && !user.IsApproved)
+            .OrderByDescending(user => user.Id)
+            .Take(20)
+            .Select(user => new RecentActivityProjection
+            {
+                Type = "registration_pending",
+                ActorName = user.Username,
+                PrimaryText = user.Role.Name,
+                SecondaryText = user.Email,
+                OccurredAt = DateTime.UtcNow
+            })
+            .ToListAsync();
+
         return recentTestActivities
             .Concat(recentLessonActivities)
             .Concat(recentTeacherApprovals)
+            .Concat(pendingRegistrationActivities)
             .OrderByDescending(entry => entry.OccurredAt)
             .Skip(Math.Max(page - 1, 0) * pageSize)
             .Take(pageSize)
@@ -773,6 +901,13 @@ public class TestService : ITestService
                 Type = activity.Type,
                 Title = $"New lesson added to {activity.PrimaryText}",
                 Description = $"{activity.ActorName} published {activity.SecondaryText}",
+                OccurredAt = activity.OccurredAt
+            },
+            "registration_pending" => new RecentActivityDto
+            {
+                Type = activity.Type,
+                Title = $"{activity.ActorName} requested registration",
+                Description = $"{activity.PrimaryText} account waiting for admin approval",
                 OccurredAt = activity.OccurredAt
             },
             _ => new RecentActivityDto

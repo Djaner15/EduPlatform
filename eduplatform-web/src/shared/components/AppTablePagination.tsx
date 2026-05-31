@@ -5,6 +5,7 @@ type AppTablePaginationProps = {
   count: number
   page: number
   rowsPerPage: number
+  rowsPerPageOptions?: number[]
   onPageChange: (page: number) => void
   onRowsPerPageChange: (rowsPerPage: number) => void
 }
@@ -13,6 +14,7 @@ export function AppTablePagination({
   count,
   page,
   rowsPerPage,
+  rowsPerPageOptions = [10, 25, 50],
   onPageChange,
   onRowsPerPageChange,
 }: AppTablePaginationProps) {
@@ -25,7 +27,7 @@ export function AppTablePagination({
       count={count}
       page={page}
       rowsPerPage={rowsPerPage}
-      rowsPerPageOptions={[10, 25, 50]}
+      rowsPerPageOptions={rowsPerPageOptions}
       onPageChange={(_event, nextPage) => onPageChange(nextPage)}
       onRowsPerPageChange={(event) => onRowsPerPageChange(Number(event.target.value))}
       sx={{

@@ -80,7 +80,7 @@ public class LessonsController : ControllerBase
                 PropertyNameCaseInsensitive = true
             }) ?? throw new InvalidOperationException("Invalid lesson payload.");
 
-            var lesson = await _lessonService.CreateAsync(dto, form.Image, form.Attachment, GetCurrentUserId());
+            var lesson = await _lessonService.CreateAsync(dto, form.Image, form.Attachment, GetCurrentUserId(), GetCurrentRole());
             return CreatedAtAction(nameof(GetById), new { id = lesson.Id }, lesson);
         }
         catch (InvalidOperationException ex)

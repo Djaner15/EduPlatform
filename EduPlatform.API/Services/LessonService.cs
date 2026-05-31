@@ -28,7 +28,13 @@ public class LessonService : ILessonService
             .Include(l => l.CreatedByUser)
             .AsQueryable();
 
-        if (!ignoreClassFilter &&
+        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(l =>
+                l.CreatedByUserId == currentUserId ||
+                l.Subject.TeacherAssignments.Any(assignment => assignment.TeacherId == currentUserId));
+        }
+        else if (!ignoreClassFilter &&
                  string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
                  currentUserId > 0)
         {
@@ -79,7 +85,18 @@ public class LessonService : ILessonService
         if (lesson == null)
             return null;
 
-        if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
+        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasAccess = lesson.CreatedByUserId == currentUserId ||
+                await _context.Set<TeacherSubjectAssignment>()
+                    .AnyAsync(assignment => assignment.TeacherId == currentUserId && assignment.SubjectId == lesson.SubjectId);
+
+            if (!hasAccess)
+            {
+                return null;
+            }
+        }
+        else if (string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) && currentUserId > 0)
         {
             var student = await _context.Users.FindAsync(currentUserId);
             if (student == null || !ClassAssignmentPolicy.CanAccessStudentContent(student, lesson.Grade))
@@ -125,7 +142,13 @@ public class LessonService : ILessonService
             .Include(l => l.CreatedByUser)
             .Where(l => l.SubjectId == subjectId);
 
-        if (!ignoreClassFilter &&
+        if (string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(l =>
+                l.CreatedByUserId == currentUserId ||
+                l.Subject.TeacherAssignments.Any(assignment => assignment.TeacherId == currentUserId));
+        }
+        else if (!ignoreClassFilter &&
                  string.Equals(currentRole, "Student", StringComparison.OrdinalIgnoreCase) &&
                  currentUserId > 0)
         {
@@ -166,7 +189,7 @@ public class LessonService : ILessonService
     /// <summary>
     /// Creates a new lesson
     /// </summary>
-    public async Task<LessonDto> CreateAsync(LessonUpsertDto dto, IFormFile? image, IFormFile? attachment, int currentUserId)
+    public async Task<LessonDto> CreateAsync(LessonUpsertDto dto, IFormFile? image, IFormFile? attachment, int currentUserId, string currentRole)
     {
         if (string.IsNullOrWhiteSpace(dto.Title))
             throw new InvalidOperationException("Lesson title is required");
@@ -178,6 +201,8 @@ public class LessonService : ILessonService
         var subject = await _context.Subjects.FindAsync(dto.SubjectId);
         if (subject == null)
             throw new InvalidOperationException("Subject not found");
+
+        await EnsureCanUseSubjectAsync(subject.Id, currentUserId, currentRole);
 
         var classAssignment = ClassAssignmentPolicy.EnsureValidClass(dto.Grade, dto.Section);
 
@@ -265,6 +290,8 @@ public class LessonService : ILessonService
         if (subject == null)
             throw new InvalidOperationException("Subject not found");
 
+        await EnsureCanUseSubjectAsync(subject.Id, currentUserId, currentRole);
+
         if (subject.Grade != classAssignment.Grade || subject.Section != classAssignment.Section)
             throw new InvalidOperationException("Lesson class must match the selected subject class.");
 
@@ -341,6 +368,29 @@ public class LessonService : ILessonService
         if (createdByUserId != currentUserId)
         {
             throw new InvalidOperationException("You can only manage lessons you created.");
+        }
+    }
+
+    private async Task EnsureCanUseSubjectAsync(int subjectId, int currentUserId, string currentRole)
+    {
+        if (string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!string.Equals(currentRole, "Teacher", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Only teachers and administrators can manage lessons.");
+        }
+
+        var hasAccess = await _context.Subjects.AnyAsync(subject =>
+            subject.Id == subjectId &&
+            (subject.CreatedByUserId == currentUserId ||
+             subject.TeacherAssignments.Any(assignment => assignment.TeacherId == currentUserId)));
+
+        if (!hasAccess)
+        {
+            throw new InvalidOperationException("You can only create lessons for subjects assigned to you.");
         }
     }
 }

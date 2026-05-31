@@ -9,6 +9,8 @@ public class StatisticsDto
     public double AverageScoreTrend { get; set; }
     public int RegisteredStudents { get; set; }
     public int PendingTeacherApprovals { get; set; }
+    public int PendingRegistrations { get; set; }
+    public int PendingStudentRegistrations { get; set; }
     public long StorageUsedBytes { get; set; }
     public List<ActivityPointDto> Activity { get; set; } = new();
     public List<SubjectDistributionDto> SubjectDistribution { get; set; } = new();
