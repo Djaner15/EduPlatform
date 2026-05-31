@@ -21,4 +21,4 @@ EXPOSE 80
 
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "YourProjectName.dll"]
+ENTRYPOINT ["dotnet", "EduPlatform.API.dll"]
